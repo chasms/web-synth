@@ -1,0 +1,225 @@
+.app {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+  background-color: #000;
+  color: #fff;
+  min-height: 100vh;
+}
+
+header h1 {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  color: #fff;
+  font-weight: 300;
+}
+
+.synthesizer {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.audio-controls {
+  background: #111;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.audio-controls h2 {
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.start-audio-btn {
+  background: #fff;
+  color: #000;
+  border: none;
+  padding: 12px 24px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.start-audio-btn:hover {
+  background: #ddd;
+}
+
+.audio-status {
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+  margin-top: 1rem;
+  color: #ccc;
+}
+
+.test-controls {
+  background: #111;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.test-controls h2 {
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.test-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1rem 0;
+}
+
+.test-note-btn, .stop-btn {
+  padding: 12px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  border: 2px solid;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: transparent;
+}
+
+.test-note-btn {
+  border-color: #fff;
+  color: #fff;
+}
+
+.test-note-btn:hover:not(:disabled) {
+  background: #fff;
+  color: #000;
+}
+
+.stop-btn {
+  border-color: #fff;
+  color: #fff;
+}
+
+.stop-btn:hover:not(:disabled) {
+  background: #fff;
+  color: #000;
+}
+
+.test-note-btn:disabled, .stop-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.play-status {
+  font-weight: 500;
+  margin-top: 1rem;
+  color: #fff;
+}
+
+.master-controls {
+  background: #111;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.master-controls h2 {
+  color: #fff;
+  margin-bottom: 1rem;
+}
+
+.oscillators {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.oscillator-controls {
+  background: #111;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #333;
+}
+
+.oscillator-controls h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  color: #fff;
+  font-weight: 400;
+}
+
+.knob-container, .number-input-container, .select-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.knob-container label, .number-input-container label, .select-container label {
+  font-weight: 400;
+  font-size: 0.9rem;
+  color: #ccc;
+}
+
+.knob, .number-input, .select {
+  padding: 0.5rem;
+  border: 1px solid #666;
+  border-radius: 4px;
+  font-size: 1rem;
+  background: #222;
+  color: #fff;
+}
+
+.knob {
+  width: 100px;
+}
+
+.knob:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.number-input {
+  width: 80px;
+  text-align: center;
+}
+
+.number-input:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  border-color: #fff;
+}
+
+.select {
+  width: 120px;
+}
+
+.select:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+  border-color: #fff;
+}
+
+.knob-value {
+  font-size: 0.8rem;
+  color: #999;
+  font-family: monospace;
+}
+
+@media (max-width: 768px) {
+  .oscillators {
+    grid-template-columns: 1fr;
+  }
+
+  .test-buttons {
+    flex-wrap: wrap;
+  }
+
+  .audio-status {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}

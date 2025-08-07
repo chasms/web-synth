@@ -1,0 +1,115 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+
+import type { OscillatorParams } from "../types/synth";
+import { useAudioContext } from "./useAudioContext";
+
+interface UseOscillatorReturn {
+  start: (frequency?: number, destination?: AudioNode) => void;
+  stop: () => void;
+  updateParams: (params: Partial<OscillatorParams>) => void;
+  isRunning: boolean;
+}
+
+export function useOscillator(params: OscillatorParams): UseOscillatorReturn {
+  const { audioContext } = useAudioContext();
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+
+  // Create and configure audio nodes
+  const createNodes = useCallback(() => {
+    if (!audioContext) return null;
+
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    // Configure oscillator
+    oscillator.frequency.value = params.frequency;
+    oscillator.type = params.type;
+    oscillator.detune.value = params.detune;
+
+    // Configure gain
+    gainNode.gain.value = params.gain;
+
+    // Connect the nodes
+    oscillator.connect(gainNode);
+
+    return { oscillator, gainNode };
+  }, [audioContext, params]);
+
+  const start = useCallback(
+    (frequency?: number, destination?: AudioNode) => {
+      if (!audioContext || isRunning) return;
+
+      const nodes = createNodes();
+      if (!nodes) return;
+
+      const { oscillator, gainNode } = nodes;
+
+      // Override frequency if provided
+      if (frequency !== undefined) {
+        oscillator.frequency.value = frequency;
+      }
+
+      // Connect to destination (master gain or audio context destination)
+      const outputDestination = destination || audioContext.destination;
+      gainNode.connect(outputDestination);
+      oscillatorRef.current = oscillator;
+      gainNodeRef.current = gainNode;
+
+      // Start the oscillator
+      oscillator.start();
+      setIsRunning(true);
+
+      // Clean up when oscillator ends
+      oscillator.onended = () => {
+        setIsRunning(false);
+        oscillatorRef.current = null;
+        gainNodeRef.current = null;
+      };
+    },
+    [audioContext, createNodes, isRunning],
+  );
+
+  const stop = useCallback(() => {
+    if (oscillatorRef.current && isRunning) {
+      oscillatorRef.current.stop();
+      setIsRunning(false);
+    }
+  }, [isRunning]);
+
+  const updateParams = useCallback((newParams: Partial<OscillatorParams>) => {
+    if (!oscillatorRef.current || !gainNodeRef.current) return;
+
+    const oscillator = oscillatorRef.current;
+    const gainNode = gainNodeRef.current;
+
+    // Update parameters on running oscillator
+    if (newParams.frequency !== undefined) {
+      oscillator.frequency.value = newParams.frequency;
+    }
+    if (newParams.detune !== undefined) {
+      oscillator.detune.value = newParams.detune;
+    }
+    if (newParams.gain !== undefined) {
+      gainNode.gain.value = newParams.gain;
+    }
+    // Note: type cannot be changed on a running oscillator
+  }, []);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (isRunning) {
+        stop();
+      }
+    };
+  }, [stop, isRunning]);
+
+  return {
+    start,
+    stop,
+    updateParams,
+    isRunning,
+  };
+}
