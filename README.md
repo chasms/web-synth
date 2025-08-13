@@ -55,8 +55,10 @@ See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed feature roadmap.
 
 ## 📚 Documentation
 
-- **[Product Backlog](PRODUCT_BACKLOG.md)** - Detailed feature roadmap and requirements
-- **[Copilot Instructions](.github/copilot-instructions.md)** - AI-assisted development guidelines
+- **[Product Backlog](PRODUCT_BACKLOG.md)** – Feature roadmap and requirements
+- **[Modular Architecture](docs/ARCHITECTURE_MODULAR.md)** – Patch graph, ports, signal domains, design rationale
+- **[Envelope Design](docs/ENVELOPE_DESIGN.md)** – ADSR implementation strategy (ConstantSource + Gain) and trade‑offs
+- **[Copilot Instructions](.github/copilot-instructions.md)** – AI-assisted development guidelines
 
 ## 🚦 Getting Started
 
