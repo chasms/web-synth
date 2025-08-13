@@ -13,6 +13,7 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 - Start with 3 oscillators before expanding to full synthesizer modules
 - Prefer modern Web Audio API patterns (AudioWorklet when needed, AudioContext best practices)
 - Use CSS for styling initially, keeping it simple and functional
+- When adding/modifying features: always update `PRODUCT_BACKLOG.md` (adjust acceptance criteria, mark progress) and relevant docs (`README.md`, ADRs under docs/ when added). Include rationale for architectural decisions (CV standard, polyphony) as brief ADR entries.
 
 ## Audio Architecture
 
@@ -20,6 +21,9 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 - Maintain audio context at the app level
 - Use React state for UI parameter control
 - Implement proper audio node cleanup in useEffect cleanup functions
+- Adopt modular patch architecture (Modules, Ports, Connections) with 1V/Oct pitch standard; avoid embedding attenuverters in core modules—use separate utility modules.
+- Support polyphony by instantiating per-voice module chains managed by a voice allocator.
+- Provide a parameter smoothing utility for audible parameter changes (linear, exp, setTarget modes) and document usage.
 
 ## Code Style
 

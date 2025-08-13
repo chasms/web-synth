@@ -36,6 +36,36 @@
 
 ## Product Backlog 🚀
 
+### 0. Modular Architecture Refactor (Current Iteration) - IN PROGRESS
+
+Goal: Transition from monolithic synthesizer hook to a modular, patchable architecture modeling real-world subtractive synthesis components with CV / Gate semantics.
+
+Deliverables / Acceptance Criteria:
+
+- [ ] Core type system for Modules, Ports, Connections (AUDIO / CV / GATE / TRIGGER)
+- [ ] Base module factories: VCO, VCF, ADSR (skeletons accepted initially)
+- [ ] Patch management hook (`usePatch`) supporting create / connect / remove
+- [ ] 1V/Oct helper utilities (volts ↔ frequency)
+- [ ] Updated UI (minimal) can instantiate 3 VCOs, 1 VCF, 1 ADSR and route: VCO mix -> VCF -> Master; ADSR -> VCF cutoff; ADSR gate driven by test note buttons
+- [ ] Backwards compatibility layer (legacy `useSynthesizer` still functional until migration complete)
+- [ ] Documentation updated to explain module API and CV / Gate conventions
+
+Stretch:
+
+- [ ] Visual patch inspector (list of modules + connections)
+- [ ] Detachable / reorderable signal chain
+- [ ] Cable style UI (drag to connect)
+
+Technical Notes:
+
+- Pitch CV Standard: 1V/Oct (A4 = 440Hz @ 4.75V reference). Centralized constants mean a future change affects only conversion helpers + stored patch interpretation.
+- No built-in attenuverters in core modules: signal conditioning handled by a Utility CV Module (mult / attenuator / attenuverter / inverter / offset / scale).
+- Gate events call `gateOn` / `gateOff`; Velocity delivered as separate CV (0..1) for amplitude & modulation scaling.
+- Envelopes output CV via an AudioParam (gain) initially; may expose ConstantSourceNode in future for patch flexibility.
+- Performance: begin with straightforward automation ramps (control-rate); smoothing utility will wrap abrupt changes to prevent zipper noise.
+- Polyphony: voice allocator manages per-voice module sets (oscillators, amp env, filter optional). Voice count configurable up to a cap.
+- ADR-001 (Pitch CV Standard) DRAFT recorded; low migration risk.
+
 ### 1. Filter Section - HIGH PRIORITY
 
 **Product Requirement**: Classic Moog-style 24dB/octave lowpass filter with resonance
@@ -99,14 +129,17 @@
 
 **Product Requirement**: Virtual keyboard and computer keyboard input for note playing
 
-**Acceptance Criteria**:
+**Acceptance Criteria (Updated for Polyphony & Velocity)**:
 
-- [ ] Virtual piano keyboard (2-3 octaves)
+- [ ] Virtual piano keyboard (2–3 octaves)
 - [ ] Computer keyboard mapping (QWERTY to chromatic notes)
 - [ ] Octave up/down controls
-- [ ] Sustain pedal simulation (spacebar)
-- [ ] Polyphonic support (4-8 voices)
-- [ ] Visual feedback for pressed keys
+- [ ] Sustain pedal simulation (spacebar) holding gate
+- [ ] Polyphonic voice allocator (configurable voice count, default 8, cap configurable)
+- [ ] Velocity generation (0–1) routed to amplitude & optional filter/env depth
+- [ ] Visual feedback: pressed keys + active voices
+- [ ] Voice stealing (oldest / release-phase preference)
+- [ ] Emits Pitch CV + Gate + Velocity CV per note
 
 **Technical Implementation**:
 
@@ -254,6 +287,91 @@
 - [ ] Architecture decision records (ADRs)
 - [ ] Contribution guidelines
 - [ ] User manual with synthesis basics
+- [ ] Document 1V/Oct standard & constants
+- [ ] Document polyphony / voice allocation design
+- [ ] Document utility CV module usage
+- [ ] Document smoothing utility API & rationale
+
+---
+
+## New Modules & Features
+
+### Utility CV Module (Mult / Attenuator / Attenuverter / Inverter)
+
+Purpose: User-inserted signal conditioning (no hidden scaling inside target modules).
+
+Acceptance Criteria:
+- [ ] Mode: pass-through, attenuate (0..1), attenuvert (-1..1), invert, offset, scale+offset
+- [ ] Multiple outputs (acts as mult) with identical conditioned signal
+- [ ] Supports AUDIO and CV inputs (signal type metadata enforced)
+- [ ] Bypass toggle
+- [ ] Optional modulation CV input controlling amount
+- [ ] Zero-added latency
+
+Stretch:
+- [ ] Waveshaping (soft clip) option
+- [ ] DC offset generation when no input connected
+
+### Polyphony & Voice Management
+
+Acceptance Criteria:
+- [ ] Voice allocator with configurable voice count (default 8, cap 16)
+- [ ] Per voice: user-configurable oscillator count (1–3 initially)
+- [ ] Per voice amp envelope; optional per-voice filter (shared vs per-voice configurable)
+- [ ] Velocity scales amp envelope peak and optional filter env depth
+- [ ] Voice stealing strategies selectable
+- [ ] Safe downscale (dispose extra voices gracefully)
+- [ ] Patch serialization includes voice config & oscillator count
+
+### Draggable Cable Patch UI (Skeuomorphic)
+
+Acceptance Criteria:
+- [ ] Module panels with jacks (input/output visual distinction)
+- [ ] Drag-out cables (SVG/Canvas) with bezier paths
+- [ ] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
+- [ ] Hover highlight & invalid connection rejection
+- [ ] Pannable/scrollable workspace
+- [ ] Basic skeuomorphic styling (panel depth, knob highlights)
+
+Stretch:
+- [ ] Animated signal flow pulses
+- [ ] Cable bundling / grouping
+- [ ] Drag to background to disconnect
+
+### Velocity & Expression Inputs
+
+Acceptance Criteria:
+- [ ] Velocity CV per note (0..1)
+- [ ] Aftertouch placeholder API for future MIDI integration
+- [ ] Mod wheel CV infrastructure (assignable destinations)
+
+### Parameter Smoothing Utility
+
+Purpose: Prevent audible zipper noise and clicks when parameters jump (mouse drags, modulation reroutes).
+
+Acceptance Criteria:
+- [ ] `smoothParam(param, targetValue, { mode: 'linear'|'exp'|'setTarget', time })` helper
+- [ ] Cancellation safety: cancels prior ramps cleanly
+- [ ] Minimum delta threshold to skip smoothing on trivial changes
+- [ ] Works with AudioParam & wrapper for multiple params
+- [ ] Tests measure step discontinuities below tolerance
+
+Stretch:
+- [ ] Adaptive time scaling based on delta size
+- [ ] Worklet-based ultra-low-latency smoothing path
+
+Implementation Notes:
+- Linear: `linearRampToValueAtTime`
+- Exp: chain of short exponential ramps (avoid hitting zero)
+- SetTarget: `setTargetAtTime` with configurable timeConstant
+- Global defaults via context; modules may override
+
+---
+
+## Pending ADRs
+- ADR-001 Pitch CV Standard (1V/Oct) [DRAFT]
+- ADR-002 Polyphony Strategy & Resource Limits [PLANNED]
+- ADR-003 Cable UI Rendering (SVG vs Canvas) [PLANNED]
 
 ### Development Experience
 
