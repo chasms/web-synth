@@ -30,17 +30,17 @@ export function useSynthesizer() {
   }, [synthParams.masterVolume]);
 
   // Create three oscillators
-  const osc1 = useOscillator(synthParams.oscillator1);
-  const osc2 = useOscillator(synthParams.oscillator2);
-  const osc3 = useOscillator(synthParams.oscillator3);
+  const oscillatorOne = useOscillator(synthParams.oscillator1);
+  const oscillatorTwo = useOscillator(synthParams.oscillator2);
+  const oscillatorThree = useOscillator(synthParams.oscillator3);
 
   const stopNote = useCallback(() => {
-    osc1.stop();
-    osc2.stop();
-    osc3.stop();
+  oscillatorOne.stop();
+  oscillatorTwo.stop();
+  oscillatorThree.stop();
     setIsPlaying(false);
     setCurrentNote(null);
-  }, [osc1, osc2, osc3]);
+  }, [oscillatorOne, oscillatorTwo, oscillatorThree]);
 
   const updateOscillator = useCallback(
     (oscillatorIndex: 1 | 2 | 3, params: Partial<OscillatorParams>) => {
@@ -56,12 +56,16 @@ export function useSynthesizer() {
 
       // Update the running oscillator if playing
       if (isPlaying) {
-        const osc =
-          oscillatorIndex === 1 ? osc1 : oscillatorIndex === 2 ? osc2 : osc3;
-        osc.updateParams(params);
+        const targetOscillator =
+          oscillatorIndex === 1
+            ? oscillatorOne
+            : oscillatorIndex === 2
+              ? oscillatorTwo
+              : oscillatorThree;
+        targetOscillator.updateParams(params);
       }
     },
-    [osc1, osc2, osc3, isPlaying],
+    [oscillatorOne, oscillatorTwo, oscillatorThree, isPlaying],
   );
 
   const playNote = useCallback(
@@ -74,12 +78,12 @@ export function useSynthesizer() {
       if (!masterGainRef.current) return;
 
       // Start all three oscillators, connecting them to master gain
-      osc1.start(frequency, masterGainRef.current);
-      osc2.start(
+  oscillatorOne.start(frequency, masterGainRef.current);
+  oscillatorTwo.start(
         frequency + synthParams.oscillator2.detune,
         masterGainRef.current,
       );
-      osc3.start(
+  oscillatorThree.start(
         frequency *
           (synthParams.oscillator3.frequency /
             synthParams.oscillator1.frequency),
@@ -91,12 +95,12 @@ export function useSynthesizer() {
     },
     [
       isPlaying,
-      osc1,
-      osc2,
+  oscillatorOne,
+  oscillatorTwo,
       synthParams.oscillator2.detune,
       synthParams.oscillator3.frequency,
       synthParams.oscillator1.frequency,
-      osc3,
+  oscillatorThree,
       stopNote,
     ],
   );
@@ -137,9 +141,9 @@ export function useSynthesizer() {
     midiToFrequency,
     playTestNote,
     oscillators: {
-      osc1: { ...osc1, params: synthParams.oscillator1 },
-      osc2: { ...osc2, params: synthParams.oscillator2 },
-      osc3: { ...osc3, params: synthParams.oscillator3 },
+  oscillatorOne: { ...oscillatorOne, params: synthParams.oscillator1 },
+  oscillatorTwo: { ...oscillatorTwo, params: synthParams.oscillator2 },
+  oscillatorThree: { ...oscillatorThree, params: synthParams.oscillator3 },
     },
   };
 }
