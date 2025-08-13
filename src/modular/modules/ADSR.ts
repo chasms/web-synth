@@ -21,8 +21,14 @@ const ports: PortDefinition[] = [
 
 export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
   const { audioContext, moduleId } = context;
-  const outputGainNode = audioContext.createGain();
-  outputGainNode.gain.value = 0;
+  // Envelope constructed as ConstantSource (value=1) feeding a Gain whose gain is automated.
+  // This allows the envelope to be treated as an AUDIO / CV signal node for downstream connections.
+  const constantSourceNode = audioContext.createConstantSource();
+  constantSourceNode.offset.value = 1;
+  constantSourceNode.start();
+  const envelopeGainNode = audioContext.createGain();
+  envelopeGainNode.gain.value = 0; // start at 0 (silent)
+  constantSourceNode.connect(envelopeGainNode);
   const attackTime = parameters?.attack ?? 0.01;
   const decayTime = parameters?.decay ?? 0.2;
   const sustainLevel = parameters?.sustain ?? 0.7;
@@ -31,7 +37,7 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
 
   const portNodes: ModuleInstance["portNodes"] = {
     gate_in: undefined,
-    cv_out: outputGainNode.gain,
+    cv_out: envelopeGainNode, // AudioNode output representing envelope CV (0..1)
   };
 
   const instance: ModuleInstance = {
@@ -45,7 +51,7 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
     },
     gateOn() {
       const currentTime = audioContext.currentTime;
-      const gainParam = outputGainNode.gain;
+      const gainParam = envelopeGainNode.gain;
       gainParam.cancelScheduledValues(currentTime);
       gainParam.setValueAtTime(gainParam.value, currentTime);
       gainParam.linearRampToValueAtTime(peakScale, currentTime + attackTime);
@@ -56,7 +62,7 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
     },
     gateOff() {
       const currentTime = audioContext.currentTime;
-      const gainParam = outputGainNode.gain;
+      const gainParam = envelopeGainNode.gain;
       gainParam.cancelScheduledValues(currentTime);
       gainParam.setValueAtTime(gainParam.value, currentTime);
       gainParam.linearRampToValueAtTime(0, currentTime + releaseTime);
@@ -65,7 +71,8 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
       /* TODO: dynamic param changes */
     },
     dispose() {
-      outputGainNode.disconnect();
+      constantSourceNode.disconnect();
+      envelopeGainNode.disconnect();
     },
   };
   return instance;

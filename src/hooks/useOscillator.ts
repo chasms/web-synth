@@ -41,7 +41,7 @@ export function useOscillator(params: OscillatorParams): UseOscillatorReturn {
     (frequency?: number, destination?: AudioNode) => {
       if (!audioContext || isRunning) return;
 
-  const nodes = createAudioNodes();
+      const nodes = createAudioNodes();
       if (!nodes) return;
 
       const { oscillator, gainNode } = nodes;
@@ -68,7 +68,7 @@ export function useOscillator(params: OscillatorParams): UseOscillatorReturn {
         gainNodeRef.current = null;
       };
     },
-  [audioContext, createAudioNodes, isRunning],
+    [audioContext, createAudioNodes, isRunning],
   );
 
   const stop = useCallback(() => {
