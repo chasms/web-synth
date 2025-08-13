@@ -14,7 +14,7 @@ export function usePatch() {
     modules: {},
     connections: [],
   });
-  const counterRef = useRef(0);
+  const moduleInstanceCounterRef = useRef(0);
 
   const createModule = useCallback(
     <P>(
@@ -23,13 +23,13 @@ export function usePatch() {
       params?: P,
     ): ModuleInstance | null => {
       if (!audioContext) return null;
-      const id = `${type}_${++counterRef.current}`;
-      const module = factory({ audioContext, moduleId: id }, params);
+      const id = `${type}_${++moduleInstanceCounterRef.current}`;
+      const moduleInstance = factory({ audioContext, moduleId: id }, params);
       setState((prev) => ({
         ...prev,
-        modules: { ...prev.modules, [id]: module },
+        modules: { ...prev.modules, [id]: moduleInstance },
       }));
-      return module;
+      return moduleInstance;
     },
     [audioContext],
   );

@@ -42,24 +42,25 @@ const ports: PortDefinition[] = [
   { id: "audio_out", label: "Audio", direction: "out", signal: "AUDIO" },
 ];
 
-export const createVCO: CreateModuleFn<VCOParams> = (ctx, params) => {
-  const { audioContext, moduleId } = ctx;
-  const osc = audioContext.createOscillator();
-  const gain = audioContext.createGain();
-  gain.gain.value = params?.gain ?? 0.3;
+export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
+  const { audioContext, moduleId } = context;
+  const oscillatorNode = audioContext.createOscillator();
+  const outputGainNode = audioContext.createGain();
+  outputGainNode.gain.value = parameters?.gain ?? 0.3;
 
-  osc.type = params?.waveform ?? "sawtooth";
-  osc.frequency.value = params?.baseFrequency ?? 440;
-  if (params?.detuneCents) osc.detune.value = params.detuneCents;
-  osc.connect(gain);
-  osc.start();
+  oscillatorNode.type = parameters?.waveform ?? "sawtooth";
+  oscillatorNode.frequency.value = parameters?.baseFrequency ?? 440;
+  if (parameters?.detuneCents)
+    oscillatorNode.detune.value = parameters.detuneCents;
+  oscillatorNode.connect(outputGainNode);
+  oscillatorNode.start();
 
   const portNodes: ModuleInstance["portNodes"] = {
-    pitch_cv: osc.frequency, // Accept direct connection (assumes conversion upstream)
-    fm_cv: osc.frequency, // For linear FM
+    pitch_cv: oscillatorNode.frequency, // Accept direct connection (assumes conversion upstream)
+    fm_cv: oscillatorNode.frequency, // For linear FM
     sync: undefined,
     wave_cv: undefined,
-    audio_out: gain,
+    audio_out: outputGainNode,
   };
 
   const instance: ModuleInstance = {
@@ -67,25 +68,28 @@ export const createVCO: CreateModuleFn<VCOParams> = (ctx, params) => {
     type: "VCO",
     label: `VCO ${moduleId}`,
     ports,
-    audioOut: gain,
+    audioOut: outputGainNode,
     portNodes,
     connect(fromPortId, target) {
-      const fromNode = portNodes[fromPortId];
-      const toEntity = target.module.portNodes[target.portId];
-      if (!fromNode || !toEntity) return;
-      if (fromNode instanceof AudioNode && toEntity instanceof AudioNode) {
-        fromNode.connect(toEntity);
-      } else if (
-        fromNode instanceof AudioNode &&
-        toEntity instanceof AudioParam
+      const fromConnectionNode = portNodes[fromPortId];
+      const toConnectionEntity = target.module.portNodes[target.portId];
+      if (!fromConnectionNode || !toConnectionEntity) return;
+      if (
+        fromConnectionNode instanceof AudioNode &&
+        toConnectionEntity instanceof AudioNode
       ) {
-        fromNode.connect(toEntity);
+        fromConnectionNode.connect(toConnectionEntity);
+      } else if (
+        fromConnectionNode instanceof AudioNode &&
+        toConnectionEntity instanceof AudioParam
+      ) {
+        fromConnectionNode.connect(toConnectionEntity);
       }
     },
     updateParams(partial) {
       if (partial["waveform"] && typeof partial["waveform"] === "string") {
         try {
-          osc.type = partial["waveform"] as OscillatorType;
+          oscillatorNode.type = partial["waveform"] as OscillatorType;
         } catch {
           /* ignore invalid */
         }
@@ -94,23 +98,23 @@ export const createVCO: CreateModuleFn<VCOParams> = (ctx, params) => {
         partial["detuneCents"] !== undefined &&
         typeof partial["detuneCents"] === "number"
       ) {
-        osc.detune.value = partial["detuneCents"];
+        oscillatorNode.detune.value = partial["detuneCents"];
       }
       if (
         partial["gain"] !== undefined &&
         typeof partial["gain"] === "number"
       ) {
-        gain.gain.value = partial["gain"];
+        outputGainNode.gain.value = partial["gain"];
       }
     },
     dispose() {
       try {
-        osc.stop();
+        oscillatorNode.stop();
       } catch {
         /* already stopped */
       }
-      osc.disconnect();
-      gain.disconnect();
+      oscillatorNode.disconnect();
+      outputGainNode.disconnect();
     },
   };
 

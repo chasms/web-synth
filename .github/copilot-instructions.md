@@ -31,3 +31,4 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 - Comment complex Web Audio API chains
 - Separate audio logic from UI rendering logic
 - Use TypeScript interfaces for synthesizer parameter objects
+- Avoid abbreviations and acronyms in variable, function, and type names; prefer fully spelled-out descriptive identifiers (e.g., `oscillatorNode` not `osc`, `outputGainNode` not `out`).

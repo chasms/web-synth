@@ -20,18 +20,18 @@ const ports: PortDefinition[] = [
   { id: "env_cv", label: "Env CV", direction: "in", signal: "CV" },
 ];
 
-export const createVCF: CreateModuleFn<VCFParams> = (ctx, params) => {
-  const { audioContext, moduleId } = ctx;
-  const biquad = audioContext.createBiquadFilter();
-  biquad.type = params?.type ?? "lowpass";
-  biquad.frequency.value = params?.cutoff ?? 1200;
-  biquad.Q.value = params?.resonance ?? 0.7;
+export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
+  const { audioContext, moduleId } = context;
+  const biquadFilterNode = audioContext.createBiquadFilter();
+  biquadFilterNode.type = parameters?.type ?? "lowpass";
+  biquadFilterNode.frequency.value = parameters?.cutoff ?? 1200;
+  biquadFilterNode.Q.value = parameters?.resonance ?? 0.7;
 
   const portNodes: ModuleInstance["portNodes"] = {
-    audio_in: biquad,
-    audio_out: biquad,
-    cutoff_cv: biquad.frequency,
-    env_cv: biquad.frequency, // simple addition for now
+    audio_in: biquadFilterNode,
+    audio_out: biquadFilterNode,
+    cutoff_cv: biquadFilterNode.frequency,
+    env_cv: biquadFilterNode.frequency, // simple addition for now
   };
 
   const instance: ModuleInstance = {
@@ -39,19 +39,22 @@ export const createVCF: CreateModuleFn<VCFParams> = (ctx, params) => {
     type: "VCF",
     label: `VCF ${moduleId}`,
     ports,
-    audioOut: biquad,
+    audioOut: biquadFilterNode,
     portNodes,
     connect(fromPortId, target) {
-      const fromNode = portNodes[fromPortId];
-      const toEntity = target.module.portNodes[target.portId];
-      if (!fromNode || !toEntity) return;
-      if (fromNode instanceof AudioNode && toEntity instanceof AudioNode) {
-        fromNode.connect(toEntity);
-      } else if (
-        fromNode instanceof AudioNode &&
-        toEntity instanceof AudioParam
+      const fromConnectionNode = portNodes[fromPortId];
+      const toConnectionEntity = target.module.portNodes[target.portId];
+      if (!fromConnectionNode || !toConnectionEntity) return;
+      if (
+        fromConnectionNode instanceof AudioNode &&
+        toConnectionEntity instanceof AudioNode
       ) {
-        fromNode.connect(toEntity);
+        fromConnectionNode.connect(toConnectionEntity);
+      } else if (
+        fromConnectionNode instanceof AudioNode &&
+        toConnectionEntity instanceof AudioParam
+      ) {
+        fromConnectionNode.connect(toConnectionEntity);
       }
     },
     updateParams(partial) {
@@ -59,22 +62,22 @@ export const createVCF: CreateModuleFn<VCFParams> = (ctx, params) => {
         partial["cutoff"] !== undefined &&
         typeof partial["cutoff"] === "number"
       )
-        biquad.frequency.value = partial["cutoff"];
+        biquadFilterNode.frequency.value = partial["cutoff"];
       if (
         partial["resonance"] !== undefined &&
         typeof partial["resonance"] === "number"
       )
-        biquad.Q.value = partial["resonance"];
+        biquadFilterNode.Q.value = partial["resonance"];
       if (partial["type"] && typeof partial["type"] === "string") {
         try {
-          biquad.type = partial["type"] as BiquadFilterType;
+          biquadFilterNode.type = partial["type"] as BiquadFilterType;
         } catch {
           /* ignore */
         }
       }
     },
     dispose() {
-      biquad.disconnect();
+      biquadFilterNode.disconnect();
     },
   };
   return instance;

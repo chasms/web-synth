@@ -19,19 +19,19 @@ const ports: PortDefinition[] = [
   },
 ];
 
-export const createADSR: CreateModuleFn<ADSRParams> = (ctx, params) => {
-  const { audioContext, moduleId } = ctx;
-  const out = audioContext.createGain();
-  out.gain.value = 0;
-  const a = params?.attack ?? 0.01;
-  const d = params?.decay ?? 0.2;
-  const s = params?.sustain ?? 0.7;
-  const r = params?.release ?? 0.4;
-  const scale = params?.gain ?? 1;
+export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
+  const { audioContext, moduleId } = context;
+  const outputGainNode = audioContext.createGain();
+  outputGainNode.gain.value = 0;
+  const attackTime = parameters?.attack ?? 0.01;
+  const decayTime = parameters?.decay ?? 0.2;
+  const sustainLevel = parameters?.sustain ?? 0.7;
+  const releaseTime = parameters?.release ?? 0.4;
+  const peakScale = parameters?.gain ?? 1;
 
   const portNodes: ModuleInstance["portNodes"] = {
     gate_in: undefined,
-    cv_out: out.gain,
+    cv_out: outputGainNode.gain,
   };
 
   const instance: ModuleInstance = {
@@ -44,25 +44,28 @@ export const createADSR: CreateModuleFn<ADSRParams> = (ctx, params) => {
       /* Envelope outputs are AudioParam only in v1 */
     },
     gateOn() {
-      const now = audioContext.currentTime;
-      const g = out.gain;
-      g.cancelScheduledValues(now);
-      g.setValueAtTime(g.value, now);
-      g.linearRampToValueAtTime(scale, now + a);
-      g.linearRampToValueAtTime(s * scale, now + a + d);
+      const currentTime = audioContext.currentTime;
+      const gainParam = outputGainNode.gain;
+      gainParam.cancelScheduledValues(currentTime);
+      gainParam.setValueAtTime(gainParam.value, currentTime);
+      gainParam.linearRampToValueAtTime(peakScale, currentTime + attackTime);
+      gainParam.linearRampToValueAtTime(
+        sustainLevel * peakScale,
+        currentTime + attackTime + decayTime,
+      );
     },
     gateOff() {
-      const now = audioContext.currentTime;
-      const g = out.gain;
-      g.cancelScheduledValues(now);
-      g.setValueAtTime(g.value, now);
-      g.linearRampToValueAtTime(0, now + r);
+      const currentTime = audioContext.currentTime;
+      const gainParam = outputGainNode.gain;
+      gainParam.cancelScheduledValues(currentTime);
+      gainParam.setValueAtTime(gainParam.value, currentTime);
+      gainParam.linearRampToValueAtTime(0, currentTime + releaseTime);
     },
     updateParams() {
       /* TODO: dynamic param changes */
     },
     dispose() {
-      out.disconnect();
+      outputGainNode.disconnect();
     },
   };
   return instance;
