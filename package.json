@@ -11,8 +11,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
-    "typecheck": "react-router typegen && tsc",
-    "typewatch": "react-router typegen && tsc --watch"
+    "typecheck": "tsc --project tsconfig.app.json",
+    "typewatch": "tsc --project tsconfig.app.json --watch"
   },
   "dependencies": {
     "react": "^19.1.0",
