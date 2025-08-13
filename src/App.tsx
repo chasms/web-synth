@@ -1,5 +1,6 @@
 import "./App.css";
 
+import { AudioContextControls } from "./components/AudioContextControls";
 import { PatchWorkspace } from "./components/patch/PatchWorkspace";
 import { Synthesizer } from "./components/Synthesizer";
 import { AudioContextProvider } from "./hooks/AudioContextProvider";
@@ -12,6 +13,9 @@ function App() {
           <h1>Web Audio Minimoog Synthesizer</h1>
         </header>
         <main>
+          <div style={{ marginTop: "1rem" }}>
+            <AudioContextControls />
+          </div>
           <div
             style={{ display: "flex", gap: "2rem", alignItems: "flex-start" }}
           >

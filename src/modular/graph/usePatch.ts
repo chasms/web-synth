@@ -73,12 +73,21 @@ export function usePatch() {
     });
   }, []);
 
-  // Cleanup
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       Object.values(state.modules).forEach((m) => m.dispose());
     };
   }, [state.modules]);
 
-  return { ...state, createModule, connect, removeModule };
+  // Allow manual clearing
+  const clearPatch = useCallback(() => {
+    setState((prev) => {
+      Object.values(prev.modules).forEach((m) => m.dispose());
+      return { modules: {}, connections: [] };
+    });
+    moduleInstanceCounterRef.current = 0;
+  }, []);
+
+  return { ...state, createModule, connect, removeModule, clearPatch };
 }

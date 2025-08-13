@@ -78,15 +78,25 @@ export const PatchWorkspace: React.FC = () => {
     }
   }, [audioContext, patch]);
 
-  const handleStart = () => {
-    void startAudio();
+  const [startError, setStartError] = React.useState<Error | null>(null);
+
+  const handleStart = async () => {
+    setStartError(null);
+    try {
+      await startAudio();
+    } catch (e) {
+      setStartError(e as Error);
+    }
   };
 
   // Once the AudioContext becomes available the first time, create initial modules
   React.useEffect(() => {
     if (audioContext && !hasAudioContextInitializedRef.current) {
       hasAudioContextInitializedRef.current = true;
-      handleAddInitialModules();
+    }
+    if (!audioContext && hasAudioContextInitializedRef.current) {
+      // Reset so that if a brand new context is created later we can auto-load again
+      hasAudioContextInitializedRef.current = false;
     }
   }, [audioContext, handleAddInitialModules]);
 
@@ -186,11 +196,26 @@ export const PatchWorkspace: React.FC = () => {
 
   return (
     <div className="patch-workspace-root">
+      {!audioContext && startError && (
+        <div style={{ color: "#c33", marginTop: "0.5rem", fontSize: "0.8rem" }}>
+          {startError.message}
+        </div>
+      )}
       {!audioContext && (
         <button onClick={handleStart} className="start-audio-button">
-          Start Audio And Load Modules
+          Start Audio
         </button>
       )}
+      {audioContext &&
+        hasAudioContextInitializedRef &&
+        positionedModules.length === 0 && (
+          <button
+            onClick={handleAddInitialModules}
+            className="start-audio-button"
+          >
+            Load Modules
+          </button>
+        )}
       {audioContext && (
         <div
           className="patch-workspace"

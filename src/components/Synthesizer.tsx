@@ -1,15 +1,11 @@
-import { useAudioContext } from "../hooks/useAudioContext";
+import { AudioContextState, useAudioContext } from "../hooks/useAudioContext";
 import { useSynthesizer } from "../hooks/useSynthesizer";
 import type { OscillatorParams, OscillatorType } from "../types/synth";
 import { Knob } from "./Controls";
 import { OscillatorControls } from "./OscillatorControls";
 
 export function Synthesizer() {
-  const {
-    audioContext,
-    isPlaying: contextIsPlaying,
-    startAudio,
-  } = useAudioContext();
+  const { audioContext, startAudio } = useAudioContext();
   const {
     synthParams,
     isPlaying,
@@ -21,8 +17,7 @@ export function Synthesizer() {
   } = useSynthesizer();
 
   const handleStartAudio = async () => {
-    console.log("contextIsPlaying", contextIsPlaying, "\n");
-    if (!contextIsPlaying) {
+    if (audioContext?.state !== AudioContextState.running) {
       await startAudio();
     }
   };
