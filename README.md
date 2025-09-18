@@ -45,6 +45,7 @@ See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed feature roadmap.
 - **Vitest** - Fast unit testing with Web Audio API mocks
 - **ESLint + Prettier** - Code quality and formatting
 - **React Testing Library** - Component testing utilities
+- **Playwright, [Playwright MCP](https://github.com/microsoft/playwright-mcp), and the [Playwright MCP Chrome Extension](https://github.com/microsoft/playwright-mcp/blob/main/extension/README.md)** - Enabling Copilot to interact with and debug the frontend via the browser and development server
 
 ### Architecture Decisions
 
