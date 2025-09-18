@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAudioContext } from "../../hooks/useAudioContext";
-import type { Connection, CreateModuleFn, ModuleInstance } from "../types";
+import type {
+  Connection,
+  CreateModuleFn,
+  ModuleInstance,
+  PortSignalType,
+} from "../types";
 
 interface PatchState {
   modules: Record<string, ModuleInstance>;
@@ -51,6 +56,20 @@ export function usePatch() {
             c.toPortId === toPort,
         );
         if (exists) return prev;
+        // Validate signal compatibility
+        const fromDef = fromModule.ports.find((p) => p.id === fromPort);
+        const toDef = toModule.ports.find((p) => p.id === toPort);
+        const isCompatible = (a?: PortSignalType, b?: PortSignalType) => {
+          if (!a || !b) return false;
+          if (a === "AUDIO" && b === "AUDIO") return true;
+          if (a === "CV" && b !== "AUDIO") return true; // CV -> CV/Param-like
+          if (a === "GATE" && (b === "GATE" || b === "TRIGGER")) return true;
+          if (a === "TRIGGER" && (b === "GATE" || b === "TRIGGER")) return true;
+          return false;
+        };
+        if (!isCompatible(fromDef?.signal, toDef?.signal)) {
+          return prev; // reject invalid connection
+        }
         fromModule.connect(fromPort, { module: toModule, portId: toPort });
         return {
           ...prev,
@@ -68,6 +87,44 @@ export function usePatch() {
     },
     [],
   );
+
+  const removeConnection = (connection: Connection) => {
+    setState((prev) => {
+      const nextConnections = prev.connections.filter(
+        (c) =>
+          !(
+            c.fromModuleId === connection.fromModuleId &&
+            c.fromPortId === connection.fromPortId &&
+            c.toModuleId === connection.toModuleId &&
+            c.toPortId === connection.toPortId
+          ),
+      );
+
+      // Attempt targeted audio graph disconnection
+      const fromModule = prev.modules[connection.fromModuleId];
+      const toModule = prev.modules[connection.toModuleId];
+      const fromEndpoint = fromModule?.portNodes[connection.fromPortId];
+      const toEndpoint = toModule?.portNodes[connection.toPortId];
+      try {
+        if (
+          fromEndpoint instanceof AudioNode &&
+          toEndpoint instanceof AudioNode
+        ) {
+          fromEndpoint.disconnect(toEndpoint);
+        } else if (
+          fromEndpoint instanceof AudioNode &&
+          toEndpoint instanceof AudioParam
+        ) {
+          fromEndpoint.disconnect(toEndpoint);
+        }
+        // If endpoints are not AudioNode-based, nothing to disconnect.
+      } catch {
+        // Some browsers may throw if connection did not exist; ignore.
+      }
+
+      return { ...prev, connections: nextConnections };
+    });
+  };
 
   const removeModule = useCallback((id: string) => {
     setState((prev) => {
@@ -100,5 +157,12 @@ export function usePatch() {
     moduleInstanceCounterRef.current = 0;
   }, []);
 
-  return { ...state, createModule, connect, removeModule, clearPatch };
+  return {
+    ...state,
+    createModule,
+    connect,
+    removeModule,
+    clearPatch,
+    removeConnection,
+  };
 }

@@ -551,6 +551,8 @@ header h1 {
 .cable-layer {
   position: absolute;
   inset: 0;
+
+  /* Allow underlying modules to remain draggable; individual cables re-enable events */
   pointer-events: none;
   stroke-linecap: round;
   overflow: visible;
@@ -565,6 +567,10 @@ header h1 {
   transition:
     stroke 0.2s,
     opacity 0.2s;
+  cursor: pointer;
+
+  /* Re-enable events on the interactive elements within a pass-through layer */
+  pointer-events: auto;
 }
 
 .cable-path.pending {
@@ -578,9 +584,48 @@ header h1 {
   opacity: 1;
 }
 
+.cable .cable-delete {
+  display: none;
+  pointer-events: auto;
+}
+
+.cable:hover .cable-delete {
+  display: block;
+}
+
+.cable .cable-delete circle {
+  fill: rgb(255 255 255 / 8%);
+  stroke: rgb(255 255 255 / 30%);
+  stroke-width: 1px;
+}
+
 /* Debug overlay (dev only) */
-.debug-port-overlay circle {
+.debug-port-overlay circle .debug-port-overlay svg circle {
   mix-blend-mode: screen;
+}
+
+.cable .cable-delete text {
+  fill: #eee;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* Cable colors by signal type */
+.cable-path.audio {
+  stroke: #4da6ff;
+}
+
+.cable-path.cv {
+  stroke: #ffb347;
+}
+
+.cable-path.gate {
+  stroke: #8dff70;
+}
+
+.cable-path.trigger {
+  stroke: #ff5fa2;
 }
 
 /* Start audio button (modular area) */

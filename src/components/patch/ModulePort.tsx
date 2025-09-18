@@ -29,6 +29,8 @@ export interface ModulePortProps {
   anchorCenterOffsetX: number;
   anchorCenterOffsetY: number;
   pendingConnectionDirection?: "in" | "out";
+  // When a pending connection exists, parent computes if this port is a valid target
+  isEligibleTarget?: boolean;
   onStartConnection?: (data: ModulePortEventPayload) => void;
   onCompleteConnection?: (data: ModulePortEventPayload) => void;
   // Viewport used to derive unscaled offsets when measuring
@@ -54,6 +56,7 @@ export const ModulePort = ({
   anchorCenterOffsetX,
   anchorCenterOffsetY,
   pendingConnectionDirection,
+  isEligibleTarget,
   onStartConnection,
   onCompleteConnection,
   viewport,
@@ -75,8 +78,7 @@ export const ModulePort = ({
 
   const centerWorldX = moduleWorldX + anchorCenterOffsetX; // anchor = dot center
   const centerWorldY = moduleWorldY + anchorCenterOffsetY;
-  const isPotentialTarget =
-    pendingConnectionDirection && pendingConnectionDirection !== direction;
+  const isPotentialTarget = !!isEligibleTarget;
 
   const canonicalDirection: "in" | "out" = direction;
 
@@ -110,6 +112,7 @@ export const ModulePort = ({
     if (
       canonicalDirection === "in" &&
       pendingConnectionDirection === "out" &&
+      isEligibleTarget &&
       onCompleteConnection
     ) {
       emitComplete();
@@ -120,6 +123,7 @@ export const ModulePort = ({
     if (
       canonicalDirection === "in" &&
       pendingConnectionDirection === "out" &&
+      isEligibleTarget &&
       onCompleteConnection
     ) {
       e.stopPropagation();

@@ -564,6 +564,12 @@ export const PatchWorkspace: React.FC = () => {
                 x: 40,
                 y: 40,
               };
+              // Determine pending source signal type for eligibility
+              const pendingSourceSignalType = pendingConnection
+                ? (patch.modules[pendingConnection.fromModuleId]?.ports.find(
+                    (p) => p.id === pendingConnection.fromPortId,
+                  )?.signal ?? null)
+                : null;
               return (
                 <ModuleContainer
                   key={moduleInstance.id}
@@ -581,6 +587,7 @@ export const PatchWorkspace: React.FC = () => {
                   pendingConnectionDirection={
                     pendingConnection ? "out" : undefined
                   }
+                  pendingSourceSignalType={pendingSourceSignalType}
                   // Inject registration callbacks into each ModulePort via context override
                   // We achieve this by cloning children later if needed; simpler approach: rely on ModulePort measurement writing to a shared callback (below future enhancement)
                 />
@@ -591,6 +598,10 @@ export const PatchWorkspace: React.FC = () => {
             connections={patch.connections}
             modulePositions={modulePositions}
             getPortWorldPosition={getPortWorldPosition}
+            getPortSignalType={(moduleId, portId) =>
+              patch.modules[moduleId]?.ports.find((p) => p.id === portId)
+                ?.signal ?? null
+            }
             pendingConnection={
               pendingConnection
                 ? {
@@ -602,6 +613,7 @@ export const PatchWorkspace: React.FC = () => {
                 : undefined
             }
             viewport={viewport}
+            onRemoveConnection={(c) => patch.removeConnection(c)}
           />
           {import.meta.env.DEV && showDebugOverlay && (
             <DebugPortOverlay

@@ -1,6 +1,6 @@
 import React from "react";
 
-import type { Connection } from "../../modular/types";
+import type { Connection, PortSignalType } from "../../modular/types";
 
 export interface CableLayerProps {
   connections: Connection[];
@@ -10,6 +10,10 @@ export interface CableLayerProps {
     portId: string,
     direction: "in" | "out",
   ) => { x: number; y: number } | null;
+  getPortSignalType?: (
+    moduleId: string,
+    portId: string,
+  ) => PortSignalType | null;
   pendingConnection?: {
     startWorldX: number;
     startWorldY: number;
@@ -17,13 +21,16 @@ export interface CableLayerProps {
     currentWorldY: number;
   } | null;
   viewport: { offsetX: number; offsetY: number; scale: number };
+  onRemoveConnection?: (connection: Connection) => void;
 }
 
 export const CableLayer: React.FC<CableLayerProps> = ({
   connections,
   getPortWorldPosition,
+  getPortSignalType,
   pendingConnection,
   viewport,
+  onRemoveConnection,
 }) => {
   const project = React.useCallback(
     (world: { x: number; y: number }) => ({
@@ -50,12 +57,43 @@ export const CableLayer: React.FC<CableLayerProps> = ({
     const dx = to.x - from.x;
     const controlOffset = Math.max(60, Math.abs(dx) * 0.5);
     const path = `M ${from.x} ${from.y} C ${from.x + controlOffset} ${from.y}, ${to.x - controlOffset} ${to.y}, ${to.x} ${to.y}`;
+    const mid = { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 };
+    const key = `${connection.fromModuleId}:${connection.fromPortId}->${connection.toModuleId}:${connection.toPortId}`;
+    const signalType = getPortSignalType?.(
+      connection.fromModuleId,
+      connection.fromPortId,
+    )
+      ?.toLowerCase()
+      // narrow to our known set for CSS classes
+      .replace("audio", "audio")
+      .replace("cv", "cv")
+      .replace("gate", "gate")
+      .replace("trigger", "trigger");
+    const pathClass = `cable-path${signalType ? ` ${signalType}` : ""}`;
     return (
-      <path
-        key={`${connection.fromModuleId}:${connection.fromPortId}->${connection.toModuleId}:${connection.toPortId}`}
-        d={path}
-        className="cable-path"
-      />
+      <g key={key} className="cable">
+        <path
+          d={path}
+          className={pathClass}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemoveConnection?.(connection);
+          }}
+        />
+        <g
+          className="cable-delete"
+          transform={`translate(${mid.x}, ${mid.y})`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onRemoveConnection?.(connection);
+          }}
+        >
+          <circle r={9} />
+          <text x={0} y={3} textAnchor="middle">
+            ×
+          </text>
+        </g>
+      </g>
     );
   });
 

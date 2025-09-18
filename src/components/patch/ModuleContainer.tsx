@@ -27,6 +27,7 @@ export interface ModuleContainerProps {
     offsetY: number;
   }) => void;
   pendingConnectionDirection?: "in" | "out";
+  pendingSourceSignalType?: "AUDIO" | "CV" | "GATE" | "TRIGGER" | null;
 }
 
 interface ModulePortProps {
@@ -68,6 +69,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
   onSelect,
   onRegisterPortOffset,
   pendingConnectionDirection,
+  pendingSourceSignalType,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const dragStateRef = React.useRef<{
@@ -190,6 +192,9 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
     (p) => p.direction === "out",
   );
 
+  // Pending source signal type comes from parent (workspace)
+  const pendingSourceSignal: string | null = pendingSourceSignalType ?? null;
+
   // Dynamic height so all ports fit inside bounding box (ports are absolutely positioned)
   const rowSpacing = 28; // must match offset increment
   const firstPortOffset = 32; // starting offset used when rendering ports
@@ -268,6 +273,19 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
               viewport={viewport}
               onRegisterOffset={onRegisterPortOffset}
               pendingConnectionDirection={pendingConnectionDirection}
+              isEligibleTarget={
+                !!pendingConnectionDirection &&
+                pendingConnectionDirection === "out" &&
+                (pendingSourceSignal == null ||
+                  // Compatibility: AUDIO->AUDIO, CV->CV-like inputs, GATE<->TRIGGER
+                  (pendingSourceSignal === "AUDIO" &&
+                    port.signal === "AUDIO") ||
+                  (pendingSourceSignal === "CV" && port.signal !== "AUDIO") ||
+                  (pendingSourceSignal === "GATE" &&
+                    (port.signal === "GATE" || port.signal === "TRIGGER")) ||
+                  (pendingSourceSignal === "TRIGGER" &&
+                    (port.signal === "GATE" || port.signal === "TRIGGER")))
+              }
               onCompleteConnection={(payload) => {
                 if (port.direction !== "in") return;
                 onCompleteConnection?.({

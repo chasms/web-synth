@@ -50,6 +50,17 @@ Deliverables / Acceptance Criteria:
 - [x] Backwards compatibility layer (legacy `useSynthesizer` still functional until migration complete)
 - [ ] Documentation updated to explain module API and CV / Gate conventions (IN PROGRESS)
 
+Recent Progress (UI & Interaction):
+
+- [x] Patch workspace with pan/zoom, grid with snap, and background panning
+- [x] Precise port center alignment (runtime measurement with world-space offsets)
+- [x] Click-to-click cable connection with live pending path
+- [x] Port eligibility highlighting based on signal-type rules (AUDIO↔AUDIO, CV→non-AUDIO, GATE/TRIGGER interop)
+- [x] Cable deletion by clicking cable or a hover “×” handle near the midpoint
+- [x] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
+- [x] Restored module draggability while keeping cables clickable (pointer-events layering)
+- [x] Audio graph disconnection when a cable is removed (targeted disconnect of node/param)
+
 Stretch:
 
 - [ ] Visual patch inspector (list of modules + connections)
@@ -330,12 +341,13 @@ Acceptance Criteria:
 
 Acceptance Criteria:
 
-- [ ] Module panels with jacks (input/output visual distinction)
-- [ ] Drag-out cables (SVG/Canvas) with bezier paths
-- [ ] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
-- [ ] Hover highlight & invalid connection rejection
-- [ ] Pannable/scrollable workspace
+- [x] Module panels with jacks (input/output visual distinction)
+- [x] Drag-out cables (SVG/Canvas) with bezier paths and click-to-click flow
+- [x] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
+- [x] Hover highlight & invalid connection rejection
+- [x] Pannable/scrollable workspace (pan/zoom implemented)
 - [ ] Basic skeuomorphic styling (panel depth, knob highlights)
+- [x] Cable removal UX: hover delete “×” affordance and direct cable click-to-remove
 
 Stretch:
 
