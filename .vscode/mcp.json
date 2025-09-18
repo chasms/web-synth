@@ -1,0 +1,18 @@
+{
+  "servers": {
+    "ESLint": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["@eslint/mcp@latest"]
+    },
+    "Stylelint": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["stylelint-mcp@latest"]
+    },
+    "Playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp@latest"]
+    }
+  }
+}
