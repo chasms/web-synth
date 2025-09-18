@@ -5,39 +5,51 @@ import type { Connection } from "../../modular/types";
 export interface CableLayerProps {
   connections: Connection[];
   modulePositions: Record<string, { x: number; y: number }>;
-  getPortScreenPosition: (
+  getPortWorldPosition: (
     moduleId: string,
     portId: string,
     direction: "in" | "out",
   ) => { x: number; y: number } | null;
   pendingConnection?: {
-    startX: number;
-    startY: number;
-    currentX: number;
-    currentY: number;
+    startWorldX: number;
+    startWorldY: number;
+    currentWorldX: number;
+    currentWorldY: number;
   } | null;
+  viewport: { offsetX: number; offsetY: number; scale: number };
 }
 
 export const CableLayer: React.FC<CableLayerProps> = ({
   connections,
-  getPortScreenPosition,
+  getPortWorldPosition,
   pendingConnection,
+  viewport,
 }) => {
+  const project = React.useCallback(
+    (world: { x: number; y: number }) => ({
+      x: world.x * viewport.scale + viewport.offsetX,
+      y: world.y * viewport.scale + viewport.offsetY,
+    }),
+    [viewport],
+  );
+
   const cables = connections.map((connection) => {
-    const fromPos = getPortScreenPosition(
+    const fromWorld = getPortWorldPosition(
       connection.fromModuleId,
       connection.fromPortId,
       "out",
     );
-    const toPos = getPortScreenPosition(
+    const toWorld = getPortWorldPosition(
       connection.toModuleId,
       connection.toPortId,
       "in",
     );
-    if (!fromPos || !toPos) return null;
-    const dx = toPos.x - fromPos.x;
+    if (!fromWorld || !toWorld) return null;
+    const from = project(fromWorld);
+    const to = project(toWorld);
+    const dx = to.x - from.x;
     const controlOffset = Math.max(60, Math.abs(dx) * 0.5);
-    const path = `M ${fromPos.x} ${fromPos.y} C ${fromPos.x + controlOffset} ${fromPos.y}, ${toPos.x - controlOffset} ${toPos.y}, ${toPos.x} ${toPos.y}`;
+    const path = `M ${from.x} ${from.y} C ${from.x + controlOffset} ${from.y}, ${to.x - controlOffset} ${to.y}, ${to.x} ${to.y}`;
     return (
       <path
         key={`${connection.fromModuleId}:${connection.fromPortId}->${connection.toModuleId}:${connection.toPortId}`}
@@ -49,10 +61,13 @@ export const CableLayer: React.FC<CableLayerProps> = ({
 
   let pendingPath: React.ReactNode = null;
   if (pendingConnection) {
-    const { startX, startY, currentX, currentY } = pendingConnection;
-    const dx = currentX - startX;
+    const { startWorldX, startWorldY, currentWorldX, currentWorldY } =
+      pendingConnection;
+    const start = project({ x: startWorldX, y: startWorldY });
+    const current = project({ x: currentWorldX, y: currentWorldY });
+    const dx = current.x - start.x;
     const controlOffset = Math.max(60, Math.abs(dx) * 0.5);
-    const path = `M ${startX} ${startY} C ${startX + controlOffset} ${startY}, ${currentX - controlOffset} ${currentY}, ${currentX} ${currentY}`;
+    const path = `M ${start.x} ${start.y} C ${start.x + controlOffset} ${start.y}, ${current.x - controlOffset} ${current.y}, ${current.x} ${current.y}`;
     pendingPath = <path d={path} className="cable-path pending" />;
   }
 

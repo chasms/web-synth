@@ -25,10 +25,29 @@ export const PatchWorkspace: React.FC = () => {
   const [pendingConnection, setPendingConnection] = React.useState<{
     fromModuleId: string;
     fromPortId: string;
-    startX: number;
-    startY: number;
-    currentX: number;
-    currentY: number;
+    startWorldX: number;
+    startWorldY: number;
+    currentWorldX: number;
+    currentWorldY: number;
+  } | null>(null);
+
+  const PALETTE_HEIGHT = 34; // keep modules visually below palette
+  const GRID_SIZE = 10;
+  const STORAGE_KEY = "webSynth.patchLayout.v1";
+
+  const [snapToGrid, setSnapToGrid] = React.useState(true);
+  const [showGrid, setShowGrid] = React.useState(true);
+  const [isPanning, setIsPanning] = React.useState(false);
+  const [viewport, setViewport] = React.useState({
+    offsetX: 0,
+    offsetY: 0,
+    scale: 1,
+  });
+  const panStartRef = React.useRef<{
+    x: number;
+    y: number;
+    startOffsetX: number;
+    startOffsetY: number;
   } | null>(null);
 
   const handleAddInitialModules = React.useCallback(() => {
@@ -68,12 +87,13 @@ export const PatchWorkspace: React.FC = () => {
       patch.connect(adsr, "cv_out", vcf, "cutoff_cv");
       // Demonstration gate
       adsr.gateOn?.();
+      const yOffset = 40 + PALETTE_HEIGHT;
       setPositionedModules([
-        { id: vco1.id, x: 40, y: 40 },
-        { id: vco2.id, x: 40, y: 220 },
-        { id: vco3.id, x: 40, y: 400 },
-        { id: vcf.id, x: 360, y: 180 },
-        { id: adsr.id, x: 660, y: 180 },
+        { id: vco1.id, x: 40, y: yOffset },
+        { id: vco2.id, x: 40, y: yOffset + 180 },
+        { id: vco3.id, x: 40, y: yOffset + 360 },
+        { id: vcf.id, x: 360, y: yOffset + 140 },
+        { id: adsr.id, x: 660, y: yOffset + 140 },
       ]);
     }
   }, [audioContext, patch]);
@@ -111,41 +131,139 @@ export const PatchWorkspace: React.FC = () => {
     );
 
   const handleDragModule = (id: string, x: number, y: number) => {
+    const applySnap = (value: number) =>
+      snapToGrid ? Math.round(value / GRID_SIZE) * GRID_SIZE : value;
     setPositionedModules((mods) =>
-      mods.map((m) => (m.id === id ? { ...m, x, y } : m)),
+      mods.map((m) =>
+        m.id === id ? { ...m, x: applySnap(x), y: applySnap(y) } : m,
+      ),
     );
   };
 
-  const getPortScreenPosition = (
+  const removeModule = (id: string) => {
+    patch.removeModule(id);
+    setPositionedModules((mods) => mods.filter((m) => m.id !== id));
+  };
+
+  // Simple auto layout when adding a new module so user does not need to scroll
+  const autoPlace = (id: string) => {
+    setPositionedModules((mods) => {
+      const taken = new Set(mods.map((m) => `${m.x},${m.y}`));
+      const baseX = 40;
+      const baseY = 40 + PALETTE_HEIGHT;
+      const colWidth = 220;
+      const rowHeight = 180;
+      for (let col = 0; col < 8; col++) {
+        for (let row = 0; row < 3; row++) {
+          const x = baseX + col * colWidth;
+          const y = baseY + row * rowHeight;
+          const key = `${x},${y}`;
+          if (!taken.has(key)) {
+            return [...mods, { id, x, y }];
+          }
+        }
+      }
+      // fallback: stack at last position offset
+      const last = mods[mods.length - 1];
+      return [
+        ...mods,
+        { id, x: (last?.x ?? baseX) + 40, y: (last?.y ?? baseY) + 40 },
+      ];
+    });
+  };
+
+  const positionInitialLayout = () => {
+    // Re-space current modules in deterministic order without requiring scroll
+    setPositionedModules((mods) => {
+      const sorted = [...mods];
+      sorted.sort((a, b) => a.id.localeCompare(b.id));
+      const colWidth = 220;
+      const rowHeight = 180;
+      return sorted.map((m, index) => {
+        const col = Math.floor(index / 3);
+        const row = index % 3;
+        return {
+          ...m,
+          x: 40 + col * colWidth,
+          y: 40 + PALETTE_HEIGHT + row * rowHeight,
+        };
+      });
+    });
+  };
+
+  const addModuleByType = (type: string) => {
+    if (!audioContext) return;
+    let created: ReturnType<typeof patch.createModule> | null = null;
+    switch (type) {
+      case "VCO":
+        created = patch.createModule("VCO", createVCO, {
+          waveform: "sawtooth",
+          baseFrequency: 220,
+          gain: 0.2,
+        });
+        break;
+      case "VCF":
+        created = patch.createModule("VCF", createVCF, {
+          cutoff: 1000,
+          resonance: 0.8,
+        });
+        break;
+      case "ADSR":
+        created = patch.createModule("ADSR", createADSR, {
+          attack: 0.01,
+          decay: 0.2,
+          sustain: 0.7,
+          release: 0.4,
+        });
+        break;
+      default:
+        break;
+    }
+    if (created) {
+      autoPlace(created.id);
+    }
+  };
+
+  const getPortWorldPosition = (
     moduleId: string,
     portId: string,
     direction: "in" | "out",
   ): { x: number; y: number } | null => {
-    const selector = `.module-container[data-module-id="${moduleId}"] .module-port-${direction}[data-port-id="${portId}"]`;
-    const portElement = document.querySelector(selector) as HTMLElement | null;
-    if (!portElement) return null;
-    const rect = portElement.getBoundingClientRect();
-    return {
-      x: rect.left + rect.width / 2 + window.scrollX,
-      y: rect.top + rect.height / 2 + window.scrollY,
-    };
+    const MODULE_WIDTH = 180; // outer container width
+    const PADDING_X = 8; // container horizontal padding (.5rem)
+    const PORT_RADIUS = 5; // half of PORT_SIZE(10)
+    const ROW_HEIGHT = 28;
+    const TOP_OFFSET = 32; // below title bar
+    const modulePos = modulePositions[moduleId];
+    if (!modulePos) return null;
+    const mod = patch.modules[moduleId];
+    if (!mod) return null;
+    const ports = mod.ports.filter((p) => p.direction === direction);
+    const index = ports.findIndex((p) => p.id === portId);
+    if (index === -1) return null;
+    const baseX =
+      direction === "out"
+        ? modulePos.x + MODULE_WIDTH - PADDING_X - PORT_RADIUS
+        : modulePos.x + PADDING_X + PORT_RADIUS;
+    const baseY = modulePos.y + TOP_OFFSET + index * ROW_HEIGHT;
+    return { x: baseX, y: baseY };
   };
 
   const handleStartConnection = (data: {
     moduleId: string;
     portId: string;
     direction: "in" | "out";
-    x: number;
+    x: number; // world coordinate
     y: number;
   }) => {
     if (data.direction !== "out") return;
     setPendingConnection({
       fromModuleId: data.moduleId,
       fromPortId: data.portId,
-      startX: data.x,
-      startY: data.y,
-      currentX: data.x,
-      currentY: data.y,
+      startWorldX: data.x,
+      startWorldY: data.y,
+      currentWorldX: data.x,
+      currentWorldY: data.y,
     });
   };
 
@@ -153,8 +271,8 @@ export const PatchWorkspace: React.FC = () => {
     moduleId: string;
     portId: string;
     direction: "in" | "out";
-    x: number;
-    y: number;
+    x: number; // world
+    y: number; // world
   }) => {
     if (!pendingConnection) return;
     if (data.direction !== "in") return;
@@ -173,18 +291,31 @@ export const PatchWorkspace: React.FC = () => {
 
   React.useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
-      setPendingConnection((pending) =>
-        pending
-          ? {
-              ...pending,
-              currentX: event.clientX + window.scrollX,
-              currentY: event.clientY + window.scrollY,
-            }
-          : pending,
-      );
+      setPendingConnection((pending) => {
+        if (!pending) return pending;
+        // Convert pointer to world
+        const worldX = (event.clientX - viewport.offsetX) / viewport.scale;
+        const worldY = (event.clientY - viewport.offsetY) / viewport.scale;
+        return {
+          ...pending,
+          currentWorldX: worldX,
+          currentWorldY: worldY,
+        };
+      });
+      if (panStartRef.current && isPanning) {
+        const dx = event.clientX - panStartRef.current.x;
+        const dy = event.clientY - panStartRef.current.y;
+        setViewport((v) => ({
+          ...v,
+          offsetX: panStartRef.current!.startOffsetX + dx,
+          offsetY: panStartRef.current!.startOffsetY + dy,
+        }));
+      }
     };
     const handleMouseUp = () => {
       setPendingConnection(null);
+      setIsPanning(false);
+      panStartRef.current = null;
     };
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
@@ -192,6 +323,70 @@ export const PatchWorkspace: React.FC = () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
+  }, [isPanning, viewport]);
+
+  // Wheel zoom
+  const workspaceRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    const el = workspaceRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey) return; // require ctrl for zoom gesture
+      e.preventDefault();
+      setViewport((v) => {
+        const scaleFactor = e.deltaY < 0 ? 1.1 : 0.9;
+        const newScale = Math.min(2, Math.max(0.4, v.scale * scaleFactor));
+        return { ...v, scale: newScale };
+      });
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  // Middle mouse / space-drag pan start
+  const handleBackgroundMouseDown: React.MouseEventHandler<HTMLDivElement> = (
+    e,
+  ) => {
+    // Space + left button OR middle button
+    if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
+      setIsPanning(true);
+      panStartRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        startOffsetX: viewport.offsetX,
+        startOffsetY: viewport.offsetY,
+      };
+      e.preventDefault();
+    }
+  };
+
+  // Persistence (positions + connections + module types not yet implemented) - only positions now
+  React.useEffect(() => {
+    const payload = {
+      positionedModules,
+      viewport,
+      snapToGrid,
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+    } catch {
+      /* ignore */
+    }
+  }, [positionedModules, viewport, snapToGrid]);
+
+  React.useEffect(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (Array.isArray(data.positionedModules)) {
+        setPositionedModules(data.positionedModules);
+      }
+      if (data.viewport) setViewport(data.viewport);
+      if (typeof data.snapToGrid === "boolean") setSnapToGrid(data.snapToGrid);
+    } catch {
+      /* ignore */
+    }
   }, []);
 
   return (
@@ -218,10 +413,47 @@ export const PatchWorkspace: React.FC = () => {
         )}
       {audioContext && (
         <div
+          ref={workspaceRef}
           className="patch-workspace"
           role="application"
           aria-label="Modular patch workspace"
+          onMouseDown={handleBackgroundMouseDown}
+          style={{
+            backgroundSize: showGrid
+              ? `${GRID_SIZE * viewport.scale}px ${GRID_SIZE * viewport.scale}px`
+              : undefined,
+            backgroundImage: showGrid
+              ? `linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)`
+              : undefined,
+            backgroundPosition: `${viewport.offsetX}px ${viewport.offsetY + PALETTE_HEIGHT}px`,
+          }}
         >
+          <div className="module-palette" aria-label="Module palette">
+            <button onClick={() => addModuleByType("VCO")}>Add VCO</button>
+            <button onClick={() => addModuleByType("VCF")}>Add VCF</button>
+            <button onClick={() => addModuleByType("ADSR")}>Add ADSR</button>
+            <button
+              onClick={() => {
+                positionInitialLayout();
+              }}
+              disabled={positionedModules.length === 0}
+            >
+              Auto Layout
+            </button>
+            <button onClick={() => setSnapToGrid((s) => !s)}>
+              Snap {snapToGrid ? "On" : "Off"}
+            </button>
+            <button onClick={() => setShowGrid((g) => !g)}>
+              Grid {showGrid ? "Hide" : "Show"}
+            </button>
+            <button
+              onClick={() =>
+                setViewport((v) => ({ ...v, offsetX: 0, offsetY: 0, scale: 1 }))
+              }
+            >
+              Reset View
+            </button>
+          </div>
           {Object.keys(patch.modules).length === 0 && (
             <div
               style={{
@@ -233,37 +465,51 @@ export const PatchWorkspace: React.FC = () => {
               Initial modules not yet loaded.
             </div>
           )}
-          {Object.values(patch.modules).map((moduleInstance) => {
-            const position = modulePositions[moduleInstance.id] || {
-              x: 40,
-              y: 40,
-            };
-            return (
-              <ModuleContainer
-                key={moduleInstance.id}
-                moduleInstance={moduleInstance}
-                x={position.x}
-                y={position.y}
-                onDrag={handleDragModule}
-                onStartConnection={handleStartConnection}
-                onCompleteConnection={handleCompleteConnection}
-              />
-            );
-          })}
+          <div
+            className="modules-layer"
+            style={{
+              transform: `translate(${viewport.offsetX}px, ${viewport.offsetY}px) scale(${viewport.scale})`,
+              transformOrigin: "0 0",
+              position: "absolute",
+              inset: 0,
+            }}
+          >
+            {Object.values(patch.modules).map((moduleInstance) => {
+              const position = modulePositions[moduleInstance.id] || {
+                x: 40,
+                y: 40,
+              };
+              return (
+                <ModuleContainer
+                  key={moduleInstance.id}
+                  moduleInstance={moduleInstance}
+                  x={position.x}
+                  y={position.y}
+                  onDrag={handleDragModule}
+                  onStartConnection={handleStartConnection}
+                  onCompleteConnection={handleCompleteConnection}
+                  onRemove={removeModule}
+                  viewport={viewport}
+                  paletteHeight={PALETTE_HEIGHT}
+                />
+              );
+            })}
+          </div>
           <CableLayer
             connections={patch.connections}
             modulePositions={modulePositions}
-            getPortScreenPosition={getPortScreenPosition}
+            getPortWorldPosition={getPortWorldPosition}
             pendingConnection={
               pendingConnection
                 ? {
-                    startX: pendingConnection.startX,
-                    startY: pendingConnection.startY,
-                    currentX: pendingConnection.currentX,
-                    currentY: pendingConnection.currentY,
+                    startWorldX: pendingConnection.startWorldX,
+                    startWorldY: pendingConnection.startWorldY,
+                    currentWorldX: pendingConnection.currentWorldX,
+                    currentWorldY: pendingConnection.currentWorldY,
                   }
                 : undefined
             }
+            viewport={viewport}
           />
         </div>
       )}

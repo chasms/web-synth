@@ -41,19 +41,30 @@ export function usePatch() {
       toModule: ModuleInstance,
       toPort: string,
     ) => {
-      fromModule.connect(fromPort, { module: toModule, portId: toPort });
-      setState((prev) => ({
-        ...prev,
-        connections: [
-          ...prev.connections,
-          {
-            fromModuleId: fromModule.id,
-            fromPortId: fromPort,
-            toModuleId: toModule.id,
-            toPortId: toPort,
-          },
-        ],
-      }));
+      setState((prev) => {
+        if (fromPort === toPort && fromModule.id === toModule.id) return prev;
+        const exists = prev.connections.some(
+          (c) =>
+            c.fromModuleId === fromModule.id &&
+            c.fromPortId === fromPort &&
+            c.toModuleId === toModule.id &&
+            c.toPortId === toPort,
+        );
+        if (exists) return prev;
+        fromModule.connect(fromPort, { module: toModule, portId: toPort });
+        return {
+          ...prev,
+          connections: [
+            ...prev.connections,
+            {
+              fromModuleId: fromModule.id,
+              fromPortId: fromPort,
+              toModuleId: toModule.id,
+              toPortId: toPort,
+            },
+          ],
+        };
+      });
     },
     [],
   );
