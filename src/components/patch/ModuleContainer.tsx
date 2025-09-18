@@ -7,14 +7,18 @@ export interface ModuleContainerProps {
   moduleInstance: ModuleInstance;
   x: number;
   y: number;
-  onDrag: (id: string, x: number, y: number) => void;
+  // Live (unsnapped) position updates while dragging / inertial scrolling
+  onDragLive: (id: string, x: number, y: number) => void;
+  // Commit final position (snap here if desired)
+  onDragEnd: (id: string, x: number, y: number) => void;
   onStartConnection: ModulePortProps["onStartConnection"];
   onCompleteConnection: ModulePortProps["onCompleteConnection"];
   onRemove?: (id: string) => void;
-  // Viewport transform (required): world -> screen = world * scale + offset
   viewport: { offsetX: number; offsetY: number; scale: number };
-  // Minimum y (world coords) so modules stay visually below palette
   paletteHeight?: number;
+  snapToGrid?: boolean; // used for keyboard nudging
+  selected?: boolean;
+  onSelect?: (id: string) => void;
 }
 
 interface ModulePortProps {
@@ -38,12 +42,15 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
   moduleInstance,
   x,
   y,
-  onDrag,
+  onDragLive,
+  onDragEnd,
   onStartConnection,
   onCompleteConnection,
   onRemove,
   viewport,
   paletteHeight = 0,
+  selected,
+  onSelect,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const dragStateRef = React.useRef<{
@@ -55,18 +62,32 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
     moduleHeight: number;
     workspaceLeft: number;
     workspaceTop: number;
+    lastWorldX: number;
+    lastWorldY: number;
   } | null>(null);
   const [isDragging, setIsDragging] = React.useState(false);
 
-  const handleMouseDown: React.MouseEventHandler = (event) => {
+  const applyClampY = React.useCallback(
+    (rawY: number) => (rawY < paletteHeight ? paletteHeight : rawY),
+    [paletteHeight],
+  );
+
+  const handlePointerDown: React.PointerEventHandler = (event) => {
     if (event.button !== 0) return;
+    // Only allow drag start from header region
+    const target = event.target as HTMLElement;
+    if (!target.closest?.(".module-header")) {
+      onSelect?.(moduleInstance.id); // still select on body click
+      return;
+    }
+    onSelect?.(moduleInstance.id);
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
+    containerRef.current?.setPointerCapture(event.pointerId);
     const workspaceEl = containerRef.current?.closest(
       ".patch-workspace",
     ) as HTMLElement | null;
     const workspaceRect = workspaceEl?.getBoundingClientRect();
-    // Convert pointer (screen) to world coordinates at drag start
     const { scale, offsetX, offsetY } = viewport;
     const originLeft = workspaceRect?.left ?? 0;
     const originTop = workspaceRect?.top ?? 0;
@@ -81,14 +102,14 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
       moduleHeight: rect.height,
       workspaceLeft: originLeft,
       workspaceTop: originTop,
+      lastWorldX: pointerWorldX,
+      lastWorldY: pointerWorldY,
     };
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
     setIsDragging(true);
   };
 
-  const handleMouseMove = React.useCallback(
-    (event: MouseEvent) => {
+  const handlePointerMove = React.useCallback(
+    (event: PointerEvent) => {
       const drag = dragStateRef.current;
       if (!drag) return;
       const { scale, offsetX, offsetY } = viewport;
@@ -99,22 +120,51 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
       const deltaWorldX = pointerWorldX - drag.pointerStartWorldX;
       const deltaWorldY = pointerWorldY - drag.pointerStartWorldY;
       const nextX = drag.moduleStartX + deltaWorldX;
-      let nextY = drag.moduleStartY + deltaWorldY;
-      // Clamp only vertical to stay below palette; allow free horizontal movement (treat canvas as unbounded horizontally)
-      if (nextY < paletteHeight) nextY = paletteHeight;
-      onDrag(moduleInstance.id, nextX, nextY);
+      const nextY = applyClampY(drag.moduleStartY + deltaWorldY);
+      onDragLive(moduleInstance.id, nextX, nextY);
+      drag.lastWorldX = pointerWorldX;
+      drag.lastWorldY = pointerWorldY;
     },
-    [onDrag, moduleInstance.id, viewport, paletteHeight],
+    [onDragLive, moduleInstance.id, viewport, applyClampY],
   );
-
-  const handleMouseUp = React.useCallback(() => {
+  const finishDrag = React.useCallback(() => {
+    const drag = dragStateRef.current;
+    if (!drag) return;
+    const finalX =
+      drag.moduleStartX + (drag.lastWorldX - drag.pointerStartWorldX);
+    const finalY = applyClampY(
+      drag.moduleStartY + (drag.lastWorldY - drag.pointerStartWorldY),
+    );
+    onDragEnd(moduleInstance.id, finalX, finalY);
     dragStateRef.current = null;
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", handleMouseUp);
     setIsDragging(false);
-  }, [handleMouseMove]);
+  }, [applyClampY, moduleInstance.id, onDragEnd]);
 
-  React.useEffect(() => () => handleMouseUp(), [handleMouseUp]);
+  React.useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+    const move = (e: PointerEvent) => handlePointerMove(e);
+    const up = (e: PointerEvent) => {
+      if (e.pointerId) {
+        try {
+          node.releasePointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+      // One last live move update before committing final position
+      if (dragStateRef.current) handlePointerMove(e);
+      finishDrag();
+    };
+    node.addEventListener("pointermove", move);
+    node.addEventListener("pointerup", up);
+    node.addEventListener("pointercancel", up);
+    return () => {
+      node.removeEventListener("pointermove", move);
+      node.removeEventListener("pointerup", up);
+      node.removeEventListener("pointercancel", up);
+    };
+  }, [handlePointerMove, finishDrag, viewport]);
 
   const inputPorts: PortDefinition[] = moduleInstance.ports.filter(
     (p) => p.direction === "in",
@@ -142,7 +192,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`module-container${isDragging ? " dragging" : ""}`}
+      className={`module-container${isDragging ? " dragging" : ""}${selected ? " selected" : ""}`}
       data-module-id={moduleInstance.id}
       style={{
         left: x,
@@ -150,9 +200,23 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
         zIndex: isDragging ? 50 : undefined,
         height: computedHeight,
       }}
-      onMouseDown={handleMouseDown}
+      onPointerDown={handlePointerDown}
     >
-      <div className="module-header">
+      <div
+        className="module-header"
+        role="button"
+        tabIndex={0}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSelect?.(moduleInstance.id);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onSelect?.(moduleInstance.id);
+          }
+        }}
+      >
         {moduleInstance.label}
         {onRemove && (
           <button

@@ -130,7 +130,15 @@ export const PatchWorkspace: React.FC = () => {
       [positionedModules],
     );
 
-  const handleDragModule = (id: string, x: number, y: number) => {
+  // Live drag (no snapping) for smooth movement
+  const handleDragLive = (id: string, x: number, y: number) => {
+    setPositionedModules((mods) =>
+      mods.map((m) => (m.id === id ? { ...m, x, y } : m)),
+    );
+  };
+
+  // Commit drag end (apply snapping here)
+  const handleDragEnd = (id: string, x: number, y: number) => {
     const applySnap = (value: number) =>
       snapToGrid ? Math.round(value / GRID_SIZE) * GRID_SIZE : value;
     setPositionedModules((mods) =>
@@ -485,7 +493,8 @@ export const PatchWorkspace: React.FC = () => {
                   moduleInstance={moduleInstance}
                   x={position.x}
                   y={position.y}
-                  onDrag={handleDragModule}
+                  onDragLive={handleDragLive}
+                  onDragEnd={handleDragEnd}
                   onStartConnection={handleStartConnection}
                   onCompleteConnection={handleCompleteConnection}
                   onRemove={removeModule}
