@@ -373,7 +373,7 @@ export const PatchWorkspace: React.FC = () => {
       }
     };
     const handleMouseUp = () => {
-      setPendingConnection(null);
+      // Do not auto-cancel pending connection on mouseup so we support click->click workflow.
       setIsPanning(false);
       panStartRef.current = null;
     };
@@ -384,6 +384,17 @@ export const PatchWorkspace: React.FC = () => {
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isPanning, viewport]);
+
+  // Allow cancelling a pending connection via ESC key
+  React.useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && pendingConnection) {
+        setPendingConnection(null);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [pendingConnection]);
 
   // Wheel zoom
   const workspaceRef = React.useRef<HTMLDivElement | null>(null);
@@ -478,6 +489,12 @@ export const PatchWorkspace: React.FC = () => {
           role="application"
           aria-label="Modular patch workspace"
           onMouseDown={handleBackgroundMouseDown}
+          onClick={(e) => {
+            // Cancel pending connection when clicking empty workspace background
+            if (e.target === workspaceRef.current && pendingConnection) {
+              setPendingConnection(null);
+            }
+          }}
           style={{
             backgroundSize: showGrid
               ? `${GRID_SIZE * viewport.scale}px ${GRID_SIZE * viewport.scale}px`
@@ -561,6 +578,9 @@ export const PatchWorkspace: React.FC = () => {
                   viewport={viewport}
                   paletteHeight={PALETTE_HEIGHT}
                   onRegisterPortOffset={handleRegisterPortOffset}
+                  pendingConnectionDirection={
+                    pendingConnection ? "out" : undefined
+                  }
                   // Inject registration callbacks into each ModulePort via context override
                   // We achieve this by cloning children later if needed; simpler approach: rely on ModulePort measurement writing to a shared callback (below future enhancement)
                 />

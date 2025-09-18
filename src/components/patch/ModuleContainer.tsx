@@ -26,6 +26,7 @@ export interface ModuleContainerProps {
     offsetX: number;
     offsetY: number;
   }) => void;
+  pendingConnectionDirection?: "in" | "out";
 }
 
 interface ModulePortProps {
@@ -66,6 +67,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
   selected,
   onSelect,
   onRegisterPortOffset,
+  pendingConnectionDirection,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const dragStateRef = React.useRef<{
@@ -265,6 +267,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
               anchorCenterOffsetY={index * 28 + 32}
               viewport={viewport}
               onRegisterOffset={onRegisterPortOffset}
+              pendingConnectionDirection={pendingConnectionDirection}
               onCompleteConnection={(payload) => {
                 if (port.direction !== "in") return;
                 onCompleteConnection?.({
@@ -298,6 +301,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
               anchorCenterOffsetY={index * 28 + 32}
               viewport={viewport}
               onRegisterOffset={onRegisterPortOffset}
+              pendingConnectionDirection={pendingConnectionDirection}
               onStartConnection={(payload) => {
                 if (port.direction !== "out") return;
                 onStartConnection?.({
