@@ -31,6 +31,16 @@ export interface ModulePortProps {
   pendingConnectionDirection?: "in" | "out";
   onStartConnection?: (data: ModulePortEventPayload) => void;
   onCompleteConnection?: (data: ModulePortEventPayload) => void;
+  // Viewport used to derive unscaled offsets when measuring
+  viewport: { offsetX: number; offsetY: number; scale: number };
+  // Registration callback so parent can store precise per-port offsets (center relative to module origin in world space)
+  onRegisterOffset?: (data: {
+    moduleId: string;
+    portId: string;
+    direction: "in" | "out";
+    offsetX: number; // world-space offset from module top-left to port center
+    offsetY: number; // world-space offset from module top-left to port center
+  }) => void;
 }
 
 export const ModulePort = ({
@@ -46,11 +56,16 @@ export const ModulePort = ({
   pendingConnectionDirection,
   onStartConnection,
   onCompleteConnection,
+  viewport,
+  onRegisterOffset,
 }: ModulePortProps) => {
   const PORT_SIZE = 10; // match .module-port-dot (10px)
   const GAP = 4; // space between label and dot
   const labelRef = useRef<HTMLSpanElement | null>(null);
+  const portRef = useRef<HTMLDivElement | null>(null);
   const [labelWidth, setLabelWidth] = useState(0);
+  // Track last registered offsets to avoid redundant parent updates
+  const lastRegisteredRef = useRef<{ x: number; y: number } | null>(null);
 
   useLayoutEffect(() => {
     if (labelRef.current) {
@@ -125,6 +140,40 @@ export const ModulePort = ({
     }
   };
 
+  // Measure actual dot center relative to module container to derive precise offsets.
+  useLayoutEffect(() => {
+    if (!portRef.current) return;
+    const containerEl = portRef.current.closest(
+      ".module-container",
+    ) as HTMLElement | null;
+    const dotEl = portRef.current.querySelector(
+      ".module-port-dot",
+    ) as HTMLElement | null;
+    if (!containerEl || !dotEl) return;
+    const containerRect = containerEl.getBoundingClientRect();
+    const dotRect = dotEl.getBoundingClientRect();
+    // Offsets measured in screen space; convert to world by removing viewport translation & dividing by scale.
+    // More directly, because both rects include the same transform, we can simply take the delta and divide by scale.
+    const scaledDeltaX = dotRect.left + dotRect.width / 2 - containerRect.left;
+    const scaledDeltaY = dotRect.top + dotRect.height / 2 - containerRect.top;
+    const worldOffsetX = scaledDeltaX / viewport.scale;
+    const worldOffsetY = scaledDeltaY / viewport.scale;
+    const prev = lastRegisteredRef.current;
+    const delta = prev
+      ? Math.hypot(prev.x - worldOffsetX, prev.y - worldOffsetY)
+      : Infinity;
+    if (delta > 0.5) {
+      lastRegisteredRef.current = { x: worldOffsetX, y: worldOffsetY };
+      onRegisterOffset?.({
+        moduleId,
+        portId,
+        direction: canonicalDirection,
+        offsetX: worldOffsetX,
+        offsetY: worldOffsetY,
+      });
+    }
+  }); // run every layout pass (lightweight calculations)
+
   // Compute absolute left so that dot center aligns with anchor regardless of label width
   const left =
     direction === "out"
@@ -133,6 +182,7 @@ export const ModulePort = ({
 
   return (
     <div
+      ref={portRef}
       className={[
         "module-port",
         `module-port-${canonicalDirection}`,
@@ -152,6 +202,7 @@ export const ModulePort = ({
       role="button"
       tabIndex={0}
       aria-label={`${direction} port ${label}`}
+      data-module-id={moduleId}
       onPointerDown={handlePointerDown}
       onPointerUp={handlePointerUp}
       onKeyDown={handleKeyDown}

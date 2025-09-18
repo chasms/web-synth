@@ -578,6 +578,11 @@ header h1 {
   opacity: 1;
 }
 
+/* Debug overlay (dev only) */
+.debug-port-overlay circle {
+  mix-blend-mode: screen;
+}
+
 /* Start audio button (modular area) */
 .start-audio-button {
   margin: 1rem;

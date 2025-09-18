@@ -30,6 +30,16 @@ export const PatchWorkspace: React.FC = () => {
     currentWorldX: number;
     currentWorldY: number;
   } | null>(null);
+  // Runtime measured port center offsets (world-space) keyed by moduleId:portId
+  const [measuredPortOffsets, setMeasuredPortOffsets] = React.useState<
+    Record<
+      string,
+      {
+        in?: { x: number; y: number };
+        out?: { x: number; y: number };
+      }
+    >
+  >({});
 
   const PALETTE_HEIGHT = 34; // keep modules visually below palette
   const GRID_SIZE = 10;
@@ -38,6 +48,8 @@ export const PatchWorkspace: React.FC = () => {
   const [snapToGrid, setSnapToGrid] = React.useState(true);
   const [showGrid, setShowGrid] = React.useState(true);
   const [isPanning, setIsPanning] = React.useState(false);
+  // Dev debug overlay toggle (never enabled in production build)
+  const [showDebugOverlay, setShowDebugOverlay] = React.useState(false);
   const [viewport, setViewport] = React.useState({
     offsetX: 0,
     offsetY: 0,
@@ -237,11 +249,11 @@ export const PatchWorkspace: React.FC = () => {
     portId: string,
     direction: "in" | "out",
   ): { x: number; y: number } | null => {
-    const MODULE_WIDTH = 180; // outer container width
-    const PADDING_X = 8; // container horizontal padding (.5rem)
-    const PORT_RADIUS = 5; // half of PORT_SIZE(10)
+    // Mirror constants from ModuleContainer/ModulePort
+    const LEFT_CENTER_X = 13; // padding(8)+radius(5)
+    const RIGHT_CENTER_X = 167; // width(180)-padding(8)-radius(5)
     const ROW_HEIGHT = 28;
-    const TOP_OFFSET = 32; // below title bar
+    const TOP_OFFSET = 32;
     const modulePos = modulePositions[moduleId];
     if (!modulePos) return null;
     const mod = patch.modules[moduleId];
@@ -249,13 +261,53 @@ export const PatchWorkspace: React.FC = () => {
     const ports = mod.ports.filter((p) => p.direction === direction);
     const index = ports.findIndex((p) => p.id === portId);
     if (index === -1) return null;
-    const baseX =
+    // If we have a runtime measurement for this port, prefer it for accuracy
+    const key = `${moduleId}:${portId}`;
+    const measuredEntry = measuredPortOffsets[key]?.[direction];
+    if (measuredEntry) {
+      return {
+        x: modulePos.x + measuredEntry.x,
+        y: modulePos.y + measuredEntry.y,
+      };
+    }
+    const xCenter =
       direction === "out"
-        ? modulePos.x + MODULE_WIDTH - PADDING_X - PORT_RADIUS
-        : modulePos.x + PADDING_X + PORT_RADIUS;
-    const baseY = modulePos.y + TOP_OFFSET + index * ROW_HEIGHT;
-    return { x: baseX, y: baseY };
+        ? modulePos.x + RIGHT_CENTER_X
+        : modulePos.x + LEFT_CENTER_X;
+    const yCenter = modulePos.y + TOP_OFFSET + index * ROW_HEIGHT;
+    return { x: xCenter, y: yCenter };
   };
+
+  const handleRegisterPortOffset = React.useCallback(
+    (data: {
+      moduleId: string;
+      portId: string;
+      direction: "in" | "out";
+      offsetX: number;
+      offsetY: number;
+    }) => {
+      setMeasuredPortOffsets((prev) => {
+        const key = `${data.moduleId}:${data.portId}`;
+        const existing = prev[key] || {};
+        if (
+          existing[data.direction]?.x === data.offsetX &&
+          existing[data.direction]?.y === data.offsetY
+        ) {
+          return prev;
+        }
+        return {
+          ...prev,
+          [key]: {
+            ...existing,
+            [data.direction]: { x: data.offsetX, y: data.offsetY },
+          },
+        };
+      });
+    },
+    [],
+  );
+
+  // (Removed DOM measurement; deterministic math keeps cable endpoints stable during drag.)
 
   const handleStartConnection = (data: {
     moduleId: string;
@@ -461,6 +513,14 @@ export const PatchWorkspace: React.FC = () => {
             >
               Reset View
             </button>
+            {import.meta.env.DEV && (
+              <button
+                onClick={() => setShowDebugOverlay((s) => !s)}
+                style={{ borderColor: showDebugOverlay ? "#6f6" : undefined }}
+              >
+                Debug {showDebugOverlay ? "On" : "Off"}
+              </button>
+            )}
           </div>
           {Object.keys(patch.modules).length === 0 && (
             <div
@@ -500,6 +560,9 @@ export const PatchWorkspace: React.FC = () => {
                   onRemove={removeModule}
                   viewport={viewport}
                   paletteHeight={PALETTE_HEIGHT}
+                  onRegisterPortOffset={handleRegisterPortOffset}
+                  // Inject registration callbacks into each ModulePort via context override
+                  // We achieve this by cloning children later if needed; simpler approach: rely on ModulePort measurement writing to a shared callback (below future enhancement)
                 />
               );
             })}
@@ -520,8 +583,101 @@ export const PatchWorkspace: React.FC = () => {
             }
             viewport={viewport}
           />
+          {import.meta.env.DEV && showDebugOverlay && (
+            <DebugPortOverlay
+              measuredPortOffsets={measuredPortOffsets}
+              patch={patch}
+              modulePositions={modulePositions}
+              viewport={viewport}
+              getPortWorldPosition={getPortWorldPosition}
+            />
+          )}
         </div>
       )}
     </div>
+  );
+};
+
+interface DebugPortOverlayProps {
+  measuredPortOffsets: Record<
+    string,
+    { in?: { x: number; y: number }; out?: { x: number; y: number } }
+  >;
+  patch: ReturnType<typeof usePatch>;
+  modulePositions: Record<string, { x: number; y: number }>;
+  viewport: { offsetX: number; offsetY: number; scale: number };
+  getPortWorldPosition: (
+    moduleId: string,
+    portId: string,
+    direction: "in" | "out",
+  ) => { x: number; y: number } | null;
+}
+
+const DebugPortOverlay: React.FC<DebugPortOverlayProps> = ({
+  measuredPortOffsets,
+  patch,
+  modulePositions,
+  viewport,
+  getPortWorldPosition,
+}) => {
+  const project = React.useCallback(
+    (world: { x: number; y: number }) => ({
+      x: world.x * viewport.scale + viewport.offsetX,
+      y: world.y * viewport.scale + viewport.offsetY,
+    }),
+    [viewport],
+  );
+
+  const markers: React.ReactNode[] = [];
+  Object.values(patch.modules).forEach((mod) => {
+    const pos = modulePositions[mod.id];
+    if (!pos) return;
+    mod.ports.forEach((pDef) => {
+      const key = `${mod.id}:${pDef.id}`;
+      const measured = measuredPortOffsets[key]?.[pDef.direction];
+      if (measured) {
+        const pt = project({ x: pos.x + measured.x, y: pos.y + measured.y });
+        markers.push(
+          <circle
+            key={`m:${key}`}
+            cx={pt.x}
+            cy={pt.y}
+            r={4}
+            fill="none"
+            stroke="#6f6"
+            strokeWidth={1.5}
+          />,
+        );
+      }
+      const fallback = getPortWorldPosition(mod.id, pDef.id, pDef.direction);
+      if (fallback) {
+        const pt = project(fallback);
+        markers.push(
+          <circle
+            key={`f:${key}`}
+            cx={pt.x}
+            cy={pt.y}
+            r={2}
+            fill="#f44"
+            stroke="none"
+            opacity={measured ? 0.6 : 1}
+          />,
+        );
+      }
+    });
+  });
+
+  return (
+    <svg
+      className="debug-port-overlay"
+      style={{
+        position: "absolute",
+        inset: 0,
+        pointerEvents: "none",
+        zIndex: 90,
+      }}
+    >
+      {markers}
+    </svg>
   );
 };

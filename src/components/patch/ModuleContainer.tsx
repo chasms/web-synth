@@ -19,6 +19,13 @@ export interface ModuleContainerProps {
   snapToGrid?: boolean; // used for keyboard nudging
   selected?: boolean;
   onSelect?: (id: string) => void;
+  onRegisterPortOffset?: (data: {
+    moduleId: string;
+    portId: string;
+    direction: "in" | "out";
+    offsetX: number;
+    offsetY: number;
+  }) => void;
 }
 
 interface ModulePortProps {
@@ -36,6 +43,13 @@ interface ModulePortProps {
     x: number;
     y: number;
   }) => void;
+  onRegisterOffset?: (data: {
+    moduleId: string;
+    portId: string;
+    direction: "in" | "out";
+    offsetX: number;
+    offsetY: number;
+  }) => void;
 }
 
 export const ModuleContainer: React.FC<ModuleContainerProps> = ({
@@ -51,6 +65,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
   paletteHeight = 0,
   selected,
   onSelect,
+  onRegisterPortOffset,
 }) => {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const dragStateRef = React.useRef<{
@@ -248,6 +263,8 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
               moduleWorldY={y}
               anchorCenterOffsetX={13} /* padding(8) + radius(5) */
               anchorCenterOffsetY={index * 28 + 32}
+              viewport={viewport}
+              onRegisterOffset={onRegisterPortOffset}
               onCompleteConnection={(payload) => {
                 if (port.direction !== "in") return;
                 onCompleteConnection?.({
@@ -279,6 +296,8 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
                 167
               } /* width(180) - padding(8) - radius(5) */
               anchorCenterOffsetY={index * 28 + 32}
+              viewport={viewport}
+              onRegisterOffset={onRegisterPortOffset}
               onStartConnection={(payload) => {
                 if (port.direction !== "out") return;
                 onStartConnection?.({
