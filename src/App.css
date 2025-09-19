@@ -680,3 +680,51 @@ header h1 {
 .module-container.dragging {
   box-shadow: 0 8px 18px rgb(0 0 0 / 65%);
 }
+
+/* Module controls (compact, panel-style) */
+.module-controls {
+  background: linear-gradient(145deg, #141414, #0b0b0b);
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin: 0 4px 6px;
+}
+
+.module-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.module-control:last-child {
+  margin-bottom: 0;
+}
+
+.module-control .module-control-label {
+  font-size: 12px;
+  color: #ccc;
+}
+
+.module-control .module-control-input,
+.module-control .module-control-select {
+  background: #1e1e1e;
+  color: #eee;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.module-control .module-control-input {
+  width: 68px;
+}
+
+.module-control .module-control-slider-row {
+  grid-column: 1 / span 2;
+}
+
+.module-control .module-control-slider {
+  width: 100%;
+}

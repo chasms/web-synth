@@ -9,7 +9,6 @@ interface NumberControlProps {
   max: number;
   step?: number;
   onChange: (next: number) => void;
-  format?: (v: number) => string;
 }
 
 const NumberControl: React.FC<NumberControlProps> = ({
@@ -19,7 +18,6 @@ const NumberControl: React.FC<NumberControlProps> = ({
   max,
   step = 1,
   onChange,
-  format,
 }) => {
   const [text, setText] = React.useState<string>(() => String(value));
   React.useEffect(() => {
@@ -41,10 +39,24 @@ const NumberControl: React.FC<NumberControlProps> = ({
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 6 }}>
-      <label style={{ fontSize: 12, color: "#ccc" }}>{label}</label>
-      <div style={{ display: "contents" }}>
+    <div className="module-control">
+      <label className="module-control-label">{label}</label>
+      <input
+        className="module-control-input"
+        aria-label={`${label} input`}
+        type="text"
+        inputMode="decimal"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={() => commit(text)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") commit(text);
+          if (e.key === "Escape") setText(String(value));
+        }}
+      />
+      <div className="module-control-slider-row">
         <input
+          className="module-control-slider"
           aria-label={`${label} slider`}
           type="range"
           min={min}
@@ -53,33 +65,7 @@ const NumberControl: React.FC<NumberControlProps> = ({
           value={value}
           onChange={(e) => onChange(clamp(Number(e.target.value)))}
         />
-        <input
-          aria-label={`${label} input`}
-          type="text"
-          inputMode="decimal"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onBlur={() => commit(text)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") commit(text);
-            if (e.key === "Escape") setText(String(value));
-          }}
-          style={{
-            width: 70,
-            padding: "2px 4px",
-            background: "#222",
-            color: "#eee",
-            border: "1px solid #444",
-            borderRadius: 4,
-            fontSize: 12,
-          }}
-        />
       </div>
-      {format ? (
-        <div style={{ gridColumn: "1 / span 2", fontSize: 11, color: "#888" }}>
-          {format(value)}
-        </div>
-      ) : null}
     </div>
   );
 };
@@ -113,41 +99,17 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
   );
 
   return (
-    <div
-      style={{
-        padding: "4px 6px",
-        background: "#0b0b0b",
-        border: "1px solid #222",
-        borderRadius: 6,
-        margin: "0 4px 6px",
-        display: "grid",
-        gap: 8,
-      }}
-    >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr auto",
-          alignItems: "center",
-          gap: 6,
-        }}
-      >
-        <label style={{ fontSize: 12, color: "#ccc" }}>Waveform</label>
+    <div className="module-controls">
+      <div className="module-control">
+        <label className="module-control-label">Waveform</label>
         <select
+          className="module-control-select"
           aria-label="Waveform"
           value={waveform}
           onChange={(e) => {
             const next = e.target.value;
             setWaveform(next);
             update({ waveform: next });
-          }}
-          style={{
-            background: "#222",
-            color: "#eee",
-            border: "1px solid #444",
-            borderRadius: 4,
-            fontSize: 12,
-            padding: "2px 4px",
           }}
         >
           <option value="sine">Sine</option>
@@ -167,7 +129,6 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
           setBaseFrequency(v);
           update({ baseFrequency: v });
         }}
-        format={(v) => `${v.toFixed(1)} Hz`}
       />
 
       <NumberControl
@@ -180,7 +141,6 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
           setDetuneCents(v);
           update({ detuneCents: v });
         }}
-        format={(v) => `${v.toFixed(0)} cents`}
       />
 
       <NumberControl
@@ -193,7 +153,6 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
           setGain(v);
           update({ gain: v });
         }}
-        format={(v) => `${Math.round(v * 100)}%`}
       />
     </div>
   );

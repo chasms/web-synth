@@ -206,7 +206,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
       ? firstPortOffset + (portsRows - 1) * rowSpacing + visualPortHeight
       : 0;
   const baseHeaderAndPadding = 40; // header + margins + bottom padding buffer
-  const controlsExtraHeight = moduleInstance.type === "VCO" ? 120 : 0; // approximate height for controls panel
+  const controlsExtraHeight = moduleInstance.type === "VCO" ? 90 : 0; // compact controls panel height
   const computedHeight = Math.max(
     140,
     baseHeaderAndPadding + controlsExtraHeight + portsVerticalSpan,
