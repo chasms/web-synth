@@ -96,6 +96,10 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
     if (event.button !== 0) return;
     // Only allow drag start from header region
     const target = event.target as HTMLElement;
+    // If clicking the delete button, don't start a drag; let onClick handle removal
+    if (target.closest?.(".module-remove-button")) {
+      return;
+    }
     if (!target.closest?.(".module-header")) {
       onSelect?.(moduleInstance.id); // still select on body click
       return;
@@ -206,7 +210,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
       ? firstPortOffset + (portsRows - 1) * rowSpacing + visualPortHeight
       : 0;
   const baseHeaderAndPadding = 40; // header + margins + bottom padding buffer
-  const controlsExtraHeight = moduleInstance.type === "VCO" ? 90 : 0; // compact controls panel height
+  const controlsExtraHeight = moduleInstance.type === "VCO" ? 220 : 0; // slightly more height to fully cover I/O
   const computedHeight = Math.max(
     140,
     baseHeaderAndPadding + controlsExtraHeight + portsVerticalSpan,
