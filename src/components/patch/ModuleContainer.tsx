@@ -1,6 +1,7 @@
 import React from "react";
 
 import type { ModuleInstance, PortDefinition } from "../../modular/types";
+import { VCOControls } from "./controls/VCOControls";
 import { ModulePort } from "./ModulePort";
 
 export interface ModuleContainerProps {
@@ -205,9 +206,10 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
       ? firstPortOffset + (portsRows - 1) * rowSpacing + visualPortHeight
       : 0;
   const baseHeaderAndPadding = 40; // header + margins + bottom padding buffer
+  const controlsExtraHeight = moduleInstance.type === "VCO" ? 120 : 0; // approximate height for controls panel
   const computedHeight = Math.max(
     140,
-    baseHeaderAndPadding + portsVerticalSpan,
+    baseHeaderAndPadding + controlsExtraHeight + portsVerticalSpan,
   );
   const columnHeight = portsVerticalSpan || 0;
 
@@ -253,6 +255,9 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
           </button>
         )}
       </div>
+      {moduleInstance.type === "VCO" ? (
+        <VCOControls module={moduleInstance} />
+      ) : null}
       <div className="module-ports">
         <div
           className="module-ports-column inputs"

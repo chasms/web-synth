@@ -4,8 +4,8 @@ import { AudioContextState, useAudioContext } from "../hooks/useAudioContext";
 
 const buttonStyles = {
   border: "1px solid #444",
-  padding: "0.5rem 0.75rem",
-  fontSize: "0.8rem",
+  padding: "0.25rem 0.75rem",
+  fontSize: "0.5rem",
   background: "#111",
   color: "#eee",
 };
@@ -53,12 +53,19 @@ export const AudioContextControls: React.FC = () => {
         fontSize: "0.8rem",
         background: "#111",
         color: "#eee",
+        display: "flex",
       }}
     >
-      <div style={{ marginBottom: "0.25rem", fontWeight: 600 }}>
-        Audio Context
+      <div>
+        <div
+          style={{ fontSize: "0.5rem", marginRight: "0.5rem", fontWeight: 600 }}
+        >
+          Audio Context
+        </div>
+        <div style={{ fontSize: "0.5rem", marginRight: "0.5rem" }}>
+          State: {state}
+        </div>
       </div>
-      <div style={{ marginBottom: "0.5rem" }}>State: {state}</div>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         <button
           style={buttonStyles}

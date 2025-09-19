@@ -60,6 +60,7 @@ Recent Progress (UI & Interaction):
 - [x] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
 - [x] Restored module draggability while keeping cables clickable (pointer-events layering)
 - [x] Audio graph disconnection when a cable is removed (targeted disconnect of node/param)
+- [x] VCO controls (waveform, pitch, detune, gain) with sliders + validated text inputs; values apply live via module.updateParams
 
 Stretch:
 
@@ -74,6 +75,7 @@ Technical Notes:
 - Gate events call `gateOn` / `gateOff`; Velocity delivered as separate CV (0..1) for amplitude & modulation scaling.
 - Envelopes output CV via an AudioParam (gain) initially; may expose ConstantSourceNode in future for patch flexibility.
 - Performance: begin with straightforward automation ramps (control-rate); smoothing utility will wrap abrupt changes to prevent zipper noise.
+- VCO parameter ranges: Pitch 10–20,000 Hz, Detune ±1200 cents, Gain 0–1. Waveforms limited to built-in OscillatorNode types.
 - Polyphony: voice allocator manages per-voice module sets (oscillators, amp env, filter optional). Voice count configurable up to a cap.
 - ADR-001 (Pitch CV Standard) DRAFT recorded; low migration risk.
 

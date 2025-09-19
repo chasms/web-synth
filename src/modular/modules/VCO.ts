@@ -95,6 +95,12 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         }
       }
       if (
+        partial["baseFrequency"] !== undefined &&
+        typeof partial["baseFrequency"] === "number"
+      ) {
+        oscillatorNode.frequency.value = Math.max(0, partial["baseFrequency"]);
+      }
+      if (
         partial["detuneCents"] !== undefined &&
         typeof partial["detuneCents"] === "number"
       ) {
@@ -104,8 +110,16 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         partial["gain"] !== undefined &&
         typeof partial["gain"] === "number"
       ) {
-        outputGainNode.gain.value = partial["gain"];
+        outputGainNode.gain.value = Math.max(0, partial["gain"]);
       }
+    },
+    getParams() {
+      return {
+        waveform: oscillatorNode.type,
+        baseFrequency: oscillatorNode.frequency.value,
+        detuneCents: oscillatorNode.detune.value,
+        gain: outputGainNode.gain.value,
+      };
     },
     dispose() {
       try {
