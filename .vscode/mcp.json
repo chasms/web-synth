@@ -10,9 +10,13 @@
       "command": "npx",
       "args": ["stylelint-mcp@latest"]
     },
-    "Playwright": {
+    "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@latest", "--extension"]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest"]
     }
   }
 }
