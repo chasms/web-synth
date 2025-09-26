@@ -1,4 +1,5 @@
 import type { CreateModuleFn, ModuleInstance, PortDefinition } from "../types";
+import { smoothParam } from "../utils/smoothing";
 
 export interface VCOParams {
   waveform: OscillatorType;
@@ -98,19 +99,35 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         partial["baseFrequency"] !== undefined &&
         typeof partial["baseFrequency"] === "number"
       ) {
-        oscillatorNode.frequency.value = Math.max(0, partial["baseFrequency"]);
+        const nextHz = Math.max(0, partial["baseFrequency"]);
+        smoothParam(audioContext, oscillatorNode.frequency, nextHz, {
+          mode: "setTarget",
+          timeConstant: 0.03,
+        });
       }
       if (
         partial["detuneCents"] !== undefined &&
         typeof partial["detuneCents"] === "number"
       ) {
-        oscillatorNode.detune.value = partial["detuneCents"];
+        smoothParam(
+          audioContext,
+          oscillatorNode.detune,
+          partial["detuneCents"],
+          {
+            mode: "setTarget",
+            timeConstant: 0.02,
+          },
+        );
       }
       if (
         partial["gain"] !== undefined &&
         typeof partial["gain"] === "number"
       ) {
-        outputGainNode.gain.value = Math.max(0, partial["gain"]);
+        const nextGain = Math.max(0, partial["gain"]);
+        smoothParam(audioContext, outputGainNode.gain, nextGain, {
+          mode: "linear",
+          time: 0.02,
+        });
       }
     },
     getParams() {

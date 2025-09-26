@@ -1,4 +1,5 @@
 import type { CreateModuleFn, ModuleInstance, PortDefinition } from "../types";
+import { smoothParam } from "../utils/smoothing";
 
 export interface VCFParams {
   type?: BiquadFilterType;
@@ -61,13 +62,23 @@ export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
       if (
         partial["cutoff"] !== undefined &&
         typeof partial["cutoff"] === "number"
-      )
-        biquadFilterNode.frequency.value = partial["cutoff"];
+      ) {
+        const next = Math.max(0, partial["cutoff"]);
+        smoothParam(audioContext, biquadFilterNode.frequency, next, {
+          mode: "setTarget",
+          timeConstant: 0.03,
+        });
+      }
       if (
         partial["resonance"] !== undefined &&
         typeof partial["resonance"] === "number"
-      )
-        biquadFilterNode.Q.value = partial["resonance"];
+      ) {
+        const nextQ = Math.max(0, partial["resonance"]);
+        smoothParam(audioContext, biquadFilterNode.Q, nextQ, {
+          mode: "linear",
+          time: 0.02,
+        });
+      }
       if (partial["type"] && typeof partial["type"] === "string") {
         try {
           biquadFilterNode.type = partial["type"] as BiquadFilterType;
