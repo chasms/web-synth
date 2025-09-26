@@ -419,15 +419,13 @@ header h1 {
     0 4px 10px rgb(0 0 0 / 50%),
     inset 0 0 0 1px #222;
   user-select: none;
-  cursor: grab;
+  cursor: default; /* only header/handles show grab */
   padding: 0.25rem 0.5rem 0.5rem;
 }
 
-.module-container:active {
-  cursor: grabbing;
-}
-
+/* Drag affordance limited to header */
 .module-header {
+  cursor: grab;
   font-size: 0.85rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -436,6 +434,15 @@ header h1 {
   padding: 0.25rem 0.25rem 0.4rem;
   border-bottom: 1px solid #333;
   margin-bottom: 0.25rem;
+}
+
+.module-header:active {
+  cursor: grabbing;
+}
+
+/* SVG envelope handles already specify cursor inline (ew-resize/move). Ensure container hover doesn't override. */
+.module-controls svg {
+  cursor: default;
 }
 
 .module-ports {
@@ -727,4 +734,65 @@ header h1 {
 
 .module-control .module-control-slider {
   width: 100%;
+}
+
+/* Envelope editor specific styling */
+.env-handle {
+  transition:
+    fill 0.15s,
+    stroke 0.15s,
+    transform 0.15s;
+  outline: none;
+}
+
+.env-handle:hover,
+.env-handle:focus-visible {
+  fill: #16222b;
+  stroke: #ffe4a3;
+  filter: drop-shadow(0 0 4px #ffe4a3aa);
+}
+
+.env-input-compact {
+  width: 46px;
+  font-size: 10px;
+  padding: 2px 3px;
+  text-align: center;
+  background: #181818;
+  color: #ddd;
+  border: 1px solid #2f2f2f;
+  border-radius: 3px;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.env-input-compact:focus {
+  outline: 1px solid #6abfff;
+  outline-offset: 1px;
+  border-color: #6abfff;
+  background: #202a33;
+  color: #eef8ff;
+}
+
+.env-small-btn {
+  background: #1d1d1d;
+  color: #ccc;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 2px 4px;
+  cursor: pointer;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.env-small-btn:hover,
+.env-small-btn:focus-visible {
+  background: #273341;
+  color: #fff;
+  border-color: #4b6a84;
 }

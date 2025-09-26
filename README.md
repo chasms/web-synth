@@ -7,6 +7,9 @@ A modern web-based implementation of the classic Minimoog synthesizer, built wit
 ### Current Features
 
 - **Three-Oscillator Synthesis Engine**: Independent control over frequency, waveform, gain, and detuning
+- **Modular Patch Workspace (Experimental)**: Drag modules, connect AUDIO / CV / GATE / TRIGGER ports with colored cables
+- **Interactive AHDSR Envelope**: Attack, Hold, Decay, Sustain, Release editor with SVG curve, draggable + keyboard handles & ms numeric inputs
+- **Parameter Smoothing Utility**: Helpers to schedule safe linear/setTarget ramps to prevent clicks on UI-driven parameter changes
 - **Real-time Parameter Control**: Live adjustment of synthesizer parameters while playing
 - **Master Volume Control**: Proper audio routing through a master gain stage
 - **Modern UI**: Clean, high-contrast interface optimized for audio work
@@ -24,7 +27,7 @@ A modern web-based implementation of the classic Minimoog synthesizer, built wit
 We're building towards a full-featured Minimoog emulation with:
 
 - **Filter Section**: Classic 24dB/octave lowpass filter with resonance
-- **ADSR Envelopes**: Amplitude and filter modulation
+- **AHDSR Envelopes**: Amplitude and filter modulation (Hold stage + dB/percent sustain toggle)
 - **LFO Modulation**: Vibrato, tremolo, and filter sweeps
 - **Virtual Keyboard**: Play notes with mouse or computer keyboard
 - **Preset Management**: Save, load, and share synthesizer patches
@@ -53,6 +56,7 @@ See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed feature roadmap.
 - **Context-based Audio Management**: Centralized AudioContext lifecycle
 - **Component Composition**: Modular UI components for different control types
 - **State-driven Audio**: React state drives audio parameter changes
+- **Smoothing Layer**: `smoothParam`/`smoothParams` apply short ramps (linear/exp/setTarget) with cancellation to avoid zipper noise; envelopes schedule their own ramps and should not be smoothed directly
 
 ## 📚 Documentation
 

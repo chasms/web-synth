@@ -1,6 +1,7 @@
 import React from "react";
 
-import type { ModuleInstance, PortDefinition } from "../../modular/types";
+import { type ModuleInstance, type PortDefinition } from "../../modular/types";
+import { AHDSRControls } from "./controls/AHDSRControls";
 import { VCOControls } from "./controls/VCOControls";
 import { ModulePort } from "./ModulePort";
 
@@ -210,7 +211,15 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
       ? firstPortOffset + (portsRows - 1) * rowSpacing + visualPortHeight
       : 0;
   const baseHeaderAndPadding = 40; // header + margins + bottom padding buffer
-  const controlsExtraHeight = moduleInstance.type === "VCO" ? 220 : 0; // slightly more height to fully cover I/O
+  // Extra vertical space to accommodate control panels per module type
+  const controlsExtraHeight =
+    moduleInstance.type === "VCO"
+      ? 220
+      : moduleInstance.type === "ADSR"
+        ? 150
+        : 0;
+  // Dynamic width (ADSR envelope SVG is wider)
+  const moduleWidth = moduleInstance.type === "ADSR" ? 260 : 180;
   const computedHeight = Math.max(
     140,
     baseHeaderAndPadding + controlsExtraHeight + portsVerticalSpan,
@@ -227,6 +236,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
         top: y,
         zIndex: isDragging ? 50 : undefined,
         height: computedHeight,
+        width: moduleWidth,
       }}
       onPointerDown={handlePointerDown}
     >
@@ -259,9 +269,10 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
           </button>
         )}
       </div>
-      {moduleInstance.type === "VCO" ? (
-        <VCOControls module={moduleInstance} />
-      ) : null}
+      {moduleInstance.type === "VCO" && <VCOControls module={moduleInstance} />}
+      {moduleInstance.type === "ADSR" && (
+        <AHDSRControls module={moduleInstance} />
+      )}
       <div className="module-ports">
         <div
           className="module-ports-column inputs"
@@ -323,8 +334,8 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
               moduleWorldX={x}
               moduleWorldY={y}
               anchorCenterOffsetX={
-                167
-              } /* width(180) - padding(8) - radius(5) */
+                moduleWidth - 13
+              } /* width - padding(8) - radius(5) */
               anchorCenterOffsetY={index * 28 + 32}
               viewport={viewport}
               onRegisterOffset={onRegisterPortOffset}

@@ -61,6 +61,12 @@ Recent Progress (UI & Interaction):
 - [x] Restored module draggability while keeping cables clickable (pointer-events layering)
 - [x] Audio graph disconnection when a cable is removed (targeted disconnect of node/param)
 - [x] VCO controls (waveform, pitch, detune, gain) with sliders + validated text inputs; values apply live via module.updateParams
+- [x] Interactive AHDSR envelope (Attack, Hold, Decay, Sustain, Release) with SVG editor, draggable & keyboard-accessible handles
+- [x] Hold stage added + total time display + sustain % vs dB toggle
+- [x] Zero-length stage support (A/H/D/R can be 0ms) & default Hold 20ms
+- [x] Cursor refinements (header-only drag, handle cursors) & compact ms numeric inputs
+- [x] Handle hover/focus highlight styling for clarity
+- [x] Parameter smoothing helper added (linear / exp / setTarget) to de-zipper UI param changes
 
 Stretch:
 
@@ -371,10 +377,10 @@ Purpose: Prevent audible zipper noise and clicks when parameters jump (mouse dra
 
 Acceptance Criteria:
 
-- [ ] `smoothParam(param, targetValue, { mode: 'linear'|'exp'|'setTarget', time })` helper
-- [ ] Cancellation safety: cancels prior ramps cleanly
-- [ ] Minimum delta threshold to skip smoothing on trivial changes
-- [ ] Works with AudioParam & wrapper for multiple params
+- [x] `smoothParam(param, targetValue, { mode: 'linear'|'exp'|'setTarget', time })` helper
+- [x] Cancellation safety: cancels prior ramps cleanly
+- [x] Minimum delta threshold to skip smoothing on trivial changes
+- [x] Works with AudioParam & wrapper for multiple params
 - [ ] Tests measure step discontinuities below tolerance
 
 Stretch:
