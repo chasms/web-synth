@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { smoothParam } from "../modular/utils/smoothing";
 import type { OscillatorParams, SynthParams } from "../types/synth";
 import { DEFAULT_SYNTH_PARAMS } from "../types/synth";
 import { useAudioContext } from "./useAudioContext";
@@ -24,10 +25,18 @@ export function useSynthesizer() {
 
   // Update master volume when it changes
   useEffect(() => {
-    if (masterGainRef.current) {
-      masterGainRef.current.gain.value = synthParams.masterVolume;
+    if (audioContext && masterGainRef.current) {
+      smoothParam(
+        audioContext,
+        masterGainRef.current.gain,
+        synthParams.masterVolume,
+        {
+          mode: "linear",
+          time: 0.03,
+        },
+      );
     }
-  }, [synthParams.masterVolume]);
+  }, [audioContext, synthParams.masterVolume]);
 
   // Create three oscillators
   const oscillatorOne = useOscillator(synthParams.oscillator1);
