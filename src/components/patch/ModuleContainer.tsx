@@ -2,6 +2,7 @@ import React from "react";
 
 import { type ModuleInstance, type PortDefinition } from "../../modular/types";
 import { AHDSRControls } from "./controls/AHDSRControls";
+import { VCFControls } from "./controls/VCFControls";
 import { VCOControls } from "./controls/VCOControls";
 import { ModulePort } from "./ModulePort";
 
@@ -213,9 +214,11 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
   const controlsExtraHeight =
     moduleInstance.type === "VCO"
       ? 220
-      : moduleInstance.type === "ADSR"
-        ? 185
-        : 0;
+      : moduleInstance.type === "VCF"
+        ? 200
+        : moduleInstance.type === "ADSR"
+          ? 185
+          : 0;
   // Dynamic width (ADSR envelope SVG is wider)
   const moduleWidth = moduleInstance.type === "ADSR" ? 260 : 180;
   const computedHeight = Math.max(
@@ -268,6 +271,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
         )}
       </div>
       {moduleInstance.type === "VCO" && <VCOControls module={moduleInstance} />}
+      {moduleInstance.type === "VCF" && <VCFControls module={moduleInstance} />}
       {moduleInstance.type === "ADSR" && (
         <AHDSRControls module={moduleInstance} />
       )}
