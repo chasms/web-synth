@@ -7,7 +7,7 @@ interface AHDSRControlsProps {
 }
 
 // Geometry constants
-const WIDTH = 240;
+const WIDTH = 220;
 const HEIGHT = 90; // internal drawing height (top = value 1, bottom = 0)
 const MIN_TIME = 0.001; // seconds
 
@@ -265,7 +265,7 @@ export const AHDSRControls: React.FC<AHDSRControlsProps> = ({ module }) => {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(6, 1fr)",
+          gridTemplateColumns: "repeat(5, 1fr)",
           gap: 6,
           marginTop: 6,
         }}
@@ -273,7 +273,7 @@ export const AHDSRControls: React.FC<AHDSRControlsProps> = ({ module }) => {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 11, color: "#bbb" }}>Attack</div>
           <input
-            className="env-input env-input-compact"
+            className="env-input-compact"
             aria-label="Attack time (ms)"
             type="number"
             min={0}
@@ -287,7 +287,7 @@ export const AHDSRControls: React.FC<AHDSRControlsProps> = ({ module }) => {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 11, color: "#bbb" }}>Hold</div>
           <input
-            className="env-input env-input-compact"
+            className="env-input-compact"
             aria-label="Hold time (ms)"
             type="number"
             min={0}
@@ -301,7 +301,7 @@ export const AHDSRControls: React.FC<AHDSRControlsProps> = ({ module }) => {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 11, color: "#bbb" }}>Decay</div>
           <input
-            className="env-input env-input-compact"
+            className="env-input-compact"
             aria-label="Decay time (ms)"
             type="number"
             min={0}
@@ -316,7 +316,7 @@ export const AHDSRControls: React.FC<AHDSRControlsProps> = ({ module }) => {
           <div style={{ fontSize: 11, color: "#bbb" }}>Sustain</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <input
-              className="env-input env-input-compact"
+              className="env-input-compact"
               aria-label="Sustain level percent"
               type="number"
               min={0}
@@ -343,7 +343,7 @@ export const AHDSRControls: React.FC<AHDSRControlsProps> = ({ module }) => {
         <div style={{ textAlign: "center" }}>
           <div style={{ fontSize: 11, color: "#bbb" }}>Release</div>
           <input
-            className="env-input env-input-compact"
+            className="env-input-compact"
             aria-label="Release time (ms)"
             type="number"
             min={0}
@@ -353,12 +353,6 @@ export const AHDSRControls: React.FC<AHDSRControlsProps> = ({ module }) => {
               applyUpdate({ release: Number(e.target.value) / 1000 })
             }
           />
-        </div>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 11, color: "#bbb" }}>Total</div>
-          <div style={{ fontSize: 11, color: "#9edcff" }}>
-            {(totalTime * 1000).toFixed(0)} ms
-          </div>
         </div>
       </div>
     </div>

@@ -147,12 +147,8 @@ export const ModulePort = ({
   // Measure actual dot center relative to module container to derive precise offsets.
   useLayoutEffect(() => {
     if (!portRef.current) return;
-    const containerEl = portRef.current.closest(
-      ".module-container",
-    ) as HTMLElement | null;
-    const dotEl = portRef.current.querySelector(
-      ".module-port-dot",
-    ) as HTMLElement | null;
+    const containerEl = portRef.current.closest(".module-container");
+    const dotEl = portRef.current.querySelector(".module-port-dot");
     if (!containerEl || !dotEl) return;
     const containerRect = containerEl.getBoundingClientRect();
     const dotRect = dotEl.getBoundingClientRect();

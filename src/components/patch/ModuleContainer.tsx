@@ -109,9 +109,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
     const rect = containerRef.current?.getBoundingClientRect();
     if (!rect) return;
     containerRef.current?.setPointerCapture(event.pointerId);
-    const workspaceEl = containerRef.current?.closest(
-      ".patch-workspace",
-    ) as HTMLElement | null;
+    const workspaceEl = containerRef.current?.closest(".patch-workspace");
     const workspaceRect = workspaceEl?.getBoundingClientRect();
     const { scale, offsetX, offsetY } = viewport;
     const originLeft = workspaceRect?.left ?? 0;
@@ -203,7 +201,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
 
   // Dynamic height so all ports fit inside bounding box (ports are absolutely positioned)
   const rowSpacing = 28; // must match offset increment
-  const firstPortOffset = 32; // starting offset used when rendering ports
+  const firstPortOffset = 16; // starting offset used when rendering ports
   const visualPortHeight = 16; // approximate (dot + label line height)
   const portsRows = Math.max(inputPorts.length, outputPorts.length);
   const portsVerticalSpan =
@@ -216,7 +214,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
     moduleInstance.type === "VCO"
       ? 220
       : moduleInstance.type === "ADSR"
-        ? 150
+        ? 185
         : 0;
   // Dynamic width (ADSR envelope SVG is wider)
   const moduleWidth = moduleInstance.type === "ADSR" ? 260 : 180;
@@ -289,7 +287,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
               moduleWorldX={x}
               moduleWorldY={y}
               anchorCenterOffsetX={13} /* padding(8) + radius(5) */
-              anchorCenterOffsetY={index * 28 + 32}
+              anchorCenterOffsetY={index * rowSpacing + firstPortOffset}
               viewport={viewport}
               onRegisterOffset={onRegisterPortOffset}
               pendingConnectionDirection={pendingConnectionDirection}
@@ -336,7 +334,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
               anchorCenterOffsetX={
                 moduleWidth - 13
               } /* width - padding(8) - radius(5) */
-              anchorCenterOffsetY={index * 28 + 32}
+              anchorCenterOffsetY={index * rowSpacing + firstPortOffset}
               viewport={viewport}
               onRegisterOffset={onRegisterPortOffset}
               pendingConnectionDirection={pendingConnectionDirection}

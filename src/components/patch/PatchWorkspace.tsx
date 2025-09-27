@@ -137,7 +137,7 @@ export const PatchWorkspace: React.FC = () => {
       () =>
         positionedModules.reduce(
           (acc, m) => ({ ...acc, [m.id]: { x: m.x, y: m.y } }),
-          {} as Record<string, { x: number; y: number }>,
+          {},
         ),
       [positionedModules],
     );
