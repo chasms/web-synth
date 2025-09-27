@@ -2,9 +2,17 @@ import { createContext, useContext } from "react";
 
 export interface AudioContextType {
   audioContext: AudioContext | null;
-  isPlaying: boolean;
   startAudio: () => Promise<void>;
   stopAudio: () => void;
+  pauseAudio?: () => Promise<void>;
+  resumeAudio?: () => Promise<void>;
+}
+
+export enum AudioContextState {
+  running = "running",
+  suspended = "suspended",
+  closed = "closed",
+  interrupted = "interrupted",
 }
 
 export const AudioContextContext = createContext<AudioContextType | null>(null);

@@ -1,7 +1,11 @@
 import type { ReactNode } from "react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import { AudioContextContext, type AudioContextType } from "./useAudioContext";
+import {
+  AudioContextContext,
+  AudioContextState,
+  type AudioContextType,
+} from "./useAudioContext";
 
 interface AudioContextProviderProps {
   children: ReactNode;
@@ -9,31 +13,44 @@ interface AudioContextProviderProps {
 
 export function AudioContextProvider({ children }: AudioContextProviderProps) {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+  // We rely on audioContext.state instead of our own isPlaying flag
 
-  const startAudio = async (): Promise<void> => {
-    if (!audioContext) {
-      // Use webkitAudioContext for Safari compatibility
-      const AudioCtx =
-        window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
-      const newAudioContext = new AudioCtx();
-      setAudioContext(newAudioContext);
+  const createContextIfNeeded = useCallback((): AudioContext => {
+    if (audioContext) return audioContext;
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext;
+    const newAudioContext = new AudioCtx();
+    setAudioContext(newAudioContext);
+    return newAudioContext;
+  }, [audioContext]);
 
-      if (newAudioContext.state === "suspended") {
-        await newAudioContext.resume();
-      }
-    } else if (audioContext.state === "suspended") {
-      await audioContext.resume();
-    }
-
-    setIsPlaying(true);
+  const startAudio = async () => {
+    const context = createContextIfNeeded();
+    if (context.state === AudioContextState.suspended) await context.resume();
   };
 
-  const stopAudio = (): void => {
-    setIsPlaying(false);
-    // Note: We don't close the AudioContext here as we might want to reuse it
+  const pauseAudio = async (): Promise<void> => {
+    if (audioContext && audioContext.state === AudioContextState.running) {
+      await audioContext.suspend();
+    }
+  };
+
+  const resumeAudio = async () => {
+    if (audioContext && audioContext.state === AudioContextState.suspended) {
+      await audioContext.resume();
+    }
+  };
+
+  const closeAudio = async (): Promise<void> => {
+    if (audioContext) {
+      try {
+        await audioContext.close();
+      } finally {
+        setAudioContext(null);
+      }
+    }
   };
 
   useEffect(() => {
@@ -47,9 +64,10 @@ export function AudioContextProvider({ children }: AudioContextProviderProps) {
 
   const contextValue: AudioContextType = {
     audioContext,
-    isPlaying,
     startAudio,
-    stopAudio,
+    stopAudio: closeAudio, // maintain backward compatibility name
+    pauseAudio,
+    resumeAudio,
   };
 
   return (

@@ -55,6 +55,7 @@ export interface ModuleInstance extends ModuleDescriptor {
   ) => void;
   dispose: () => void;
   updateParams?: (partial: Record<string, unknown>) => void;
+  getParams?: () => Record<string, unknown>;
   gateOn?: () => void;
   gateOff?: () => void;
 }

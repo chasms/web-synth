@@ -8,6 +8,97 @@
   min-height: 100vh;
 }
 
+/* Fullscreen modular layout */
+.app-layout {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  color: #fff;
+  font-family: system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-bar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: #090909;
+  border-bottom: 1px solid #1e1e1e;
+  gap: 1rem;
+}
+
+.top-bar .title {
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+}
+
+.top-bar .actions {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.drawer-toggle {
+  background: #222;
+  color: #ddd;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 0.5rem 0.85rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.drawer-toggle:hover {
+  background: #2d2d2d;
+  color: #fff;
+}
+
+.main-region {
+  position: relative;
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+.legacy-drawer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 360px;
+  background: #111;
+  border-left: 1px solid #222;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+  padding: 1rem 1rem 2rem;
+  box-shadow: -4px 0 12px rgb(0 0 0 / 50%);
+  font-size: 0.85rem;
+  z-index: 40;
+}
+
+.legacy-drawer.open {
+  transform: translateX(0);
+}
+
+.legacy-drawer h2 {
+  margin-top: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+/* Reduce original app styling interference */
+.app-layout header,
+.app-layout main {
+  display: contents;
+}
+
 header h1 {
   font-size: 2.5rem;
   margin-bottom: 2rem;
@@ -76,7 +167,8 @@ header h1 {
   margin: 1rem 0;
 }
 
-.test-note-btn, .stop-btn {
+.test-note-btn,
+.stop-btn {
   padding: 12px 20px;
   font-size: 1rem;
   font-weight: 500;
@@ -92,24 +184,25 @@ header h1 {
   color: #fff;
 }
 
-.test-note-btn:hover:not(:disabled) {
-  background: #fff;
-  color: #000;
-}
-
 .stop-btn {
   border-color: #fff;
   color: #fff;
 }
 
-.stop-btn:hover:not(:disabled) {
+.test-note-btn:disabled,
+.stop-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.test-note-btn:hover:not(:disabled) {
   background: #fff;
   color: #000;
 }
 
-.test-note-btn:disabled, .stop-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.stop-btn:hover:not(:disabled) {
+  background: #fff;
+  color: #000;
 }
 
 .play-status {
@@ -150,7 +243,9 @@ header h1 {
   font-weight: 400;
 }
 
-.knob-container, .number-input-container, .select-container {
+.knob-container,
+.number-input-container,
+.select-container {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -158,13 +253,17 @@ header h1 {
   margin-bottom: 1rem;
 }
 
-.knob-container label, .number-input-container label, .select-container label {
+.knob-container label,
+.number-input-container label,
+.select-container label {
   font-weight: 400;
   font-size: 0.9rem;
   color: #ccc;
 }
 
-.knob, .number-input, .select {
+.knob,
+.number-input,
+.select {
   padding: 0.5rem;
   border: 1px solid #666;
   border-radius: 4px;
@@ -209,7 +308,7 @@ header h1 {
   font-family: monospace;
 }
 
-@media (max-width: 768px) {
+@media (width <= 768px) {
   .oscillators {
     grid-template-columns: 1fr;
   }
@@ -222,4 +321,478 @@ header h1 {
     flex-direction: column;
     gap: 0.5rem;
   }
+}
+
+/* -------------------------------------------------- */
+
+/* Modular Patch Workspace Styles                     */
+
+/* -------------------------------------------------- */
+
+.patch-workspace-root {
+  position: relative;
+  text-align: left;
+}
+
+.patch-workspace {
+  position: relative;
+  min-height: 600px;
+  border: 1px solid #333;
+  background: radial-gradient(circle at 40% 30%, #111 0%, #050505 70%);
+  border-radius: 10px;
+  overflow: hidden;
+  font-family: system-ui, sans-serif;
+}
+
+.main-region > .patch-workspace-root,
+.main-region > .patch-workspace-root > .patch-workspace {
+  height: 100%;
+  width: 100%;
+}
+
+/* Palette overlay */
+.module-palette {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: rgb(0 0 0 / 55%);
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid #222;
+  z-index: 20;
+}
+
+.module-palette button {
+  background: #222;
+  color: #ddd;
+  border: 1px solid #444;
+  font-size: 0.65rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 4px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.module-palette button:hover {
+  background: #2d2d2d;
+  color: #fff;
+}
+
+.module-palette button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Removed old margin-top push; palette height now handled in drag clamp */
+
+/* Remove button */
+.module-remove-button {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  background: transparent;
+  color: #666;
+  border: none;
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.module-remove-button:hover {
+  color: #fff;
+}
+
+/* Module Containers */
+.module-container {
+  position: absolute;
+  width: 180px;
+  min-height: 140px;
+  background: linear-gradient(145deg, #1b1b1b, #0d0d0d);
+  border: 1px solid #444;
+  border-radius: 8px;
+  box-shadow:
+    0 4px 10px rgb(0 0 0 / 50%),
+    inset 0 0 0 1px #222;
+  user-select: none;
+  cursor: default; /* only header/handles show grab */
+  padding: 0.25rem 0.5rem 0.5rem;
+}
+
+/* Drag affordance limited to header */
+.module-header {
+  cursor: grab;
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: #eee;
+  padding: 0.25rem 0.25rem 0.4rem;
+  border-bottom: 1px solid #333;
+  margin-bottom: 0.25rem;
+}
+
+.module-header:active {
+  cursor: grabbing;
+}
+
+/* SVG envelope handles already specify cursor inline (ew-resize/move). Ensure container hover doesn't override. */
+.module-controls svg {
+  cursor: default;
+}
+
+.module-ports {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.module-ports-column {
+  /* Remove positioning so absolute ModulePort children position relative to .module-ports */
+  display: flex;
+  flex-direction: column;
+}
+
+.module-ports-column.inputs {
+  align-items: flex-start;
+}
+
+.module-ports-column.outputs {
+  align-items: flex-end;
+}
+
+/* Ports */
+.module-port {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.62rem;
+  line-height: 1;
+  color: #ccc;
+  font-weight: 500;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    box-shadow 0.15s;
+  white-space: nowrap;
+}
+
+.module-port-in {
+  justify-content: flex-start;
+}
+
+.module-port-out {
+  justify-content: flex-end;
+}
+
+.module-port-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #555;
+  box-shadow:
+    0 0 0 1px #222,
+    0 0 4px rgb(255 255 255 / 10%);
+  flex-shrink: 0;
+}
+
+/* Signal type color coding */
+.module-port-audio .module-port-dot {
+  background: #4da6ff;
+}
+
+.module-port-cv .module-port-dot {
+  background: #ffb347;
+}
+
+.module-port-gate .module-port-dot {
+  background: #8dff70;
+}
+
+.module-port-trigger .module-port-dot {
+  background: #ff5fa2;
+}
+
+.module-port:hover {
+  background: rgb(255 255 255 / 8%);
+  color: #fff;
+}
+
+.module-port-highlight .module-port-dot {
+  filter: brightness(1.4) saturate(1.2);
+}
+
+.module-port:hover .module-port-dot {
+  filter: brightness(1.25);
+}
+
+/* Highlight potential connection target */
+.module-port-highlight,
+.module-port.module-port-highlight {
+  background: rgb(255 255 255 / 12%);
+  color: #fff;
+  box-shadow:
+    0 0 0 1px #555,
+    0 0 6px rgb(255 255 255 / 25%);
+}
+
+.module-port:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+.module-port-label {
+  pointer-events: none;
+}
+
+/* Cable Layer */
+.cable-layer {
+  position: absolute;
+  inset: 0;
+
+  /* Allow underlying modules to remain draggable; individual cables re-enable events */
+  pointer-events: none;
+  stroke-linecap: round;
+  overflow: visible;
+}
+
+.cable-path {
+  fill: none;
+  stroke: #666;
+  stroke-width: 3px;
+  filter: drop-shadow(0 0 2px #000);
+  opacity: 0.9;
+  transition:
+    stroke 0.2s,
+    opacity 0.2s;
+  cursor: pointer;
+
+  /* Re-enable events on the interactive elements within a pass-through layer */
+  pointer-events: auto;
+}
+
+.cable-path.pending {
+  stroke-dasharray: 6 4;
+  stroke: #aaa;
+  opacity: 0.7;
+}
+
+.cable-path:hover {
+  stroke: #bbb;
+  opacity: 1;
+}
+
+.cable .cable-delete {
+  display: none;
+  pointer-events: auto;
+}
+
+.cable:hover .cable-delete {
+  display: block;
+}
+
+.cable .cable-delete circle {
+  fill: rgb(255 255 255 / 8%);
+  stroke: rgb(255 255 255 / 30%);
+  stroke-width: 1px;
+}
+
+/* Debug overlay (dev only) */
+.debug-port-overlay circle .debug-port-overlay svg circle {
+  mix-blend-mode: screen;
+}
+
+.cable .cable-delete text {
+  fill: #eee;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+/* Cable colors by signal type */
+.cable-path.audio {
+  stroke: #4da6ff;
+}
+
+.cable-path.cv {
+  stroke: #ffb347;
+}
+
+.cable-path.gate {
+  stroke: #8dff70;
+}
+
+.cable-path.trigger {
+  stroke: #ff5fa2;
+}
+
+/* Start audio button (modular area) */
+.start-audio-button {
+  margin: 1rem;
+  padding: 0.75rem 1.25rem;
+  background: #fff;
+  color: #000;
+  border: none;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+
+.start-audio-button:hover {
+  background: #ececec;
+}
+
+.start-audio-button:active {
+  transform: translateY(1px);
+}
+
+/* Accessibility improvements */
+.module-port:focus-visible .module-port-dot {
+  box-shadow:
+    0 0 0 2px #fff,
+    0 0 6px #fff;
+}
+
+/* Scroll assistance for large patches (future panning may override) */
+.patch-workspace-root::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.patch-workspace-root::-webkit-scrollbar-track {
+  background: #111;
+}
+
+.patch-workspace-root::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 6px;
+}
+
+.patch-workspace-root::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Reserved for future states */
+.module-container.dragging {
+  box-shadow: 0 8px 18px rgb(0 0 0 / 65%);
+}
+
+/* Module controls (compact, panel-style) */
+.module-controls {
+  background: linear-gradient(145deg, #141414, #0b0b0b);
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  padding: 4px 6px;
+  margin: 0 4px 6px;
+}
+
+.module-control {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.module-control:last-child {
+  margin-bottom: 0;
+}
+
+.module-control .module-control-label {
+  font-size: 12px;
+  color: #ccc;
+}
+
+.module-control .module-control-input,
+.module-control .module-control-select {
+  background: #1e1e1e;
+  color: #eee;
+  border: 1px solid #3a3a3a;
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 2px 4px;
+}
+
+.module-control .module-control-input {
+  width: 68px;
+}
+
+.module-control .module-control-slider-row {
+  grid-column: 1 / span 2;
+}
+
+.module-control .module-control-slider {
+  width: 100%;
+}
+
+/* Envelope editor specific styling */
+.env-handle {
+  transition:
+    fill 0.15s,
+    stroke 0.15s,
+    transform 0.15s;
+  outline: none;
+}
+
+.env-handle:hover,
+.env-handle:focus-visible {
+  fill: #16222b;
+  stroke: #ffe4a3;
+  filter: drop-shadow(0 0 4px #ffe4a3aa);
+}
+
+.env-input-compact {
+  width: 30px;
+  font-size: 10px;
+  padding: 2px 3px;
+  text-align: center;
+  background: #181818;
+  color: #ddd;
+  border: 1px solid #2f2f2f;
+  border-radius: 3px;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.env-input-compact:focus {
+  outline: 1px solid #6abfff;
+  outline-offset: 1px;
+  border-color: #6abfff;
+  background: #202a33;
+  color: #eef8ff;
+}
+
+.env-small-btn {
+  background: #1d1d1d;
+  color: #ccc;
+  border: 1px solid #333;
+  border-radius: 3px;
+  padding: 2px 4px;
+  cursor: pointer;
+  line-height: 1.1;
+  letter-spacing: 0.03em;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.env-small-btn:hover,
+.env-small-btn:focus-visible {
+  background: #273341;
+  color: #fff;
+  border-color: #4b6a84;
 }

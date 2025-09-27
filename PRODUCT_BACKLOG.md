@@ -42,13 +42,31 @@ Goal: Transition from monolithic synthesizer hook to a modular, patchable archit
 
 Deliverables / Acceptance Criteria:
 
-- [ ] Core type system for Modules, Ports, Connections (AUDIO / CV / GATE / TRIGGER)
-- [ ] Base module factories: VCO, VCF, ADSR (skeletons accepted initially)
-- [ ] Patch management hook (`usePatch`) supporting create / connect / remove
-- [ ] 1V/Oct helper utilities (volts ↔ frequency)
-- [ ] Updated UI (minimal) can instantiate 3 VCOs, 1 VCF, 1 ADSR and route: VCO mix -> VCF -> Master; ADSR -> VCF cutoff; ADSR gate driven by test note buttons
-- [ ] Backwards compatibility layer (legacy `useSynthesizer` still functional until migration complete)
-- [ ] Documentation updated to explain module API and CV / Gate conventions
+- [x] Core type system for Modules, Ports, Connections (AUDIO / CV / GATE / TRIGGER)
+- [x] Base module factories: VCO, VCF, ADSR (initial functional implementations)
+- [x] Patch management hook (`usePatch`) supporting create / connect / remove
+- [x] 1V/Oct helper utilities (volts ↔ frequency)
+- [x] Updated UI (experimental) instantiates 3 VCOs, 1 VCF, 1 ADSR and routes: VCO mix -> VCF -> destination; ADSR -> VCF cutoff (envelope as CV AudioNode); auto gateOn demo
+- [x] Backwards compatibility layer (legacy `useSynthesizer` still functional until migration complete)
+- [ ] Documentation updated to explain module API and CV / Gate conventions (IN PROGRESS)
+
+Recent Progress (UI & Interaction):
+
+- [x] Patch workspace with pan/zoom, grid with snap, and background panning
+- [x] Precise port center alignment (runtime measurement with world-space offsets)
+- [x] Click-to-click cable connection with live pending path
+- [x] Port eligibility highlighting based on signal-type rules (AUDIO↔AUDIO, CV→non-AUDIO, GATE/TRIGGER interop)
+- [x] Cable deletion by clicking cable or a hover “×” handle near the midpoint
+- [x] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
+- [x] Restored module draggability while keeping cables clickable (pointer-events layering)
+- [x] Audio graph disconnection when a cable is removed (targeted disconnect of node/param)
+- [x] VCO controls (waveform, pitch, detune, gain) with sliders + validated text inputs; values apply live via module.updateParams
+- [x] Interactive AHDSR envelope (Attack, Hold, Decay, Sustain, Release) with SVG editor, draggable & keyboard-accessible handles
+- [x] Hold stage added + total time display + sustain % vs dB toggle
+- [x] Zero-length stage support (A/H/D/R can be 0ms) & default Hold 20ms
+- [x] Cursor refinements (header-only drag, handle cursors) & compact ms numeric inputs
+- [x] Handle hover/focus highlight styling for clarity
+- [x] Parameter smoothing helper added (linear / exp / setTarget) to de-zipper UI param changes
 
 Stretch:
 
@@ -63,6 +81,7 @@ Technical Notes:
 - Gate events call `gateOn` / `gateOff`; Velocity delivered as separate CV (0..1) for amplitude & modulation scaling.
 - Envelopes output CV via an AudioParam (gain) initially; may expose ConstantSourceNode in future for patch flexibility.
 - Performance: begin with straightforward automation ramps (control-rate); smoothing utility will wrap abrupt changes to prevent zipper noise.
+- VCO parameter ranges: Pitch 10–20,000 Hz, Detune ±1200 cents, Gain 0–1. Waveforms limited to built-in OscillatorNode types.
 - Polyphony: voice allocator manages per-voice module sets (oscillators, amp env, filter optional). Voice count configurable up to a cap.
 - ADR-001 (Pitch CV Standard) DRAFT recorded; low migration risk.
 
@@ -301,6 +320,7 @@ Technical Notes:
 Purpose: User-inserted signal conditioning (no hidden scaling inside target modules).
 
 Acceptance Criteria:
+
 - [ ] Mode: pass-through, attenuate (0..1), attenuvert (-1..1), invert, offset, scale+offset
 - [ ] Multiple outputs (acts as mult) with identical conditioned signal
 - [ ] Supports AUDIO and CV inputs (signal type metadata enforced)
@@ -309,12 +329,14 @@ Acceptance Criteria:
 - [ ] Zero-added latency
 
 Stretch:
+
 - [ ] Waveshaping (soft clip) option
 - [ ] DC offset generation when no input connected
 
 ### Polyphony & Voice Management
 
 Acceptance Criteria:
+
 - [ ] Voice allocator with configurable voice count (default 8, cap 16)
 - [ ] Per voice: user-configurable oscillator count (1–3 initially)
 - [ ] Per voice amp envelope; optional per-voice filter (shared vs per-voice configurable)
@@ -326,14 +348,17 @@ Acceptance Criteria:
 ### Draggable Cable Patch UI (Skeuomorphic)
 
 Acceptance Criteria:
-- [ ] Module panels with jacks (input/output visual distinction)
-- [ ] Drag-out cables (SVG/Canvas) with bezier paths
-- [ ] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
-- [ ] Hover highlight & invalid connection rejection
-- [ ] Pannable/scrollable workspace
+
+- [x] Module panels with jacks (input/output visual distinction)
+- [x] Drag-out cables (SVG/Canvas) with bezier paths and click-to-click flow
+- [x] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
+- [x] Hover highlight & invalid connection rejection
+- [x] Pannable/scrollable workspace (pan/zoom implemented)
 - [ ] Basic skeuomorphic styling (panel depth, knob highlights)
+- [x] Cable removal UX: hover delete “×” affordance and direct cable click-to-remove
 
 Stretch:
+
 - [ ] Animated signal flow pulses
 - [ ] Cable bundling / grouping
 - [ ] Drag to background to disconnect
@@ -341,6 +366,7 @@ Stretch:
 ### Velocity & Expression Inputs
 
 Acceptance Criteria:
+
 - [ ] Velocity CV per note (0..1)
 - [ ] Aftertouch placeholder API for future MIDI integration
 - [ ] Mod wheel CV infrastructure (assignable destinations)
@@ -350,17 +376,20 @@ Acceptance Criteria:
 Purpose: Prevent audible zipper noise and clicks when parameters jump (mouse drags, modulation reroutes).
 
 Acceptance Criteria:
-- [ ] `smoothParam(param, targetValue, { mode: 'linear'|'exp'|'setTarget', time })` helper
-- [ ] Cancellation safety: cancels prior ramps cleanly
-- [ ] Minimum delta threshold to skip smoothing on trivial changes
-- [ ] Works with AudioParam & wrapper for multiple params
+
+- [x] `smoothParam(param, targetValue, { mode: 'linear'|'exp'|'setTarget', time })` helper
+- [x] Cancellation safety: cancels prior ramps cleanly
+- [x] Minimum delta threshold to skip smoothing on trivial changes
+- [x] Works with AudioParam & wrapper for multiple params
 - [ ] Tests measure step discontinuities below tolerance
 
 Stretch:
+
 - [ ] Adaptive time scaling based on delta size
 - [ ] Worklet-based ultra-low-latency smoothing path
 
 Implementation Notes:
+
 - Linear: `linearRampToValueAtTime`
 - Exp: chain of short exponential ramps (avoid hitting zero)
 - SetTarget: `setTargetAtTime` with configurable timeConstant
@@ -369,6 +398,7 @@ Implementation Notes:
 ---
 
 ## Pending ADRs
+
 - ADR-001 Pitch CV Standard (1V/Oct) [DRAFT]
 - ADR-002 Polyphony Strategy & Resource Limits [PLANNED]
 - ADR-003 Cable UI Rendering (SVG vs Canvas) [PLANNED]

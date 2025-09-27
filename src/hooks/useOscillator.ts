@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { smoothParam } from "../modular/utils/smoothing";
 import type { OscillatorParams } from "../types/synth";
 import { useAudioContext } from "./useAudioContext";
 
@@ -41,7 +42,7 @@ export function useOscillator(params: OscillatorParams): UseOscillatorReturn {
     (frequency?: number, destination?: AudioNode) => {
       if (!audioContext || isRunning) return;
 
-  const nodes = createAudioNodes();
+      const nodes = createAudioNodes();
       if (!nodes) return;
 
       const { oscillator, gainNode } = nodes;
@@ -68,7 +69,7 @@ export function useOscillator(params: OscillatorParams): UseOscillatorReturn {
         gainNodeRef.current = null;
       };
     },
-  [audioContext, createAudioNodes, isRunning],
+    [audioContext, createAudioNodes, isRunning],
   );
 
   const stop = useCallback(() => {
@@ -78,24 +79,36 @@ export function useOscillator(params: OscillatorParams): UseOscillatorReturn {
     }
   }, [isRunning]);
 
-  const updateParams = useCallback((newParams: Partial<OscillatorParams>) => {
-    if (!oscillatorRef.current || !gainNodeRef.current) return;
+  const updateParams = useCallback(
+    (newParams: Partial<OscillatorParams>) => {
+      if (!oscillatorRef.current || !gainNodeRef.current) return;
 
-    const oscillator = oscillatorRef.current;
-    const gainNode = gainNodeRef.current;
+      const oscillator = oscillatorRef.current;
+      const gainNode = gainNodeRef.current;
 
-    // Update parameters on running oscillator
-    if (newParams.frequency !== undefined) {
-      oscillator.frequency.value = newParams.frequency;
-    }
-    if (newParams.detune !== undefined) {
-      oscillator.detune.value = newParams.detune;
-    }
-    if (newParams.gain !== undefined) {
-      gainNode.gain.value = newParams.gain;
-    }
-    // Note: type cannot be changed on a running oscillator
-  }, []);
+      // Update parameters on running oscillator
+      if (newParams.frequency !== undefined && audioContext) {
+        smoothParam(audioContext, oscillator.frequency, newParams.frequency, {
+          mode: "setTarget",
+          timeConstant: 0.03,
+        });
+      }
+      if (newParams.detune !== undefined && audioContext) {
+        smoothParam(audioContext, oscillator.detune, newParams.detune, {
+          mode: "setTarget",
+          timeConstant: 0.02,
+        });
+      }
+      if (newParams.gain !== undefined && audioContext) {
+        smoothParam(audioContext, gainNode.gain, newParams.gain, {
+          mode: "linear",
+          time: 0.02,
+        });
+      }
+      // Note: type cannot be changed on a running oscillator
+    },
+    [audioContext],
+  );
 
   // Cleanup on unmount
   useEffect(() => {

@@ -33,5 +33,14 @@ export default tseslint.config([
     plugins: {
       "simple-import-sort": simpleImportSort,
     },
+    settings: {
+      react: {
+        version: "detect", // React version. "detect" automatically picks the version you have installed.
+        // You can also use `16.0`, `16.3`, etc, if you want to override the detected value.
+        // Defaults to the "defaultVersion" setting and warns if missing, and to "detect" in the future
+        defaultVersion: "", // Default React version to use when the version you have installed cannot be detected.
+        // If not provided, defaults to the latest React version.
+      },
+    }
   },
 ]);
