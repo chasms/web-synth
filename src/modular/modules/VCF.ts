@@ -24,20 +24,20 @@ const ports: PortDefinition[] = [
 
 export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
   const { audioContext, moduleId } = context;
-  
+
   // Create input drive gain (for saturation/overdrive effect)
   const inputGainNode = audioContext.createGain();
   inputGainNode.gain.value = parameters?.drive ?? 1.0;
-  
+
   const biquadFilterNode = audioContext.createBiquadFilter();
   biquadFilterNode.type = parameters?.type ?? "lowpass";
   biquadFilterNode.frequency.value = parameters?.cutoff ?? 1200;
   biquadFilterNode.Q.value = parameters?.resonance ?? 0.7;
-  
+
   // Create envelope amount scaling gain
   const envelopeScaleNode = audioContext.createGain();
   envelopeScaleNode.gain.value = parameters?.envelopeAmount ?? 0.0;
-  
+
   // Connect input drive -> filter
   inputGainNode.connect(biquadFilterNode);
 
