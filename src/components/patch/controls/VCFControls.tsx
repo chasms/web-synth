@@ -26,6 +26,8 @@ const FrequencyResponseCurve: React.FC<{
 }> = ({ cutoff, resonance, filterType }) => {
   const width = 160;
   const height = 40;
+  const labelHeight = 12;
+  const totalHeight = height + labelHeight;
   const points = 80;
 
   // Generate frequency response curve
@@ -82,6 +84,13 @@ const FrequencyResponseCurve: React.FC<{
     pathPoints.push(i === 0 ? `M ${x} ${y}` : `L ${x} ${y}`);
   }
 
+  // Frequency markers positions and labels
+  const frequencyMarkers = [
+    { freq: 100, label: "100" },
+    { freq: 1000, label: "1K" },
+    { freq: 10000, label: "10K" },
+  ];
+
   return (
     <div
       style={{
@@ -91,7 +100,11 @@ const FrequencyResponseCurve: React.FC<{
         margin: "4px 0",
       }}
     >
-      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      <svg
+        width={width}
+        height={totalHeight}
+        viewBox={`0 0 ${width} ${totalHeight}`}
+      >
         {/* Grid lines */}
         <defs>
           <pattern
@@ -139,6 +152,36 @@ const FrequencyResponseCurve: React.FC<{
           strokeDasharray="2,2"
           opacity="0.7"
         />
+        {/* Frequency axis markers */}
+        {frequencyMarkers.map((marker) => {
+          // Calculate position using same logarithmic scale as the curve
+          const position =
+            (Math.log10(marker.freq / 20) / Math.log10(1000)) * width;
+          return (
+            <g key={marker.freq}>
+              {/* Tick mark */}
+              <line
+                x1={position}
+                y1={height}
+                x2={position}
+                y2={height + 3}
+                stroke="#666"
+                strokeWidth="0.5"
+              />
+              {/* Frequency label */}
+              <text
+                x={position}
+                y={height + 10}
+                fontSize="8"
+                fill="#888"
+                textAnchor="middle"
+                fontFamily="monospace"
+              >
+                {marker.label}
+              </text>
+            </g>
+          );
+        })}
       </svg>
     </div>
   );
