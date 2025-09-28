@@ -215,7 +215,7 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
     moduleInstance.type === "VCO"
       ? 220
       : moduleInstance.type === "VCF"
-        ? 200
+        ? 300
         : moduleInstance.type === "ADSR"
           ? 185
           : 0;
