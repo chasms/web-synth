@@ -5,7 +5,8 @@ export interface VCFParams {
   type?: BiquadFilterType;
   cutoff: number; // Hz
   resonance: number; // Q
-  envelopeAmt?: number; // Scaling for envelope CV
+  envelopeAmount?: number; // Scaling for envelope CV (-100% to +100%)
+  drive?: number; // Input drive/saturation (1.0 = unity, >1 = drive)
 }
 
 const ports: PortDefinition[] = [
@@ -23,17 +24,32 @@ const ports: PortDefinition[] = [
 
 export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
   const { audioContext, moduleId } = context;
+
+  // Create input drive gain (for saturation/overdrive effect)
+  const inputGainNode = audioContext.createGain();
+  inputGainNode.gain.value = parameters?.drive ?? 1.0;
+
   const biquadFilterNode = audioContext.createBiquadFilter();
   biquadFilterNode.type = parameters?.type ?? "lowpass";
   biquadFilterNode.frequency.value = parameters?.cutoff ?? 1200;
   biquadFilterNode.Q.value = parameters?.resonance ?? 0.7;
 
+  // Create envelope amount scaling gain
+  const envelopeScaleNode = audioContext.createGain();
+  envelopeScaleNode.gain.value = parameters?.envelopeAmount ?? 0.0;
+
+  // Connect input drive -> filter
+  inputGainNode.connect(biquadFilterNode);
+
   const portNodes: ModuleInstance["portNodes"] = {
-    audio_in: biquadFilterNode,
+    audio_in: inputGainNode, // Audio goes through drive first
     audio_out: biquadFilterNode,
     cutoff_cv: biquadFilterNode.frequency,
-    env_cv: biquadFilterNode.frequency, // simple addition for now
+    env_cv: envelopeScaleNode, // Envelope goes through scaling gain first
   };
+
+  // Connect envelope scaling to filter cutoff
+  envelopeScaleNode.connect(biquadFilterNode.frequency);
 
   const instance: ModuleInstance = {
     id: moduleId,
@@ -86,9 +102,40 @@ export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
           /* ignore */
         }
       }
+      if (
+        partial["envelopeAmount"] !== undefined &&
+        typeof partial["envelopeAmount"] === "number"
+      ) {
+        const nextAmount = Math.max(-1, Math.min(1, partial["envelopeAmount"]));
+        smoothParam(audioContext, envelopeScaleNode.gain, nextAmount, {
+          mode: "linear",
+          time: 0.02,
+        });
+      }
+      if (
+        partial["drive"] !== undefined &&
+        typeof partial["drive"] === "number"
+      ) {
+        const nextDrive = Math.max(0.1, Math.min(10, partial["drive"]));
+        smoothParam(audioContext, inputGainNode.gain, nextDrive, {
+          mode: "linear",
+          time: 0.02,
+        });
+      }
+    },
+    getParams() {
+      return {
+        type: biquadFilterNode.type,
+        cutoff: biquadFilterNode.frequency.value,
+        resonance: biquadFilterNode.Q.value,
+        envelopeAmount: envelopeScaleNode.gain.value,
+        drive: inputGainNode.gain.value,
+      };
     },
     dispose() {
+      inputGainNode.disconnect();
       biquadFilterNode.disconnect();
+      envelopeScaleNode.disconnect();
     },
   };
   return instance;
