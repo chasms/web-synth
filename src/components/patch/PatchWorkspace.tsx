@@ -3,6 +3,8 @@ import React from "react";
 import { useAudioContext } from "../../hooks/useAudioContext";
 import { usePatch } from "../../modular/graph/usePatch";
 import { createADSR } from "../../modular/modules/ADSR";
+import { createMIDIInputTrigger } from "../../modular/modules/MIDIInputTrigger";
+import { createSequencerTrigger } from "../../modular/modules/SequencerTrigger";
 import { createVCF } from "../../modular/modules/VCF";
 import { createVCO } from "../../modular/modules/VCO";
 import { CableLayer } from "./CableLayer";
@@ -234,6 +236,22 @@ export const PatchWorkspace: React.FC = () => {
           decay: 0.2,
           sustain: 0.7,
           release: 0.4,
+        });
+        break;
+      case "MIDI_INPUT":
+        created = patch.createModule("MIDI_INPUT", createMIDIInputTrigger, {
+          channel: 0, // Omni
+          velocityCurve: "linear",
+          transpose: 0,
+        });
+        break;
+      case "SEQUENCER":
+        created = patch.createModule("SEQUENCER", createSequencerTrigger, {
+          bpm: 120,
+          steps: 8,
+          gate: 0.8,
+          octave: 4,
+          loop: true,
         });
         break;
       default:
@@ -509,6 +527,12 @@ export const PatchWorkspace: React.FC = () => {
             <button onClick={() => addModuleByType("VCO")}>Add VCO</button>
             <button onClick={() => addModuleByType("VCF")}>Add VCF</button>
             <button onClick={() => addModuleByType("ADSR")}>Add ADSR</button>
+            <button onClick={() => addModuleByType("MIDI_INPUT")}>
+              Add MIDI In
+            </button>
+            <button onClick={() => addModuleByType("SEQUENCER")}>
+              Add Sequencer
+            </button>
             <button
               onClick={() => {
                 positionInitialLayout();

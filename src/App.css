@@ -796,3 +796,167 @@ header h1 {
   color: #fff;
   border-color: #4b6a84;
 }
+
+/* MIDI Input Controls */
+.midi-input-controls {
+  padding: 10px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.control-row label {
+  font-size: 11px;
+  color: #ccc;
+  min-width: 80px;
+}
+
+.control-row select {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 2px 5px;
+  border-radius: 2px;
+  font-size: 11px;
+  flex: 1;
+}
+
+.number-input-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+
+.control-slider {
+  flex: 1;
+  accent-color: #ff6b35;
+}
+
+.value-display {
+  font-size: 11px;
+  color: #ff6b35;
+  font-weight: bold;
+  min-width: 35px;
+  text-align: right;
+}
+
+.midi-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+}
+
+.status-connected {
+  color: #4caf50;
+  font-size: 10px;
+}
+
+.status-disconnected {
+  color: #f44336;
+  font-size: 10px;
+}
+
+.device-status {
+  color: #ccc;
+  font-size: 10px;
+}
+
+/* Sequencer Controls */
+.sequencer-controls {
+  padding: 10px;
+}
+
+.transport-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.play-button {
+  background: #ff6b35;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+
+.play-button:hover {
+  background: #ff8c5a;
+}
+
+.play-button.playing {
+  background: #4caf50;
+}
+
+.step-display {
+  font-size: 11px;
+  color: #ccc;
+}
+
+.sequence-preview {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.mini-grid {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 5px;
+}
+
+.mini-cell {
+  width: 8px;
+  height: 8px;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 1px;
+}
+
+.mini-cell.has-note {
+  background: #ff6b35;
+}
+
+.mini-cell.current {
+  border-color: #fff;
+}
+
+.edit-button {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 4px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 10px;
+  transition: background 0.15s;
+}
+
+.edit-button:hover {
+  background: #444;
+}
+
+.parameter-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}

@@ -2,6 +2,8 @@ import React from "react";
 
 import { type ModuleInstance, type PortDefinition } from "../../modular/types";
 import { AHDSRControls } from "./controls/AHDSRControls";
+import { MIDIInputControls } from "./controls/MIDIInputControls";
+import { SequencerControls } from "./controls/SequencerControls";
 import { VCFControls } from "./controls/VCFControls";
 import { VCOControls } from "./controls/VCOControls";
 import { ModulePort } from "./ModulePort";
@@ -214,13 +216,22 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
   const controlsExtraHeight =
     moduleInstance.type === "VCO"
       ? 220
-      : moduleInstance.type === "VCF"
-        ? 310
-        : moduleInstance.type === "ADSR"
-          ? 185
-          : 0;
+      : moduleInstance.type === "ADSR"
+        ? 185
+        : moduleInstance.type === "VCF"
+          ? 310
+          : moduleInstance.type === "MIDI_INPUT"
+            ? 160
+            : moduleInstance.type === "SEQUENCER"
+              ? 220
+              : 0;
   // Dynamic width (ADSR envelope SVG is wider)
-  const moduleWidth = moduleInstance.type === "ADSR" ? 260 : 180;
+  const moduleWidth =
+    moduleInstance.type === "ADSR"
+      ? 260
+      : moduleInstance.type === "SEQUENCER"
+        ? 240
+        : 180;
   const computedHeight = Math.max(
     140,
     baseHeaderAndPadding + controlsExtraHeight + portsVerticalSpan,
@@ -274,6 +285,12 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
       {moduleInstance.type === "VCF" && <VCFControls module={moduleInstance} />}
       {moduleInstance.type === "ADSR" && (
         <AHDSRControls module={moduleInstance} />
+      )}
+      {moduleInstance.type === "MIDI_INPUT" && (
+        <MIDIInputControls module={moduleInstance} />
+      )}
+      {moduleInstance.type === "SEQUENCER" && (
+        <SequencerControls module={moduleInstance} />
       )}
       <div className="module-ports">
         <div
