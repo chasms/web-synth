@@ -1,6 +1,7 @@
 import "./PianoRollModal.css";
 
 import React from "react";
+import { createPortal } from "react-dom";
 
 // Sequence step data structure (matching triggers module)
 interface SequenceStep {
@@ -115,7 +116,11 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
     onSequenceChange(newSequence);
   };
 
-  return (
+  if (!isOpen) {
+    return null;
+  }
+
+  return createPortal(
     <div className="piano-roll-modal-overlay" onClick={onClose}>
       <div className="piano-roll-modal" onClick={(e) => e.stopPropagation()}>
         <div className="piano-roll-header">
@@ -224,6 +229,7 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
