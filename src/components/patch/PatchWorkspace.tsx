@@ -66,48 +66,66 @@ export const PatchWorkspace: React.FC = () => {
 
   const handleAddInitialModules = React.useCallback(() => {
     if (!audioContext) return;
-    const vco1 = patch.createModule("VCO", createVCO, {
+
+    // Create a proper modular synthesis setup
+    const sequencer = patch.createModule("SEQUENCER", createSequencerTrigger, {
+      bpm: 120,
+      steps: 8,
+      gate: 0.7,
+      octave: 4,
+      loop: true,
+    });
+
+    const vco = patch.createModule("VCO", createVCO, {
       waveform: "sawtooth",
-      baseFrequency: 110,
-      gain: 0.2,
+      baseFrequency: 220, // C3
+      gain: 0.3,
     });
-    const vco2 = patch.createModule("VCO", createVCO, {
-      waveform: "square",
-      baseFrequency: 220,
-      gain: 0.15,
-    });
-    const vco3 = patch.createModule("VCO", createVCO, {
-      waveform: "triangle",
-      baseFrequency: 330,
-      gain: 0.1,
-    });
-    const vcf = patch.createModule("VCF", createVCF, {
-      cutoff: 1200,
-      resonance: 0.7,
-    });
+
     const adsr = patch.createModule("ADSR", createADSR, {
       attack: 0.01,
-      decay: 0.25,
+      decay: 0.3,
       sustain: 0.6,
-      release: 0.4,
+      release: 0.5,
     });
-    if (vco1 && vco2 && vco3 && vcf && adsr) {
-      // Audio routing: VCOs -> VCF -> destination
-      patch.connect(vco1, "audio_out", vcf, "audio_in");
-      patch.connect(vco2, "audio_out", vcf, "audio_in");
-      patch.connect(vco3, "audio_out", vcf, "audio_in");
+
+    const vcf = patch.createModule("VCF", createVCF, {
+      cutoff: 800,
+      resonance: 2.0,
+      envelopeAmount: 0.7, // Nice filter sweep
+    });
+
+    if (sequencer && vco && adsr && vcf) {
+      // Proper modular synthesis routing:
+
+      // 1. Sequencer controls VCO pitch
+      patch.connect(sequencer, "pitch_cv_out", vco, "pitch_cv");
+
+      // 2. Sequencer gate controls VCO amplitude (built-in VCA)
+      patch.connect(sequencer, "gate_out", vco, "gate_in");
+
+      // 3. Sequencer gate also triggers ADSR envelope
+      patch.connect(sequencer, "gate_out", adsr, "gate_in");
+
+      // 4. VCO audio goes through VCF
+      patch.connect(vco, "audio_out", vcf, "audio_in");
+
+      // 5. ADSR envelope modulates VCF cutoff for classic filter sweep
+      patch.connect(adsr, "cv_out", vcf, "env_cv");
+
+      // 6. VCF output to speakers
       vcf.audioOut?.connect(audioContext.destination);
-      // Envelope modulation: ADSR -> VCF cutoff
-      patch.connect(adsr, "cv_out", vcf, "cutoff_cv");
-      // Demonstration gate
-      adsr.gateOn?.();
-      const yOffset = 40 + PALETTE_HEIGHT;
+
+      // Layout modules in a logical signal flow with proper spacing
+      const yOffset = 60 + PALETTE_HEIGHT;
+      const moduleSpacing = 300; // Increased spacing between columns
+      const rowSpacing = 250; // Increased spacing between rows
+
       setPositionedModules([
-        { id: vco1.id, x: 40, y: yOffset },
-        { id: vco2.id, x: 40, y: yOffset + 180 },
-        { id: vco3.id, x: 40, y: yOffset + 360 },
-        { id: vcf.id, x: 360, y: yOffset + 140 },
-        { id: adsr.id, x: 660, y: yOffset + 140 },
+        { id: sequencer.id, x: 60, y: yOffset }, // Left: Sequencer (source)
+        { id: vco.id, x: 60 + moduleSpacing, y: yOffset }, // Center-left: VCO
+        { id: adsr.id, x: 60 + moduleSpacing, y: yOffset + rowSpacing }, // Below VCO: ADSR
+        { id: vcf.id, x: 60 + moduleSpacing * 2, y: yOffset + rowSpacing / 2 }, // Right: VCF (output, centered vertically)
       ]);
     }
   }, [audioContext, patch]);
@@ -490,16 +508,6 @@ export const PatchWorkspace: React.FC = () => {
           Start Audio
         </button>
       )}
-      {audioContext &&
-        hasAudioContextInitializedRef &&
-        positionedModules.length === 0 && (
-          <button
-            onClick={handleAddInitialModules}
-            className="start-audio-button"
-          >
-            Load Modules
-          </button>
-        )}
       {audioContext && (
         <div
           ref={workspaceRef}
@@ -524,6 +532,12 @@ export const PatchWorkspace: React.FC = () => {
           }}
         >
           <div className="module-palette" aria-label="Module palette">
+            <button
+              onClick={handleAddInitialModules}
+              className="secondary-button"
+            >
+              Load Default Modules
+            </button>
             <button onClick={() => addModuleByType("VCO")}>Add VCO</button>
             <button onClick={() => addModuleByType("VCF")}>Add VCF</button>
             <button onClick={() => addModuleByType("ADSR")}>Add ADSR</button>

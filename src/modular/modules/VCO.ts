@@ -27,6 +27,13 @@ const ports: PortDefinition[] = [
     metadata: { bipolar: true, description: "Linear FM (Hz offset scaled)" },
   },
   {
+    id: "gate_in",
+    label: "Gate",
+    direction: "in",
+    signal: "GATE",
+    metadata: { description: "Gate input for amplitude control" },
+  },
+  {
     id: "sync",
     label: "Sync",
     direction: "in",
@@ -47,18 +54,27 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   const { audioContext, moduleId } = context;
   const oscillatorNode = audioContext.createOscillator();
   const outputGainNode = audioContext.createGain();
-  outputGainNode.gain.value = parameters?.gain ?? 0.3;
+  const vcaGainNode = audioContext.createGain(); // VCA for gate control
 
+  // Configure oscillator
   oscillatorNode.type = parameters?.waveform ?? "sawtooth";
   oscillatorNode.frequency.value = parameters?.baseFrequency ?? 440;
   if (parameters?.detuneCents)
     oscillatorNode.detune.value = parameters.detuneCents;
-  oscillatorNode.connect(outputGainNode);
+
+  // Configure gains
+  outputGainNode.gain.value = parameters?.gain ?? 0.3;
+  vcaGainNode.gain.value = 1; // Default to open - will be controlled by gate when connected
+
+  // Audio chain: OSC -> VCA -> Output Gain -> [external connections]
+  oscillatorNode.connect(vcaGainNode);
+  vcaGainNode.connect(outputGainNode);
   oscillatorNode.start();
 
   const portNodes: ModuleInstance["portNodes"] = {
     pitch_cv: oscillatorNode.frequency, // Accept direct connection (assumes conversion upstream)
     fm_cv: oscillatorNode.frequency, // For linear FM
+    gate_in: vcaGainNode.gain, // Gate controls VCA
     sync: undefined,
     wave_cv: undefined,
     audio_out: outputGainNode,
@@ -145,6 +161,7 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         /* already stopped */
       }
       oscillatorNode.disconnect();
+      vcaGainNode.disconnect();
       outputGainNode.disconnect();
     },
   };

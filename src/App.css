@@ -387,6 +387,18 @@ header h1 {
   cursor: not-allowed;
 }
 
+/* Secondary button style (e.g., Load Default Modules) */
+.module-palette .secondary-button {
+  background: #1a4d3d;
+  border-color: #2d6b52;
+  color: #b3e5d1;
+}
+
+.module-palette .secondary-button:hover {
+  background: #236a4d;
+  color: #d4f4e5;
+}
+
 /* Removed old margin-top push; palette height now handled in drag clamp */
 
 /* Remove button */
@@ -948,7 +960,44 @@ header h1 {
   border-radius: 2px;
   cursor: pointer;
   font-size: 10px;
-  transition: background 0.15s;
+}
+
+/* VCO Gate Status Indicator */
+.gate-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.status-dot.free-running {
+  background: #ff6b35;
+  box-shadow: 0 0 4px rgb(255 107 53 / 40%);
+}
+
+.status-dot.connected {
+  background: #4caf50;
+  box-shadow: 0 0 4px rgb(76 175 80 / 40%);
+}
+
+.status-text {
+  font-size: 10px;
+  color: #ccc;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .edit-button:hover {
