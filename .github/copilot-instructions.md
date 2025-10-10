@@ -15,6 +15,14 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 - Use CSS for styling initially, keeping it simple and functional
 - When adding/modifying features: always update `PRODUCT_BACKLOG.md` (adjust acceptance criteria, mark progress) and relevant docs (`README.md`, ADRs under docs/ when added). Include rationale for architectural decisions (CV standard, polyphony) as brief ADR entries.
 
+## Debugging and Development Tools
+
+- **Prefer MCP tools over bash commands** for debugging and development tasks
+- Use `mcp_eslint_lint-files` for code linting instead of `npm run lint`
+- Use Chrome DevTools MCP for browser testing and debugging UI interactions
+- Only fall back to terminal commands when specific MCP tools are not available
+- MCP tools provide better integration, structured output, and error handling
+
 ## Audio Architecture
 
 - Create custom hooks for each synthesizer module (useOscillator, useFilter, etc.)
