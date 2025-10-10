@@ -8,6 +8,48 @@ import { VCFControls } from "./controls/VCFControls";
 import { VCOControls } from "./controls/VCOControls";
 import { ModulePort } from "./ModulePort";
 
+enum ModuleType {
+  VCO = "VCO",
+  VCF = "VCF",
+  ADSR = "ADSR",
+  MIDI_INPUT = "MIDI_INPUT",
+  SEQUENCER = "SEQUENCER",
+}
+
+interface ModuleConfig {
+  controlsExtraHeight: number;
+  width: number;
+  controlsComponent: React.ComponentType<{ module: ModuleInstance }>;
+}
+
+const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
+  [ModuleType.VCO]: {
+    controlsExtraHeight: 220,
+    width: 180,
+    controlsComponent: VCOControls,
+  },
+  [ModuleType.VCF]: {
+    controlsExtraHeight: 310,
+    width: 180,
+    controlsComponent: VCFControls,
+  },
+  [ModuleType.ADSR]: {
+    controlsExtraHeight: 185,
+    width: 260,
+    controlsComponent: AHDSRControls,
+  },
+  [ModuleType.MIDI_INPUT]: {
+    controlsExtraHeight: 160,
+    width: 180,
+    controlsComponent: MIDIInputControls,
+  },
+  [ModuleType.SEQUENCER]: {
+    controlsExtraHeight: 220,
+    width: 240,
+    controlsComponent: SequencerControls,
+  },
+};
+
 export interface ModuleContainerProps {
   moduleInstance: ModuleInstance;
   x: number;
@@ -212,26 +254,12 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
       ? firstPortOffset + (portsRows - 1) * rowSpacing + visualPortHeight
       : 0;
   const baseHeaderAndPadding = 40; // header + margins + bottom padding buffer
-  // Extra vertical space to accommodate control panels per module type
-  const controlsExtraHeight =
-    moduleInstance.type === "VCO"
-      ? 220
-      : moduleInstance.type === "ADSR"
-        ? 185
-        : moduleInstance.type === "VCF"
-          ? 310
-          : moduleInstance.type === "MIDI_INPUT"
-            ? 160
-            : moduleInstance.type === "SEQUENCER"
-              ? 220
-              : 0;
-  // Dynamic width (ADSR envelope SVG is wider)
-  const moduleWidth =
-    moduleInstance.type === "ADSR"
-      ? 260
-      : moduleInstance.type === "SEQUENCER"
-        ? 240
-        : 180;
+
+  // Get module configuration
+  const moduleConfig = MODULE_CONFIGS[moduleInstance.type as ModuleType];
+  const controlsExtraHeight = moduleConfig?.controlsExtraHeight ?? 0;
+  const moduleWidth = moduleConfig?.width ?? 180;
+
   const computedHeight = Math.max(
     140,
     baseHeaderAndPadding + controlsExtraHeight + portsVerticalSpan,
@@ -281,17 +309,10 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
           </button>
         )}
       </div>
-      {moduleInstance.type === "VCO" && <VCOControls module={moduleInstance} />}
-      {moduleInstance.type === "VCF" && <VCFControls module={moduleInstance} />}
-      {moduleInstance.type === "ADSR" && (
-        <AHDSRControls module={moduleInstance} />
-      )}
-      {moduleInstance.type === "MIDI_INPUT" && (
-        <MIDIInputControls module={moduleInstance} />
-      )}
-      {moduleInstance.type === "SEQUENCER" && (
-        <SequencerControls module={moduleInstance} />
-      )}
+      {moduleConfig &&
+        React.createElement(moduleConfig.controlsComponent, {
+          module: moduleInstance,
+        })}
       <div className="module-ports">
         <div
           className="module-ports-column inputs"
