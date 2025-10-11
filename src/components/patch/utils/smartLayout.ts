@@ -225,20 +225,6 @@ export function layoutModules(
 }
 
 /**
- * Legacy function name for backward compatibility
- * @deprecated Use findOptimalPosition instead
- */
-export function findAvailablePosition(
-  existingModules: ModulePosition[],
-  moduleType: string,
-  _startX?: number,
-  _startY?: number,
-  _maxColumns?: number,
-): { x: number; y: number } {
-  return findOptimalPosition(existingModules, moduleType);
-}
-
-/**
  * Gets workspace bounds for layout calculations
  */
 export function getWorkspaceBounds(): {
