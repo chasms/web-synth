@@ -115,9 +115,9 @@ export const MIDIInputControls: React.FC<MIDIInputControlsProps> = ({
         </select>
       </div>
 
-      <div className="control-row">
+      <div className="control-row-vertical">
         <label>Transpose:</label>
-        <div className="number-input-container">
+        <div className="number-input-container-centered">
           <input
             type="range"
             min="-24"

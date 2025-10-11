@@ -111,12 +111,12 @@ export const MasterOutputControls: React.FC<MasterOutputControlsProps> = ({
 
       {/* Waveform Visualizer */}
       {module.getAnalyserData && (
-        <div className="module-control">
+        <div className="waveform-container">
           <WaveformVisualizer
             getAnalyserData={
               module.getAnalyserData as () => MasterOutputAnalyserData
             }
-            width={180}
+            width={160}
             height={80}
             className="master-waveform"
           />

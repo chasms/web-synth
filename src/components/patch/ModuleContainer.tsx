@@ -46,13 +46,13 @@ const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
     controlsComponent: MIDIInputControls,
   },
   [ModuleType.SEQUENCER]: {
-    controlsExtraHeight: 220,
+    controlsExtraHeight: 490, // Increased to accommodate all sequencer controls (BPM, Steps, Gate, Swing, Octave, Loop)
     width: 240,
     controlsComponent: SequencerControls,
   },
   [ModuleType.MASTER_OUTPUT]: {
-    controlsExtraHeight: 180,
-    width: 180,
+    controlsExtraHeight: 385, // Increased to accommodate volume control, mute/test buttons, and waveform display
+    width: 200, // Increased to accommodate volume slider, buttons, and waveform display
     controlsComponent: MasterOutputControls,
   },
 };
@@ -260,16 +260,19 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
     portsRows > 0
       ? firstPortOffset + (portsRows - 1) * rowSpacing + visualPortHeight
       : 0;
-  const baseHeaderAndPadding = 40; // header + margins + bottom padding buffer
+  const headerHeight = 36; // header (31px) + top padding (4px) + bottom margin (1px)
+  const minimumBottomPadding = 12; // consistent bottom padding for all modules
 
   // Get module configuration
   const moduleConfig = MODULE_CONFIGS[moduleInstance.type as ModuleType];
   const controlsExtraHeight = moduleConfig?.controlsExtraHeight ?? 0;
   const moduleWidth = moduleConfig?.width ?? 180;
 
+  // Height calculation: header + controls + ports + bottom padding
+  // The ports container is in document flow after controls, so we need to add both heights
   const computedHeight = Math.max(
     140,
-    baseHeaderAndPadding + controlsExtraHeight + portsVerticalSpan,
+    headerHeight + controlsExtraHeight + portsVerticalSpan + minimumBottomPadding,
   );
   const columnHeight = portsVerticalSpan || 0;
 
