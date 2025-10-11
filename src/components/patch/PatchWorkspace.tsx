@@ -10,11 +10,13 @@ import { createVCF } from "../../modular/modules/VCF";
 import { createVCO } from "../../modular/modules/VCO";
 import { CableLayer } from "./CableLayer";
 import { ModuleContainer } from "./ModuleContainer";
+import { findAvailablePosition, layoutModules } from "./utils/smartLayout";
 
 interface PositionedModule {
   id: string;
   x: number;
   y: number;
+  type: string;
 }
 
 export const PatchWorkspace: React.FC = () => {
@@ -123,10 +125,20 @@ export const PatchWorkspace: React.FC = () => {
       const rowSpacing = 250; // Increased spacing between rows
 
       setPositionedModules([
-        { id: sequencer.id, x: 60, y: yOffset }, // Left: Sequencer (source)
-        { id: vco.id, x: 60 + moduleSpacing, y: yOffset }, // Center-left: VCO
-        { id: adsr.id, x: 60 + moduleSpacing, y: yOffset + rowSpacing }, // Below VCO: ADSR
-        { id: vcf.id, x: 60 + moduleSpacing * 2, y: yOffset + rowSpacing / 2 }, // Right: VCF (output, centered vertically)
+        { id: sequencer.id, x: 60, y: yOffset, type: "SEQUENCER" }, // Left: Sequencer (source)
+        { id: vco.id, x: 60 + moduleSpacing, y: yOffset, type: "VCO" }, // Center-left: VCO
+        {
+          id: adsr.id,
+          x: 60 + moduleSpacing,
+          y: yOffset + rowSpacing,
+          type: "ADSR",
+        }, // Below VCO: ADSR
+        {
+          id: vcf.id,
+          x: 60 + moduleSpacing * 2,
+          y: yOffset + rowSpacing / 2,
+          type: "VCF",
+        }, // Right: VCF (output, centered vertically)
       ]);
     }
   }, [audioContext, patch]);
@@ -186,48 +198,28 @@ export const PatchWorkspace: React.FC = () => {
     setPositionedModules((mods) => mods.filter((m) => m.id !== id));
   };
 
-  // Simple auto layout when adding a new module so user does not need to scroll
-  const autoPlace = (id: string) => {
+  // Smart auto layout when adding a new module
+  const autoPlace = (id: string, moduleType: string) => {
     setPositionedModules((mods) => {
-      const taken = new Set(mods.map((m) => `${m.x},${m.y}`));
-      const baseX = 40;
-      const baseY = 40 + PALETTE_HEIGHT;
-      const colWidth = 220;
-      const rowHeight = 180;
-      for (let col = 0; col < 8; col++) {
-        for (let row = 0; row < 3; row++) {
-          const x = baseX + col * colWidth;
-          const y = baseY + row * rowHeight;
-          const key = `${x},${y}`;
-          if (!taken.has(key)) {
-            return [...mods, { id, x, y }];
-          }
-        }
-      }
-      // fallback: stack at last position offset
-      const last = mods[mods.length - 1];
-      return [
-        ...mods,
-        { id, x: (last?.x ?? baseX) + 40, y: (last?.y ?? baseY) + 40 },
-      ];
+      const position = findAvailablePosition(
+        mods,
+        moduleType,
+        40,
+        40 + PALETTE_HEIGHT,
+        6, // maxColumns
+      );
+      return [...mods, { id, x: position.x, y: position.y, type: moduleType }];
     });
   };
 
   const positionInitialLayout = () => {
-    // Re-space current modules in deterministic order without requiring scroll
+    // Re-layout current modules using smart positioning
     setPositionedModules((mods) => {
-      const sorted = [...mods];
-      sorted.sort((a, b) => a.id.localeCompare(b.id));
-      const colWidth = 220;
-      const rowHeight = 180;
-      return sorted.map((m, index) => {
-        const col = Math.floor(index / 3);
-        const row = index % 3;
-        return {
-          ...m,
-          x: 40 + col * colWidth,
-          y: 40 + PALETTE_HEIGHT + row * rowHeight,
-        };
+      const modules = mods.map((m) => ({ id: m.id, type: m.type }));
+      const positioned = layoutModules(modules, 40, 40 + PALETTE_HEIGHT, 6);
+      return positioned.map((p) => {
+        const mod = mods.find((m) => m.id === p.id);
+        return { ...p, type: mod?.type ?? "UNKNOWN" };
       });
     });
   };
@@ -283,7 +275,7 @@ export const PatchWorkspace: React.FC = () => {
         break;
     }
     if (created) {
-      autoPlace(created.id);
+      autoPlace(created.id, type);
     }
   };
 

@@ -29,13 +29,6 @@ export const WaveformVisualizer: React.FC<WaveformVisualizerProps> = ({
       const analyserData = getAnalyserData();
       const waveformData = analyserData.getWaveformData();
 
-      // Debug: Log some sample data
-      if (Math.random() < 0.01) { // Log occasionally to avoid spam
-        const sample = Array.from(waveformData.slice(0, 10));
-        console.log('Waveform data sample:', sample);
-        console.log('Min/Max:', Math.min(...waveformData), Math.max(...waveformData));
-      }
-
       // Clear canvas
       ctx.fillStyle = "#1a1a1a";
       ctx.fillRect(0, 0, width, height);
