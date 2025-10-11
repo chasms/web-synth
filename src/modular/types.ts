@@ -56,6 +56,7 @@ export interface ModuleInstance extends ModuleDescriptor {
   dispose: () => void;
   updateParams?: (partial: Record<string, unknown>) => void;
   getParams?: () => Record<string, unknown>;
+  getAnalyserData?: () => unknown; // Audio analysis data (waveform, frequency, etc.)
   gateOn?: () => void;
   gateOff?: () => void;
 }

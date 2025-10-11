@@ -6,6 +6,11 @@ export interface MasterOutputParams {
   mute?: boolean;
 }
 
+export interface MasterOutputAnalyserData {
+  getWaveformData: () => Uint8Array;
+  getFrequencyData: () => Uint8Array;
+}
+
 const ports: PortDefinition[] = [
   {
     id: "audio_in",
@@ -26,8 +31,14 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
   const masterVolumeNode = audioContext.createGain();
   masterVolumeNode.gain.value = parameters?.volume ?? 0.7; // Default to 70% volume for safety
 
-  // Connect directly to speakers (destination)
-  masterVolumeNode.connect(audioContext.destination);
+  // Create analyser for waveform visualization
+  const analyserNode = audioContext.createAnalyser();
+  analyserNode.fftSize = 2048;
+  analyserNode.smoothingTimeConstant = 0.8;
+
+  // Audio chain: input -> volume -> analyser -> destination
+  masterVolumeNode.connect(analyserNode);
+  analyserNode.connect(audioContext.destination);
 
   const portNodes: ModuleInstance["portNodes"] = {
     audio_in: masterVolumeNode,
@@ -90,8 +101,25 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
         mute: masterVolumeNode.gain.value === 0,
       };
     },
+    getAnalyserData(): MasterOutputAnalyserData {
+      return {
+        getWaveformData() {
+          const bufferLength = analyserNode.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyserNode.getByteTimeDomainData(dataArray);
+          return dataArray;
+        },
+        getFrequencyData() {
+          const bufferLength = analyserNode.frequencyBinCount;
+          const dataArray = new Uint8Array(bufferLength);
+          analyserNode.getByteFrequencyData(dataArray);
+          return dataArray;
+        },
+      };
+    },
     dispose() {
       masterVolumeNode.disconnect();
+      analyserNode.disconnect();
     },
   };
 

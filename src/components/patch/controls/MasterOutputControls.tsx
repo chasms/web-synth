@@ -1,6 +1,8 @@
 import React from "react";
 
+import type { MasterOutputAnalyserData } from "../../../modular/modules/MasterOutput";
 import type { ModuleInstance } from "../../../modular/types";
+import { WaveformVisualizer } from "./WaveformVisualizer";
 
 interface MasterOutputControlsProps {
   module: ModuleInstance;
@@ -86,6 +88,20 @@ export const MasterOutputControls: React.FC<MasterOutputControlsProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Waveform Visualizer */}
+      {module.getAnalyserData && (
+        <div className="module-control">
+          <WaveformVisualizer
+            getAnalyserData={
+              module.getAnalyserData as () => MasterOutputAnalyserData
+            }
+            width={180}
+            height={80}
+            className="master-waveform"
+          />
+        </div>
+      )}
     </div>
   );
 };

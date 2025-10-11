@@ -55,12 +55,12 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   const oscillatorNode = audioContext.createOscillator();
   const outputGainNode = audioContext.createGain();
   const vcaGainNode = audioContext.createGain(); // VCA for gate control
-  
+
   // Create a constant source for the gate (defaults to 1 for free-running)
   const gateConstantSource = audioContext.createConstantSource();
   gateConstantSource.offset.value = 1; // Default to gate "on" for free-running
   gateConstantSource.start();
-  
+
   // Connect gate source to VCA
   gateConstantSource.connect(vcaGainNode.gain);
 
