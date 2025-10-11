@@ -55,6 +55,14 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   const oscillatorNode = audioContext.createOscillator();
   const outputGainNode = audioContext.createGain();
   const vcaGainNode = audioContext.createGain(); // VCA for gate control
+  
+  // Create a constant source for the gate (defaults to 1 for free-running)
+  const gateConstantSource = audioContext.createConstantSource();
+  gateConstantSource.offset.value = 1; // Default to gate "on" for free-running
+  gateConstantSource.start();
+  
+  // Connect gate source to VCA
+  gateConstantSource.connect(vcaGainNode.gain);
 
   // Configure oscillator
   oscillatorNode.type = parameters?.waveform ?? "sawtooth";
@@ -64,7 +72,7 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
 
   // Configure gains
   outputGainNode.gain.value = parameters?.gain ?? 0.3;
-  vcaGainNode.gain.value = 1; // Default to open - will be controlled by gate when connected
+  vcaGainNode.gain.value = 0; // VCA starts at 0, controlled by gate source
 
   // Audio chain: OSC -> VCA -> Output Gain -> [external connections]
   oscillatorNode.connect(vcaGainNode);
@@ -74,7 +82,7 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   const portNodes: ModuleInstance["portNodes"] = {
     pitch_cv: oscillatorNode.frequency, // Accept direct connection (assumes conversion upstream)
     fm_cv: oscillatorNode.frequency, // For linear FM
-    gate_in: vcaGainNode.gain, // Gate controls VCA
+    gate_in: gateConstantSource.offset, // Gate controls the constant source offset
     sync: undefined,
     wave_cv: undefined,
     audio_out: outputGainNode,
@@ -160,9 +168,15 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
       } catch {
         /* already stopped */
       }
+      try {
+        gateConstantSource.stop();
+      } catch {
+        /* already stopped */
+      }
       oscillatorNode.disconnect();
       vcaGainNode.disconnect();
       outputGainNode.disconnect();
+      gateConstantSource.disconnect();
     },
   };
 

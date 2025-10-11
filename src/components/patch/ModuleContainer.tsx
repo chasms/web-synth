@@ -2,6 +2,7 @@ import React from "react";
 
 import { type ModuleInstance, type PortDefinition } from "../../modular/types";
 import { AHDSRControls } from "./controls/AHDSRControls";
+import { MasterOutputControls } from "./controls/MasterOutputControls";
 import { MIDIInputControls } from "./controls/MIDIInputControls";
 import { SequencerControls } from "./controls/SequencerControls";
 import { VCFControls } from "./controls/VCFControls";
@@ -14,6 +15,7 @@ enum ModuleType {
   ADSR = "ADSR",
   MIDI_INPUT = "MIDI_INPUT",
   SEQUENCER = "SEQUENCER",
+  MASTER_OUTPUT = "MASTER_OUTPUT",
 }
 
 interface ModuleConfig {
@@ -47,6 +49,11 @@ const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
     controlsExtraHeight: 220,
     width: 240,
     controlsComponent: SequencerControls,
+  },
+  [ModuleType.MASTER_OUTPUT]: {
+    controlsExtraHeight: 180,
+    width: 180,
+    controlsComponent: MasterOutputControls,
   },
 };
 

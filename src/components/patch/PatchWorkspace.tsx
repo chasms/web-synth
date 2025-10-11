@@ -3,6 +3,7 @@ import React from "react";
 import { useAudioContext } from "../../hooks/useAudioContext";
 import { usePatch } from "../../modular/graph/usePatch";
 import { createADSR } from "../../modular/modules/ADSR";
+import { createMasterOutput } from "../../modular/modules/MasterOutput";
 import { createMIDIInputTrigger } from "../../modular/modules/MIDIInputTrigger";
 import { createSequencerTrigger } from "../../modular/modules/SequencerTrigger";
 import { createVCF } from "../../modular/modules/VCF";
@@ -272,6 +273,12 @@ export const PatchWorkspace: React.FC = () => {
           loop: true,
         });
         break;
+      case "MASTER_OUTPUT":
+        created = patch.createModule("MASTER_OUTPUT", createMasterOutput, {
+          volume: 0.7,
+          mute: false,
+        });
+        break;
       default:
         break;
     }
@@ -538,14 +545,17 @@ export const PatchWorkspace: React.FC = () => {
             >
               Load Default Modules
             </button>
-            <button onClick={() => addModuleByType("VCO")}>Add VCO</button>
-            <button onClick={() => addModuleByType("VCF")}>Add VCF</button>
-            <button onClick={() => addModuleByType("ADSR")}>Add ADSR</button>
+            <button onClick={() => addModuleByType("VCO")}>ADD VCO</button>
+            <button onClick={() => addModuleByType("VCF")}>ADD VCF</button>
+            <button onClick={() => addModuleByType("ADSR")}>ADD ADSR</button>
             <button onClick={() => addModuleByType("MIDI_INPUT")}>
-              Add MIDI In
+              ADD MIDI IN
             </button>
             <button onClick={() => addModuleByType("SEQUENCER")}>
-              Add Sequencer
+              ADD SEQUENCER
+            </button>
+            <button onClick={() => addModuleByType("MASTER_OUTPUT")}>
+              ADD MASTER OUT
             </button>
             <button
               onClick={() => {
