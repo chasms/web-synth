@@ -4,6 +4,7 @@ import { smoothParam } from "../utils/smoothing";
 export interface MasterOutputParams {
   volume?: number; // 0 to 1
   mute?: boolean;
+  testTone?: boolean; // Debug test tone
 }
 
 export interface MasterOutputAnalyserData {
@@ -35,6 +36,16 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
   const analyserNode = audioContext.createAnalyser();
   analyserNode.fftSize = 2048;
   analyserNode.smoothingTimeConstant = 0.8;
+
+  // Debug test tone (controllable)
+  const testOscillator = audioContext.createOscillator();
+  const testGain = audioContext.createGain();
+  testOscillator.frequency.value = 220;
+  testOscillator.type = "sawtooth";
+  testGain.gain.value = parameters?.testTone ? 0.1 : 0; // Controlled by testTone parameter
+  testOscillator.connect(testGain);
+  testGain.connect(masterVolumeNode);
+  testOscillator.start();
 
   // Audio chain: input -> volume -> analyser -> destination
   masterVolumeNode.connect(analyserNode);
@@ -94,11 +105,22 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
           time: 0.02, // Quick mute/unmute
         });
       }
+      if (
+        partial["testTone"] !== undefined &&
+        typeof partial["testTone"] === "boolean"
+      ) {
+        const nextTestToneVolume = partial["testTone"] ? 0.1 : 0;
+        smoothParam(audioContext, testGain.gain, nextTestToneVolume, {
+          mode: "linear",
+          time: 0.05, // Smooth test tone on/off
+        });
+      }
     },
     getParams() {
       return {
         volume: masterVolumeNode.gain.value,
         mute: masterVolumeNode.gain.value === 0,
+        testTone: testGain.gain.value > 0,
       };
     },
     getAnalyserData(): MasterOutputAnalyserData {
@@ -118,6 +140,9 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
       };
     },
     dispose() {
+      testOscillator.stop();
+      testOscillator.disconnect();
+      testGain.disconnect();
       masterVolumeNode.disconnect();
       analyserNode.disconnect();
     },

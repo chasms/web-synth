@@ -59,10 +59,6 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   // Create a constant source for the gate (defaults to 1 for free-running)
   const gateConstantSource = audioContext.createConstantSource();
   gateConstantSource.offset.value = 1; // Default to gate "on" for free-running
-  gateConstantSource.start();
-
-  // Connect gate source to VCA
-  gateConstantSource.connect(vcaGainNode.gain);
 
   // Configure oscillator
   oscillatorNode.type = parameters?.waveform ?? "sawtooth";
@@ -72,11 +68,17 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
 
   // Configure gains
   outputGainNode.gain.value = parameters?.gain ?? 0.3;
-  vcaGainNode.gain.value = 0; // VCA starts at 0, controlled by gate source
+  vcaGainNode.gain.value = 0; // VCA starts at 0, will be controlled by gate source
 
   // Audio chain: OSC -> VCA -> Output Gain -> [external connections]
   oscillatorNode.connect(vcaGainNode);
   vcaGainNode.connect(outputGainNode);
+
+  // Connect gate source to VCA gain (this adds to the base value)
+  gateConstantSource.connect(vcaGainNode.gain);
+
+  // Start both the oscillator and gate source
+  gateConstantSource.start();
   oscillatorNode.start();
 
   const portNodes: ModuleInstance["portNodes"] = {

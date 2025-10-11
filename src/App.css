@@ -777,6 +777,43 @@ header h1 {
   border: 1px solid #444;
 }
 
+/* Test Tone Button */
+.test-tone-button {
+  padding: 6px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #1d1d1d;
+  color: #ccc;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.test-tone-button.inactive {
+  background: #1d1d1d;
+  color: #888;
+  border-color: #333;
+}
+
+.test-tone-button.active {
+  background: #2d4a2d;
+  color: #88ff88;
+  border-color: #4a7c4a;
+  box-shadow: 0 0 8px rgba(136, 255, 136, 0.2);
+}
+
+.test-tone-button:hover {
+  background: #2a2a2a;
+  border-color: #555;
+}
+
+.test-tone-button.active:hover {
+  background: #3a5a3a;
+  border-color: #5a8a5a;
+}
+
 /* Envelope editor specific styling */
 .env-handle {
   transition:

@@ -18,6 +18,9 @@ export const MasterOutputControls: React.FC<MasterOutputControlsProps> = ({
   const [mute, setMute] = React.useState<boolean>(
     typeof initial["mute"] === "boolean" ? initial["mute"] : false,
   );
+  const [testTone, setTestTone] = React.useState<boolean>(
+    typeof initial["testTone"] === "boolean" ? initial["testTone"] : false,
+  );
 
   const update = React.useCallback(
     (partial: Record<string, unknown>) => module.updateParams?.(partial),
@@ -33,6 +36,12 @@ export const MasterOutputControls: React.FC<MasterOutputControlsProps> = ({
     const nextMute = !mute;
     setMute(nextMute);
     update({ mute: nextMute });
+  };
+
+  const handleTestToneToggle = () => {
+    const nextTestTone = !testTone;
+    setTestTone(nextTestTone);
+    update({ testTone: nextTestTone });
   };
 
   return (
@@ -76,6 +85,17 @@ export const MasterOutputControls: React.FC<MasterOutputControlsProps> = ({
           aria-label={mute ? "Unmute" : "Mute"}
         >
           {mute ? "🔇 MUTED" : "🔊 ON"}
+        </button>
+      </div>
+
+      {/* Test Tone Button */}
+      <div className="module-control">
+        <button
+          className={`test-tone-button ${testTone ? "active" : "inactive"}`}
+          onClick={handleTestToneToggle}
+          aria-label={testTone ? "Disable Test Tone" : "Enable Test Tone"}
+        >
+          {testTone ? "🎵 TEST ON" : "🎵 TEST OFF"}
         </button>
       </div>
 
