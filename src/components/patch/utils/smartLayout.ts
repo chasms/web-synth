@@ -1,6 +1,6 @@
 /**
  * Smart layout utilities for the modular synthesizer
- * Handles module placement with collision detection and proper spacing
+ * Handles module placement with surface-area aware collision detection and optimal positioning
  */
 
 export interface ModuleBounds {
@@ -17,13 +17,33 @@ export interface LayoutGrid {
   margin: number;
 }
 
+export interface ModulePosition {
+  id: string;
+  x: number;
+  y: number;
+  type: string;
+}
+
 /**
- * Default module dimensions based on CSS
+ * Configuration for the surface-area aware layout system
  */
-export const MODULE_DIMENSIONS = {
-  width: 180, // From CSS .module-container
-  minHeight: 140, // From CSS .module-container
-  padding: 80, // Space between modules (increased significantly to eliminate horizontal overlaps)
+export const LAYOUT_CONFIG = {
+  // Grid configuration
+  GRID_SIZE: 10, // Base grid unit in pixels
+  MIN_SPACING_GRID_UNITS: 5, // Minimum spacing in grid units (50px)
+
+  // Module dimensions
+  MODULE_WIDTH: 180, // Standard module width from CSS
+  MODULE_MIN_HEIGHT: 140, // Minimum module height
+
+  // Layout bounds
+  WORKSPACE_START_X: 40,
+  WORKSPACE_START_Y: 100,
+  WORKSPACE_MAX_WIDTH: 2000, // Maximum workspace width for scanning
+  WORKSPACE_MAX_HEIGHT: 1500, // Maximum workspace height for scanning
+
+  // Search parameters
+  PLACEMENT_STEP_SIZE: 10, // Step size for placement scanning (grid aligned)
 } as const;
 
 /**
@@ -40,17 +60,33 @@ export const MODULE_HEIGHT_ESTIMATES: Record<string, number> = {
 } as const;
 
 /**
- * Checks if two module bounds overlap
+ * Gets the minimum spacing distance in pixels (5 grid units = 50px)
  */
-export function doModulesOverlap(
+export function getMinimumSpacing(): number {
+  return LAYOUT_CONFIG.MIN_SPACING_GRID_UNITS * LAYOUT_CONFIG.GRID_SIZE;
+}
+
+/**
+ * Checks if two module bounds overlap with spacing consideration
+ */
+export function doModulesOverlapWithSpacing(
   bounds1: ModuleBounds,
   bounds2: ModuleBounds,
+  minimumSpacing: number = getMinimumSpacing(),
 ): boolean {
+  // Expand bounds by minimum spacing to ensure adequate separation
+  const expandedBounds1 = {
+    x: bounds1.x - minimumSpacing,
+    y: bounds1.y - minimumSpacing,
+    width: bounds1.width + minimumSpacing * 2,
+    height: bounds1.height + minimumSpacing * 2,
+  };
+
   return !(
-    bounds1.x + bounds1.width <= bounds2.x ||
-    bounds2.x + bounds2.width <= bounds1.x ||
-    bounds1.y + bounds1.height <= bounds2.y ||
-    bounds2.y + bounds2.height <= bounds1.y
+    expandedBounds1.x + expandedBounds1.width <= bounds2.x ||
+    bounds2.x + bounds2.width <= expandedBounds1.x ||
+    expandedBounds1.y + expandedBounds1.height <= bounds2.y ||
+    bounds2.y + bounds2.height <= expandedBounds1.y
   );
 }
 
@@ -66,63 +102,79 @@ export function getModuleBounds(
   const height =
     actualHeight ??
     MODULE_HEIGHT_ESTIMATES[moduleType] ??
-    MODULE_DIMENSIONS.minHeight;
+    LAYOUT_CONFIG.MODULE_MIN_HEIGHT;
   return {
     x,
     y,
-    width: MODULE_DIMENSIONS.width,
+    width: LAYOUT_CONFIG.MODULE_WIDTH,
     height,
   };
 }
 
 /**
- * Finds the next available position for a module without overlap
+ * Finds the top-left-most available position for a module using surface-area awareness
+ * Scans from top-left to bottom-right to find the optimal placement position
  */
-export function findAvailablePosition(
-  existingModules: Array<{ id: string; x: number; y: number; type: string }>,
+export function findOptimalPosition(
+  existingModules: ModulePosition[],
   moduleType: string,
-  startX: number = 40,
-  startY: number = 100,
-  maxColumns: number = 6,
+  actualHeight?: number,
 ): { x: number; y: number } {
-  const moduleWidth = MODULE_DIMENSIONS.width + MODULE_DIMENSIONS.padding;
-  const moduleHeight =
-    (MODULE_HEIGHT_ESTIMATES[moduleType] ?? MODULE_DIMENSIONS.minHeight) +
-    MODULE_DIMENSIONS.padding;
+  const candidateHeight =
+    actualHeight ??
+    MODULE_HEIGHT_ESTIMATES[moduleType] ??
+    LAYOUT_CONFIG.MODULE_MIN_HEIGHT;
+
+  const candidateWidth = LAYOUT_CONFIG.MODULE_WIDTH;
+  const minimumSpacing = getMinimumSpacing();
 
   // Create bounds for all existing modules
   const existingBounds = existingModules.map((mod) =>
     getModuleBounds(mod.x, mod.y, mod.type),
   );
 
-  // Try positions in a grid pattern
-  // Max 10 rows to prevent infinite loop
-  for (let row = 0; row < 10; row++) {
-    for (let col = 0; col < maxColumns; col++) {
-      const x = startX + col * moduleWidth;
-      const y = startY + row * moduleHeight;
+  // Scan from top-left to bottom-right in grid-aligned steps
+  for (
+    let y = LAYOUT_CONFIG.WORKSPACE_START_Y;
+    y <= LAYOUT_CONFIG.WORKSPACE_MAX_HEIGHT;
+    y += LAYOUT_CONFIG.PLACEMENT_STEP_SIZE
+  ) {
+    for (
+      let x = LAYOUT_CONFIG.WORKSPACE_START_X;
+      x <= LAYOUT_CONFIG.WORKSPACE_MAX_WIDTH;
+      x += LAYOUT_CONFIG.PLACEMENT_STEP_SIZE
+    ) {
+      const candidateBounds: ModuleBounds = {
+        x,
+        y,
+        width: candidateWidth,
+        height: candidateHeight,
+      };
 
-      const candidateBounds = getModuleBounds(x, y, moduleType);
-
-      // Check if this position overlaps with any existing module
-      const hasOverlap = existingBounds.some((bounds) =>
-        doModulesOverlap(candidateBounds, bounds),
+      // Check if this position has adequate spacing from all existing modules
+      const hasConflict = existingBounds.some((bounds) =>
+        doModulesOverlapWithSpacing(candidateBounds, bounds, minimumSpacing),
       );
 
-      if (!hasOverlap) {
+      if (!hasConflict) {
         return { x, y };
       }
     }
   }
 
-  // Fallback: place to the right of the rightmost module
+  // Fallback: place to the right of the rightmost module with proper spacing
   const rightmostModule = existingModules.reduce(
     (rightmost, mod) => (mod.x > rightmost.x ? mod : rightmost),
-    { x: startX, y: startY, type: "", id: "" },
+    {
+      x: LAYOUT_CONFIG.WORKSPACE_START_X,
+      y: LAYOUT_CONFIG.WORKSPACE_START_Y,
+      type: "",
+      id: "",
+    },
   );
 
   return {
-    x: rightmostModule.x + moduleWidth,
+    x: rightmostModule.x + LAYOUT_CONFIG.MODULE_WIDTH + minimumSpacing,
     y: rightmostModule.y,
   };
 }
@@ -132,7 +184,7 @@ export function findAvailablePosition(
  * This can be used to get precise module heights instead of estimates
  */
 export function measureModuleHeight(elementRef: HTMLElement | null): number {
-  if (!elementRef) return MODULE_DIMENSIONS.minHeight;
+  if (!elementRef) return LAYOUT_CONFIG.MODULE_MIN_HEIGHT;
 
   const computedStyle = window.getComputedStyle(elementRef);
   const height = elementRef.offsetHeight;
@@ -143,30 +195,17 @@ export function measureModuleHeight(elementRef: HTMLElement | null): number {
 }
 
 /**
- * Layouts modules in a smart grid with proper spacing
+ * Layouts modules using the new surface-area aware algorithm
+ * Places each module in the optimal top-left position with proper spacing
  */
 export function layoutModules(
   modules: Array<{ id: string; type: string }>,
-  startX: number = 40,
-  startY: number = 100,
-  maxColumns: number = 6,
 ): Array<{ id: string; x: number; y: number }> {
-  const positioned: Array<{
-    id: string;
-    x: number;
-    y: number;
-    type: string;
-  }> = [];
+  const positioned: ModulePosition[] = [];
   const result: Array<{ id: string; x: number; y: number }> = [];
 
   for (const module of modules) {
-    const position = findAvailablePosition(
-      positioned,
-      module.type,
-      startX,
-      startY,
-      maxColumns,
-    );
+    const position = findOptimalPosition(positioned, module.type);
 
     positioned.push({
       id: module.id,
@@ -183,4 +222,35 @@ export function layoutModules(
   }
 
   return result;
+}
+
+/**
+ * Legacy function name for backward compatibility
+ * @deprecated Use findOptimalPosition instead
+ */
+export function findAvailablePosition(
+  existingModules: ModulePosition[],
+  moduleType: string,
+  _startX?: number,
+  _startY?: number,
+  _maxColumns?: number,
+): { x: number; y: number } {
+  return findOptimalPosition(existingModules, moduleType);
+}
+
+/**
+ * Gets workspace bounds for layout calculations
+ */
+export function getWorkspaceBounds(): {
+  startX: number;
+  startY: number;
+  maxWidth: number;
+  maxHeight: number;
+} {
+  return {
+    startX: LAYOUT_CONFIG.WORKSPACE_START_X,
+    startY: LAYOUT_CONFIG.WORKSPACE_START_Y,
+    maxWidth: LAYOUT_CONFIG.WORKSPACE_MAX_WIDTH,
+    maxHeight: LAYOUT_CONFIG.WORKSPACE_MAX_HEIGHT,
+  };
 }

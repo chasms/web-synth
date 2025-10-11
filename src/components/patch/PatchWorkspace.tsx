@@ -10,7 +10,7 @@ import { createVCF } from "../../modular/modules/VCF";
 import { createVCO } from "../../modular/modules/VCO";
 import { CableLayer } from "./CableLayer";
 import { ModuleContainer } from "./ModuleContainer";
-import { findAvailablePosition, layoutModules } from "./utils/smartLayout";
+import { findOptimalPosition, layoutModules } from "./utils/smartLayout";
 
 interface PositionedModule {
   id: string;
@@ -201,13 +201,7 @@ export const PatchWorkspace: React.FC = () => {
   // Smart auto layout when adding a new module
   const autoPlace = (id: string, moduleType: string) => {
     setPositionedModules((mods) => {
-      const position = findAvailablePosition(
-        mods,
-        moduleType,
-        40,
-        40 + PALETTE_HEIGHT,
-        6, // maxColumns
-      );
+      const position = findOptimalPosition(mods, moduleType);
       return [...mods, { id, x: position.x, y: position.y, type: moduleType }];
     });
   };
@@ -216,7 +210,7 @@ export const PatchWorkspace: React.FC = () => {
     // Re-layout current modules using smart positioning
     setPositionedModules((mods) => {
       const modules = mods.map((m) => ({ id: m.id, type: m.type }));
-      const positioned = layoutModules(modules, 40, 40 + PALETTE_HEIGHT, 6);
+      const positioned = layoutModules(modules);
       return positioned.map((p) => {
         const mod = mods.find((m) => m.id === p.id);
         return { ...p, type: mod?.type ?? "UNKNOWN" };
