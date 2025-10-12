@@ -68,18 +68,36 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
 
   // Configure gains
   outputGainNode.gain.value = parameters?.gain ?? 0.3;
-  vcaGainNode.gain.value = 0; // VCA starts at 0, will be controlled by gate source
+
+  // For free-running mode: Set VCA gain to 1 directly
+  // (Gate ConstantSource connection is prepared but not connected yet)
+  vcaGainNode.gain.value = 1;
 
   // Audio chain: OSC -> VCA -> Output Gain -> [external connections]
   oscillatorNode.connect(vcaGainNode);
   vcaGainNode.connect(outputGainNode);
 
-  // Connect gate source to VCA gain (this adds to the base value)
-  gateConstantSource.connect(vcaGainNode.gain);
+  console.log(`[VCO ${moduleId}] Audio chain connected:`, {
+    oscillatorConnectedTo: "vcaGainNode",
+    vcaConnectedTo: "outputGainNode",
+    outputGainNodeExists: !!outputGainNode,
+  });
+
+  // Gate ConstantSource is created but NOT connected for free-running mode
+  // When a gate is connected via the gate_in port, it will disconnect the constant source
+  // and connect the external gate signal instead
 
   // Start both the oscillator and gate source
   gateConstantSource.start();
   oscillatorNode.start();
+
+  console.log(`[VCO ${moduleId}] Created and started:`, {
+    oscillatorType: oscillatorNode.type,
+    frequency: oscillatorNode.frequency.value,
+    vcaGain: vcaGainNode.gain.value,
+    outputGain: outputGainNode.gain.value,
+    audioContextState: audioContext.state,
+  });
 
   const portNodes: ModuleInstance["portNodes"] = {
     pitch_cv: oscillatorNode.frequency, // Accept direct connection (assumes conversion upstream)
@@ -100,16 +118,29 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
     connect(fromPortId, target) {
       const fromConnectionNode = portNodes[fromPortId];
       const toConnectionEntity = target.module.portNodes[target.portId];
-      if (!fromConnectionNode || !toConnectionEntity) return;
+
+      if (!fromConnectionNode || !toConnectionEntity) {
+        return;
+      }
+
       if (
         fromConnectionNode instanceof AudioNode &&
         toConnectionEntity instanceof AudioNode
       ) {
+        console.log(`[VCO ${moduleId}] Connecting AudioNode:`, {
+          from: fromPortId,
+          fromNode: fromConnectionNode.constructor.name,
+          to: `${target.module.label}.${target.portId}`,
+          toNode: toConnectionEntity.constructor.name,
+        });
         fromConnectionNode.connect(toConnectionEntity);
+        console.log(`[VCO ${moduleId}] Connection completed successfully`);
       } else if (
         fromConnectionNode instanceof AudioNode &&
         toConnectionEntity instanceof AudioParam
       ) {
+        // When a gate is connected, it will modulate the VCA gain
+        // (The base gain.value is set to 1 for free-running, gate signal will override this)
         fromConnectionNode.connect(toConnectionEntity);
       }
     },

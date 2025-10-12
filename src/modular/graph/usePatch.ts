@@ -141,12 +141,13 @@ export function usePatch() {
     });
   }, []);
 
-  // Cleanup on unmount
+  // Cleanup on unmount - DO NOT add state.modules to deps or it will dispose on every change!
   useEffect(() => {
     return () => {
       Object.values(state.modules).forEach((m) => m.dispose());
     };
-  }, [state.modules]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Allow manual clearing
   const clearPatch = useCallback(() => {

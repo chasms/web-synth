@@ -26,7 +26,7 @@ interface ModuleConfig {
 
 const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
   [ModuleType.VCO]: {
-    controlsExtraHeight: 220,
+    controlsExtraHeight: 240,
     width: 180,
     controlsComponent: VCOControls,
   },
@@ -272,7 +272,10 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
   // The ports container is in document flow after controls, so we need to add both heights
   const computedHeight = Math.max(
     140,
-    headerHeight + controlsExtraHeight + portsVerticalSpan + minimumBottomPadding,
+    headerHeight +
+      controlsExtraHeight +
+      portsVerticalSpan +
+      minimumBottomPadding,
   );
   const columnHeight = portsVerticalSpan || 0;
 
