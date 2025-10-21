@@ -2,9 +2,60 @@ import React from "react";
 
 import { type ModuleInstance, type PortDefinition } from "../../modular/types";
 import { AHDSRControls } from "./controls/AHDSRControls";
+import { MasterOutputControls } from "./controls/MasterOutputControls";
+import { MIDIInputControls } from "./controls/MIDIInputControls";
+import { SequencerControls } from "./controls/SequencerControls";
 import { VCFControls } from "./controls/VCFControls";
 import { VCOControls } from "./controls/VCOControls";
 import { ModulePort } from "./ModulePort";
+
+enum ModuleType {
+  VCO = "VCO",
+  VCF = "VCF",
+  ADSR = "ADSR",
+  MIDI_INPUT = "MIDI_INPUT",
+  SEQUENCER = "SEQUENCER",
+  MASTER_OUTPUT = "MASTER_OUTPUT",
+}
+
+interface ModuleConfig {
+  controlsExtraHeight: number;
+  width: number;
+  controlsComponent: React.ComponentType<{ module: ModuleInstance }>;
+}
+
+const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
+  [ModuleType.VCO]: {
+    controlsExtraHeight: 240,
+    width: 180,
+    controlsComponent: VCOControls,
+  },
+  [ModuleType.VCF]: {
+    controlsExtraHeight: 285,
+    width: 180,
+    controlsComponent: VCFControls,
+  },
+  [ModuleType.ADSR]: {
+    controlsExtraHeight: 170,
+    width: 260,
+    controlsComponent: AHDSRControls,
+  },
+  [ModuleType.MIDI_INPUT]: {
+    controlsExtraHeight: 160,
+    width: 180,
+    controlsComponent: MIDIInputControls,
+  },
+  [ModuleType.SEQUENCER]: {
+    controlsExtraHeight: 470, // Increased to accommodate all sequencer controls (BPM, Steps, Gate, Swing, Octave, Loop)
+    width: 240,
+    controlsComponent: SequencerControls,
+  },
+  [ModuleType.MASTER_OUTPUT]: {
+    controlsExtraHeight: 250, // Increased to accommodate volume control, mute/test buttons, and waveform display
+    width: 200, // Increased to accommodate volume slider, buttons, and waveform display
+    controlsComponent: MasterOutputControls,
+  },
+};
 
 export interface ModuleContainerProps {
   moduleInstance: ModuleInstance;
@@ -209,21 +260,22 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
     portsRows > 0
       ? firstPortOffset + (portsRows - 1) * rowSpacing + visualPortHeight
       : 0;
-  const baseHeaderAndPadding = 40; // header + margins + bottom padding buffer
-  // Extra vertical space to accommodate control panels per module type
-  const controlsExtraHeight =
-    moduleInstance.type === "VCO"
-      ? 220
-      : moduleInstance.type === "VCF"
-        ? 310
-        : moduleInstance.type === "ADSR"
-          ? 185
-          : 0;
-  // Dynamic width (ADSR envelope SVG is wider)
-  const moduleWidth = moduleInstance.type === "ADSR" ? 260 : 180;
+  const headerHeight = 36; // header (31px) + top padding (4px) + bottom margin (1px)
+  const minimumBottomPadding = 12; // consistent bottom padding for all modules
+
+  // Get module configuration
+  const moduleConfig = MODULE_CONFIGS[moduleInstance.type as ModuleType];
+  const controlsExtraHeight = moduleConfig?.controlsExtraHeight ?? 0;
+  const moduleWidth = moduleConfig?.width ?? 180;
+
+  // Height calculation: header + controls + ports + bottom padding
+  // The ports container is in document flow after controls, so we need to add both heights
   const computedHeight = Math.max(
     140,
-    baseHeaderAndPadding + controlsExtraHeight + portsVerticalSpan,
+    headerHeight +
+      controlsExtraHeight +
+      portsVerticalSpan +
+      minimumBottomPadding,
   );
   const columnHeight = portsVerticalSpan || 0;
 
@@ -270,11 +322,10 @@ export const ModuleContainer: React.FC<ModuleContainerProps> = ({
           </button>
         )}
       </div>
-      {moduleInstance.type === "VCO" && <VCOControls module={moduleInstance} />}
-      {moduleInstance.type === "VCF" && <VCFControls module={moduleInstance} />}
-      {moduleInstance.type === "ADSR" && (
-        <AHDSRControls module={moduleInstance} />
-      )}
+      {moduleConfig &&
+        React.createElement(moduleConfig.controlsComponent, {
+          module: moduleInstance,
+        })}
       <div className="module-ports">
         <div
           className="module-ports-column inputs"

@@ -27,6 +27,13 @@ const ports: PortDefinition[] = [
     metadata: { bipolar: true, description: "Linear FM (Hz offset scaled)" },
   },
   {
+    id: "gate_in",
+    label: "Gate",
+    direction: "in",
+    signal: "GATE",
+    metadata: { description: "Gate input for amplitude control" },
+  },
+  {
     id: "sync",
     label: "Sync",
     direction: "in",
@@ -47,18 +54,36 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   const { audioContext, moduleId } = context;
   const oscillatorNode = audioContext.createOscillator();
   const outputGainNode = audioContext.createGain();
-  outputGainNode.gain.value = parameters?.gain ?? 0.3;
+  const vcaGainNode = audioContext.createGain(); // VCA for gate control
 
+  // Track whether pitch CV is connected to prevent manual frequency control interference
+  let isPitchCVConnected = false;
+  let manualBaseFrequency = parameters?.baseFrequency ?? 440;
+
+  // Configure oscillator
   oscillatorNode.type = parameters?.waveform ?? "sawtooth";
-  oscillatorNode.frequency.value = parameters?.baseFrequency ?? 440;
+  oscillatorNode.frequency.value = manualBaseFrequency;
   if (parameters?.detuneCents)
     oscillatorNode.detune.value = parameters.detuneCents;
-  oscillatorNode.connect(outputGainNode);
+
+  // Configure gains
+  outputGainNode.gain.value = parameters?.gain ?? 0.3;
+
+  // VCA gain: Default to 1 for free-running mode
+  // When external gate connects, onIncomingConnection will set it to 0
+  vcaGainNode.gain.value = 1;
+
+  // Audio chain: OSC -> VCA -> Output Gain -> [external connections]
+  oscillatorNode.connect(vcaGainNode);
+  vcaGainNode.connect(outputGainNode);
+
+  // Start the oscillator
   oscillatorNode.start();
 
   const portNodes: ModuleInstance["portNodes"] = {
-    pitch_cv: oscillatorNode.frequency, // Accept direct connection (assumes conversion upstream)
-    fm_cv: oscillatorNode.frequency, // For linear FM
+    pitch_cv: oscillatorNode.frequency, // CV controls frequency directly when connected
+    fm_cv: oscillatorNode.frequency, // For linear FM (direct Hz modulation)
+    gate_in: vcaGainNode.gain, // Gate controls VCA gain directly (external gate signal adds to base value of 0)
     sync: undefined,
     wave_cv: undefined,
     audio_out: outputGainNode,
@@ -71,10 +96,41 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
     ports,
     audioOut: outputGainNode,
     portNodes,
+    onIncomingConnection(portId) {
+      // When an external gate connects, switch from free-running to gate-controlled
+      if (portId === "gate_in") {
+        vcaGainNode.gain.value = 0; // Set base to 0 so external gate is sole controller
+      }
+      // Track pitch CV connection to prevent manual control interference
+      if (portId === "pitch_cv") {
+        isPitchCVConnected = true;
+        // Set base frequency to 0 so CV signal controls pitch directly
+        oscillatorNode.frequency.setValueAtTime(0, audioContext.currentTime);
+      }
+    },
+    onIncomingDisconnection(portId) {
+      // When external gate disconnects, switch back to free-running
+      if (portId === "gate_in") {
+        vcaGainNode.gain.value = 1; // Set back to free-running
+      }
+      // Track pitch CV disconnection to allow manual control again
+      if (portId === "pitch_cv") {
+        isPitchCVConnected = false;
+        // Restore the manual base frequency
+        oscillatorNode.frequency.setValueAtTime(
+          manualBaseFrequency,
+          audioContext.currentTime,
+        );
+      }
+    },
     connect(fromPortId, target) {
       const fromConnectionNode = portNodes[fromPortId];
       const toConnectionEntity = target.module.portNodes[target.portId];
-      if (!fromConnectionNode || !toConnectionEntity) return;
+
+      if (!fromConnectionNode || !toConnectionEntity) {
+        return;
+      }
+
       if (
         fromConnectionNode instanceof AudioNode &&
         toConnectionEntity instanceof AudioNode
@@ -84,6 +140,8 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         fromConnectionNode instanceof AudioNode &&
         toConnectionEntity instanceof AudioParam
       ) {
+        // When a gate is connected, it will modulate the VCA gain
+        // (The base gain.value is set to 1 for free-running, gate signal will override this)
         fromConnectionNode.connect(toConnectionEntity);
       }
     },
@@ -100,10 +158,14 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         typeof partial["baseFrequency"] === "number"
       ) {
         const nextHz = Math.max(0, partial["baseFrequency"]);
-        smoothParam(audioContext, oscillatorNode.frequency, nextHz, {
-          mode: "setTarget",
-          timeConstant: 0.03,
-        });
+        manualBaseFrequency = nextHz; // Store the manual frequency value
+        // Only allow manual frequency control when pitch CV is not connected
+        if (!isPitchCVConnected) {
+          smoothParam(audioContext, oscillatorNode.frequency, nextHz, {
+            mode: "setTarget",
+            timeConstant: 0.03,
+          });
+        }
       }
       if (
         partial["detuneCents"] !== undefined &&
@@ -145,6 +207,7 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         /* already stopped */
       }
       oscillatorNode.disconnect();
+      vcaGainNode.disconnect();
       outputGainNode.disconnect();
     },
   };

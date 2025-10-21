@@ -1,5 +1,6 @@
 import React from "react";
 
+import { usePatch } from "../../../modular/graph/usePatch";
 import type { ModuleInstance } from "../../../modular/types";
 
 interface NumberControlProps {
@@ -9,6 +10,7 @@ interface NumberControlProps {
   max: number;
   step?: number;
   onChange: (next: number) => void;
+  disabled?: boolean;
 }
 
 const NumberControl: React.FC<NumberControlProps> = ({
@@ -18,6 +20,7 @@ const NumberControl: React.FC<NumberControlProps> = ({
   max,
   step = 1,
   onChange,
+  disabled = false,
 }) => {
   const [text, setText] = React.useState<string>(() => String(value));
   React.useEffect(() => {
@@ -47,6 +50,7 @@ const NumberControl: React.FC<NumberControlProps> = ({
         type="text"
         inputMode="decimal"
         value={text}
+        disabled={disabled}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => commit(text)}
         onKeyDown={(e) => {
@@ -63,6 +67,7 @@ const NumberControl: React.FC<NumberControlProps> = ({
           max={max}
           step={step}
           value={value}
+          disabled={disabled}
           onChange={(e) => onChange(clamp(Number(e.target.value)))}
         />
       </div>
@@ -75,6 +80,7 @@ interface VCOControlsProps {
 }
 
 export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
+  const patch = usePatch();
   const initial = module.getParams?.() ?? {};
   const [waveform, setWaveform] = React.useState<string>(
     (initial["waveform"] as string) || "sawtooth",
@@ -93,6 +99,25 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
       : 0,
   );
 
+  // Check if gate input is connected by looking at patch connections
+  const isGateConnected = React.useMemo(() => {
+    // Check if any connection has this module's gate_in port as the destination
+    return patch.connections.some(
+      (connection) =>
+        connection.toModuleId === module.id &&
+        connection.toPortId === "gate_in",
+    );
+  }, [patch.connections, module.id]);
+
+  // Check if pitch CV input is connected
+  const isPitchCVConnected = React.useMemo(() => {
+    return patch.connections.some(
+      (connection) =>
+        connection.toModuleId === module.id &&
+        connection.toPortId === "pitch_cv",
+    );
+  }, [patch.connections, module.id]);
+
   const update = React.useCallback(
     (partial: Record<string, unknown>) => module.updateParams?.(partial),
     [module],
@@ -100,6 +125,19 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
 
   return (
     <div className="module-controls">
+      {/* Gate Status Indicator */}
+      <div className="module-control">
+        <div className="gate-status-indicator">
+          <span
+            className={`status-dot ${isGateConnected ? "connected" : "free-running"}`}
+            title={isGateConnected ? "Gate controlled" : "Free running"}
+          />
+          <span className="status-text">
+            {isGateConnected ? "Gate Controlled" : "Free Running"}
+          </span>
+        </div>
+      </div>
+
       <div className="module-control">
         <label className="module-control-label">Waveform</label>
         <select
@@ -125,6 +163,7 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
         min={10}
         max={20000}
         step={1}
+        disabled={isPitchCVConnected}
         onChange={(v) => {
           setBaseFrequency(v);
           update({ baseFrequency: v });

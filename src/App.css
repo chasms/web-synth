@@ -387,6 +387,18 @@ header h1 {
   cursor: not-allowed;
 }
 
+/* Secondary button style (e.g., Load Default Modules) */
+.module-palette .secondary-button {
+  background: #1a4d3d;
+  border-color: #2d6b52;
+  color: #b3e5d1;
+}
+
+.module-palette .secondary-button:hover {
+  background: #236a4d;
+  color: #d4f4e5;
+}
+
 /* Removed old margin-top push; palette height now handled in drag clamp */
 
 /* Remove button */
@@ -709,8 +721,9 @@ header h1 {
   margin-bottom: 0;
 }
 
-.module-control .module-control-label {
-  font-size: 12px;
+.module-control .module-control-label,
+.module-control label {
+  font-size: 11px;
   color: #ccc;
 }
 
@@ -734,6 +747,160 @@ header h1 {
 
 .module-control .module-control-slider {
   width: 100%;
+}
+
+/* Waveform Visualizer */
+.waveform-visualizer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.waveform-visualizer canvas {
+  display: block;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
+
+.waveform-label {
+  font-size: 10px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.waveform-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  margin-bottom: 6px;
+}
+
+.master-waveform {
+  padding: 8px;
+  background: #252525;
+  border-radius: 6px;
+  border: 1px solid #444;
+}
+
+/* Master Output specific controls */
+.volume-display {
+  grid-column: 1 / span 2;
+  text-align: center;
+  font-size: 11px;
+  color: #ccc;
+  margin-top: 2px;
+}
+
+.output-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.output-label {
+  font-size: 10px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.output-status {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.output-status.active {
+  color: #8f8;
+}
+
+.output-status.muted {
+  color: #f88;
+}
+
+/* Mute Button */
+.mute-button {
+  padding: 6px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  width: 100%;
+}
+
+.mute-button.unmuted {
+  background: #2d4a2d;
+  color: #8f8;
+  border-color: #4a7c4a;
+  box-shadow: 0 0 8px rgb(136 255 136 / 20%);
+}
+
+.mute-button.muted {
+  background: #5a2d2d;
+  color: #f88;
+  border-color: #7c4a4a;
+  box-shadow: 0 0 8px rgb(255 136 136 / 30%);
+}
+
+.mute-button.unmuted:hover {
+  background: #3a5a3a;
+  border-color: #5a8a5a;
+  box-shadow: 0 0 12px rgb(136 255 136 / 30%);
+}
+
+.mute-button.muted:hover {
+  background: #6a3a3a;
+  border-color: #8a5a5a;
+  box-shadow: 0 0 12px rgb(255 136 136 / 40%);
+}
+
+/* Test Tone Button */
+.test-tone-button {
+  padding: 6px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  background: #1d1d1d;
+  color: #ccc;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.test-tone-button.inactive {
+  background: #1d1d1d;
+  color: #888;
+  border-color: #333;
+}
+
+.test-tone-button.active {
+  background: #2d4a2d;
+  color: #8f8;
+  border-color: #4a7c4a;
+  box-shadow: 0 0 8px rgb(136 255 136 / 20%);
+}
+
+.test-tone-button:hover {
+  background: #2a2a2a;
+  border-color: #555;
+}
+
+.test-tone-button.active:hover {
+  background: #3a5a3a;
+  border-color: #5a8a5a;
 }
 
 /* Envelope editor specific styling */
@@ -795,4 +962,227 @@ header h1 {
   background: #273341;
   color: #fff;
   border-color: #4b6a84;
+}
+
+/* MIDI Input Controls */
+.midi-input-controls {
+  padding: 10px;
+}
+
+.control-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.control-row label {
+  font-size: 11px;
+  color: #ccc;
+  min-width: 80px;
+}
+
+.control-row select {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 2px 5px;
+  border-radius: 2px;
+  font-size: 11px;
+  flex: 1;
+}
+
+.control-row-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 6px;
+}
+
+.control-row-vertical label {
+  font-size: 11px;
+  color: #ccc;
+  text-align: center;
+}
+
+.number-input-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 1;
+}
+
+.number-input-container-centered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.control-slider {
+  flex: 1;
+  accent-color: #ff6b35;
+}
+
+.value-display {
+  font-size: 11px;
+  color: #ff6b35;
+  font-weight: bold;
+  min-width: 35px;
+  text-align: right;
+}
+
+.midi-status {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #333;
+}
+
+.status-connected {
+  color: #4caf50;
+  font-size: 10px;
+}
+
+.status-disconnected {
+  color: #f44336;
+  font-size: 10px;
+}
+
+.device-status {
+  color: #ccc;
+  font-size: 10px;
+}
+
+/* Sequencer Controls */
+.sequencer-controls {
+  padding: 10px;
+}
+
+.transport-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.play-button {
+  background: #ff6b35;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+
+.play-button:hover {
+  background: #ff8c5a;
+}
+
+.play-button.playing {
+  background: #4caf50;
+}
+
+.step-display {
+  font-size: 11px;
+  color: #ccc;
+}
+
+.sequence-preview {
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #333;
+}
+
+.mini-grid {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 5px;
+}
+
+.mini-cell {
+  width: 8px;
+  height: 8px;
+  background: #333;
+  border: 1px solid #444;
+  border-radius: 1px;
+}
+
+.mini-cell.has-note {
+  background: #ff6b35;
+}
+
+.mini-cell.current {
+  border-color: #fff;
+}
+
+.edit-button {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 4px 8px;
+  border-radius: 2px;
+  cursor: pointer;
+  font-size: 10px;
+}
+
+/* VCO Gate Status Indicator */
+.gate-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: background-color 0.2s;
+}
+
+.status-dot.free-running {
+  background: #ff6b35;
+  box-shadow: 0 0 4px rgb(255 107 53 / 40%);
+}
+
+.status-dot.connected {
+  background: #4caf50;
+  box-shadow: 0 0 4px rgb(76 175 80 / 40%);
+}
+
+.status-text {
+  font-size: 10px;
+  color: #ccc;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.edit-button:hover {
+  background: #444;
+}
+
+.parameter-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }

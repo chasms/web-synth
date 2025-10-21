@@ -6,6 +6,7 @@ import { AudioContextControls } from "./components/AudioContextControls";
 import { PatchWorkspace } from "./components/patch/PatchWorkspace";
 import { Synthesizer } from "./components/Synthesizer";
 import { AudioContextProvider } from "./hooks/AudioContextProvider";
+import { PatchProvider } from "./modular/graph/PatchProvider";
 
 function App() {
   const [drawerOpen, setDrawerOpen] = React.useState(false);
@@ -27,7 +28,9 @@ function App() {
           </div>
         </div>
         <div className="main-region">
-          <PatchWorkspace />
+          <PatchProvider>
+            <PatchWorkspace />
+          </PatchProvider>
           <aside
             id="legacy-drawer"
             className={`legacy-drawer ${drawerOpen ? "open" : ""}`}

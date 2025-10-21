@@ -3,15 +3,20 @@ import React from "react";
 import { useAudioContext } from "../../hooks/useAudioContext";
 import { usePatch } from "../../modular/graph/usePatch";
 import { createADSR } from "../../modular/modules/ADSR";
+import { createMasterOutput } from "../../modular/modules/MasterOutput";
+import { createMIDIInputTrigger } from "../../modular/modules/MIDIInputTrigger";
+import { createSequencerTrigger } from "../../modular/modules/SequencerTrigger";
 import { createVCF } from "../../modular/modules/VCF";
 import { createVCO } from "../../modular/modules/VCO";
 import { CableLayer } from "./CableLayer";
 import { ModuleContainer } from "./ModuleContainer";
+import { findOptimalPosition, layoutModules } from "./utils/smartLayout";
 
 interface PositionedModule {
   id: string;
   x: number;
   y: number;
+  type: string;
 }
 
 export const PatchWorkspace: React.FC = () => {
@@ -64,48 +69,98 @@ export const PatchWorkspace: React.FC = () => {
 
   const handleAddInitialModules = React.useCallback(() => {
     if (!audioContext) return;
-    const vco1 = patch.createModule("VCO", createVCO, {
+
+    // Create a proper modular synthesis setup with a programmed sequence
+    const sequencer = patch.createModule("SEQUENCER", createSequencerTrigger, {
+      bpm: 120,
+      steps: 8,
+      gate: 0.7,
+      octave: 4,
+      loop: true,
+      // Program a simple melody: C D E F G A B C
+      sequence: [
+        { note: 60, velocity: 100 }, // C4
+        { note: 62, velocity: 80 }, // D4
+        { note: 64, velocity: 90 }, // E4
+        { note: 65, velocity: 85 }, // F4
+        { note: 67, velocity: 95 }, // G4
+        { note: 69, velocity: 75 }, // A4
+        { note: 71, velocity: 90 }, // B4
+        { note: 72, velocity: 100 }, // C5
+      ],
+    });
+
+    const vco = patch.createModule("VCO", createVCO, {
       waveform: "sawtooth",
-      baseFrequency: 110,
-      gain: 0.2,
+      baseFrequency: 220, // C3
+      gain: 0.3,
     });
-    const vco2 = patch.createModule("VCO", createVCO, {
-      waveform: "square",
-      baseFrequency: 220,
-      gain: 0.15,
-    });
-    const vco3 = patch.createModule("VCO", createVCO, {
-      waveform: "triangle",
-      baseFrequency: 330,
-      gain: 0.1,
-    });
-    const vcf = patch.createModule("VCF", createVCF, {
-      cutoff: 1200,
-      resonance: 0.7,
-    });
+
     const adsr = patch.createModule("ADSR", createADSR, {
       attack: 0.01,
-      decay: 0.25,
+      decay: 0.3,
       sustain: 0.6,
-      release: 0.4,
+      release: 0.5,
     });
-    if (vco1 && vco2 && vco3 && vcf && adsr) {
-      // Audio routing: VCOs -> VCF -> destination
-      patch.connect(vco1, "audio_out", vcf, "audio_in");
-      patch.connect(vco2, "audio_out", vcf, "audio_in");
-      patch.connect(vco3, "audio_out", vcf, "audio_in");
-      vcf.audioOut?.connect(audioContext.destination);
-      // Envelope modulation: ADSR -> VCF cutoff
-      patch.connect(adsr, "cv_out", vcf, "cutoff_cv");
-      // Demonstration gate
-      adsr.gateOn?.();
-      const yOffset = 40 + PALETTE_HEIGHT;
+
+    const vcf = patch.createModule("VCF", createVCF, {
+      cutoff: 800,
+      resonance: 2.0,
+      envelopeAmount: 0.7, // Nice filter sweep
+    });
+
+    const masterOut = patch.createModule("MASTER_OUTPUT", createMasterOutput, {
+      volume: 0.7,
+      mute: false,
+    });
+
+    if (sequencer && vco && adsr && vcf && masterOut) {
+      // Proper modular synthesis routing:
+
+      // 1. Sequencer controls VCO pitch
+      patch.connect(sequencer, "pitch_cv_out", vco, "pitch_cv");
+
+      // 2. Sequencer gate controls VCO amplitude (built-in VCA)
+      patch.connect(sequencer, "gate_out", vco, "gate_in");
+
+      // 3. Sequencer gate also triggers ADSR envelope
+      patch.connect(sequencer, "gate_out", adsr, "gate_in");
+
+      // 4. VCO audio goes through VCF
+      patch.connect(vco, "audio_out", vcf, "audio_in");
+
+      // 5. ADSR envelope modulates VCF cutoff for classic filter sweep
+      patch.connect(adsr, "cv_out", vcf, "env_cv");
+
+      // 6. VCF output to Master Output (instead of direct to speakers)
+      patch.connect(vcf, "audio_out", masterOut, "audio_in");
+
+      // Layout modules in a logical signal flow with proper spacing
+      const yOffset = 60 + PALETTE_HEIGHT;
+      const moduleSpacing = 300; // Increased spacing between columns
+      const rowSpacing = 250; // Increased spacing between rows
+
       setPositionedModules([
-        { id: vco1.id, x: 40, y: yOffset },
-        { id: vco2.id, x: 40, y: yOffset + 180 },
-        { id: vco3.id, x: 40, y: yOffset + 360 },
-        { id: vcf.id, x: 360, y: yOffset + 140 },
-        { id: adsr.id, x: 660, y: yOffset + 140 },
+        { id: sequencer.id, x: 60, y: yOffset, type: "SEQUENCER" }, // Left: Sequencer (source)
+        { id: vco.id, x: 60 + moduleSpacing, y: yOffset, type: "VCO" }, // Center-left: VCO
+        {
+          id: adsr.id,
+          x: 60 + moduleSpacing,
+          y: yOffset + rowSpacing,
+          type: "ADSR",
+        }, // Below VCO: ADSR
+        {
+          id: vcf.id,
+          x: 60 + moduleSpacing * 2,
+          y: yOffset + rowSpacing / 2,
+          type: "VCF",
+        }, // Center-right: VCF
+        {
+          id: masterOut.id,
+          x: 60 + moduleSpacing * 3,
+          y: yOffset + rowSpacing / 2,
+          type: "MASTER_OUTPUT",
+        }, // Right: Master Output (final output)
       ]);
     }
   }, [audioContext, patch]);
@@ -165,48 +220,22 @@ export const PatchWorkspace: React.FC = () => {
     setPositionedModules((mods) => mods.filter((m) => m.id !== id));
   };
 
-  // Simple auto layout when adding a new module so user does not need to scroll
-  const autoPlace = (id: string) => {
+  // Smart auto layout when adding a new module
+  const autoPlace = (id: string, moduleType: string) => {
     setPositionedModules((mods) => {
-      const taken = new Set(mods.map((m) => `${m.x},${m.y}`));
-      const baseX = 40;
-      const baseY = 40 + PALETTE_HEIGHT;
-      const colWidth = 220;
-      const rowHeight = 180;
-      for (let col = 0; col < 8; col++) {
-        for (let row = 0; row < 3; row++) {
-          const x = baseX + col * colWidth;
-          const y = baseY + row * rowHeight;
-          const key = `${x},${y}`;
-          if (!taken.has(key)) {
-            return [...mods, { id, x, y }];
-          }
-        }
-      }
-      // fallback: stack at last position offset
-      const last = mods[mods.length - 1];
-      return [
-        ...mods,
-        { id, x: (last?.x ?? baseX) + 40, y: (last?.y ?? baseY) + 40 },
-      ];
+      const position = findOptimalPosition(mods, moduleType);
+      return [...mods, { id, x: position.x, y: position.y, type: moduleType }];
     });
   };
 
   const positionInitialLayout = () => {
-    // Re-space current modules in deterministic order without requiring scroll
+    // Re-layout current modules using smart positioning
     setPositionedModules((mods) => {
-      const sorted = [...mods];
-      sorted.sort((a, b) => a.id.localeCompare(b.id));
-      const colWidth = 220;
-      const rowHeight = 180;
-      return sorted.map((m, index) => {
-        const col = Math.floor(index / 3);
-        const row = index % 3;
-        return {
-          ...m,
-          x: 40 + col * colWidth,
-          y: 40 + PALETTE_HEIGHT + row * rowHeight,
-        };
+      const modules = mods.map((m) => ({ id: m.id, type: m.type }));
+      const positioned = layoutModules(modules);
+      return positioned.map((p) => {
+        const mod = mods.find((m) => m.id === p.id);
+        return { ...p, type: mod?.type ?? "UNKNOWN" };
       });
     });
   };
@@ -236,11 +265,33 @@ export const PatchWorkspace: React.FC = () => {
           release: 0.4,
         });
         break;
+      case "MIDI_INPUT":
+        created = patch.createModule("MIDI_INPUT", createMIDIInputTrigger, {
+          channel: 0, // Omni
+          velocityCurve: "linear",
+          transpose: 0,
+        });
+        break;
+      case "SEQUENCER":
+        created = patch.createModule("SEQUENCER", createSequencerTrigger, {
+          bpm: 120,
+          steps: 8,
+          gate: 0.8,
+          octave: 4,
+          loop: true,
+        });
+        break;
+      case "MASTER_OUTPUT":
+        created = patch.createModule("MASTER_OUTPUT", createMasterOutput, {
+          volume: 0.7,
+          mute: false,
+        });
+        break;
       default:
         break;
     }
     if (created) {
-      autoPlace(created.id);
+      autoPlace(created.id, type);
     }
   };
 
@@ -472,16 +523,6 @@ export const PatchWorkspace: React.FC = () => {
           Start Audio
         </button>
       )}
-      {audioContext &&
-        hasAudioContextInitializedRef &&
-        positionedModules.length === 0 && (
-          <button
-            onClick={handleAddInitialModules}
-            className="start-audio-button"
-          >
-            Load Modules
-          </button>
-        )}
       {audioContext && (
         <div
           ref={workspaceRef}
@@ -506,9 +547,24 @@ export const PatchWorkspace: React.FC = () => {
           }}
         >
           <div className="module-palette" aria-label="Module palette">
-            <button onClick={() => addModuleByType("VCO")}>Add VCO</button>
-            <button onClick={() => addModuleByType("VCF")}>Add VCF</button>
-            <button onClick={() => addModuleByType("ADSR")}>Add ADSR</button>
+            <button
+              onClick={handleAddInitialModules}
+              className="secondary-button"
+            >
+              Load Default Modules
+            </button>
+            <button onClick={() => addModuleByType("VCO")}>ADD VCO</button>
+            <button onClick={() => addModuleByType("VCF")}>ADD VCF</button>
+            <button onClick={() => addModuleByType("ADSR")}>ADD ADSR</button>
+            <button onClick={() => addModuleByType("MIDI_INPUT")}>
+              ADD MIDI IN
+            </button>
+            <button onClick={() => addModuleByType("SEQUENCER")}>
+              ADD SEQUENCER
+            </button>
+            <button onClick={() => addModuleByType("MASTER_OUTPUT")}>
+              ADD MASTER OUT
+            </button>
             <button
               onClick={() => {
                 positionInitialLayout();

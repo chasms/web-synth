@@ -1,0 +1,191 @@
+/* Piano Roll Modal Styles */
+.piano-roll-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.piano-roll-modal {
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 20px;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: auto;
+  color: white;
+}
+
+.piano-roll-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 15px;
+}
+
+.piano-roll-header h2 {
+  margin: 0;
+  color: #ff6b35;
+}
+
+.piano-roll-controls {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.piano-roll-controls .control-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.piano-roll-controls label {
+  font-size: 12px;
+  color: #ccc;
+}
+
+.piano-roll-controls input[type="range"] {
+  width: 80px;
+}
+
+.piano-roll-controls select {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 2px 5px;
+}
+
+.piano-roll-controls button {
+  background: #333;
+  color: white;
+  border: 1px solid #555;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.piano-roll-controls button:hover {
+  background: #444;
+}
+
+.piano-roll-grid {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.note-labels {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 1px;
+}
+
+.note-label {
+  height: 25px;
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 2px;
+}
+
+.note-label.white-key {
+  background: #f0f0f0;
+  color: #333;
+  border: 1px solid #ccc;
+}
+
+.note-label.black-key {
+  background: #222;
+  color: #fff;
+  border: 1px solid #444;
+}
+
+.grid-container {
+  flex: 1;
+}
+
+.step-numbers {
+  display: flex;
+  margin-bottom: 5px;
+}
+
+.step-number {
+  min-width: 30px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #999;
+  border-right: 1px solid #333;
+}
+
+.grid-cells {
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 1px;
+}
+
+.note-row {
+  display: flex;
+  gap: 1px;
+}
+
+.grid-cell {
+  width: 30px;
+  height: 25px;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.grid-cell:hover {
+  background: #3a3a3a;
+}
+
+.grid-cell.active {
+  background: #ff6b35;
+  border-color: #ff8c5a;
+}
+
+.grid-cell.selected {
+  outline: 2px solid #fff;
+  outline-offset: -2px;
+}
+
+.velocity-editor {
+  margin-top: 15px;
+  padding-top: 15px;
+  border-top: 1px solid #333;
+}
+
+.velocity-editor label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #ccc;
+}
+
+.velocity-editor input[type="range"] {
+  width: 120px;
+}
+
+.velocity-editor span {
+  min-width: 30px;
+  font-weight: bold;
+  color: #ff6b35;
+}
