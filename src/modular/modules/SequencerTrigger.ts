@@ -31,18 +31,24 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
   const { audioContext, moduleId } = context;
 
   // Audio nodes for CV generation
+  const gateConstantSource = audioContext.createConstantSource();
   const gateGainNode = audioContext.createGain();
   const pitchConstantSource = audioContext.createConstantSource();
   const velocityConstantSource = audioContext.createConstantSource();
   const triggerGainNode = audioContext.createGain();
 
   // Initialize CV values
-  gateGainNode.gain.value = 0;
+  gateConstantSource.offset.value = 1; // Constant 1V signal
+  gateGainNode.gain.value = 0; // Gate starts off
   pitchConstantSource.offset.value = 4.75; // A4 default
   velocityConstantSource.offset.value = 0;
   triggerGainNode.gain.value = 0;
 
+  // Connect gate: constant source -> gain node (acts as on/off switch)
+  gateConstantSource.connect(gateGainNode);
+
   // Start constant sources
+  gateConstantSource.start();
   pitchConstantSource.start();
   velocityConstantSource.start();
 
@@ -232,12 +238,14 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
       stop();
 
       try {
+        gateConstantSource.stop();
         pitchConstantSource.stop();
         velocityConstantSource.stop();
       } catch {
         /* already stopped */
       }
 
+      gateConstantSource.disconnect();
       gateGainNode.disconnect();
       pitchConstantSource.disconnect();
       velocityConstantSource.disconnect();
