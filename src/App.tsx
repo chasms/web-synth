@@ -6,13 +6,17 @@ import { AudioContextProvider } from "./hooks/AudioContextProvider";
 import { PatchProvider } from "./modular/graph/PatchProvider";
 
 function App() {
+  const isLocalhost =
+    window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1";
+
   return (
     <AudioContextProvider>
       <div className="app-layout">
         <div className="top-bar">
           <div className="title">Web Audio Modular Synth</div>
           <div className="actions">
-            <AudioContextControls />
+            {isLocalhost && <AudioContextControls />}
           </div>
         </div>
         <div className="main-region">
