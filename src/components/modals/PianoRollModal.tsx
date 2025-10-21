@@ -63,7 +63,9 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
   if (!isOpen) return null;
 
   // Calculate note range for display (one octave)
-  const baseNote = octave * 12; // C of the selected octave
+  // MIDI note 60 = C4, so for octave 4, baseNote should be 60
+  // Formula: octave * 12 + 12 (since C4 = 60, C3 = 48, etc.)
+  const baseNote = (octave + 1) * 12; // C of the selected octave
   const noteRange = Array.from({ length: 12 }, (_, i) => baseNote + i);
 
   const handleCellClick = (stepIndex: number, midiNote: number) => {

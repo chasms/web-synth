@@ -70,13 +70,24 @@ export const PatchWorkspace: React.FC = () => {
   const handleAddInitialModules = React.useCallback(() => {
     if (!audioContext) return;
 
-    // Create a proper modular synthesis setup
+    // Create a proper modular synthesis setup with a programmed sequence
     const sequencer = patch.createModule("SEQUENCER", createSequencerTrigger, {
       bpm: 120,
       steps: 8,
       gate: 0.7,
       octave: 4,
       loop: true,
+      // Program a simple melody: C D E F G A B C
+      sequence: [
+        { note: 60, velocity: 100 }, // C4
+        { note: 62, velocity: 80 }, // D4
+        { note: 64, velocity: 90 }, // E4
+        { note: 65, velocity: 85 }, // F4
+        { note: 67, velocity: 95 }, // G4
+        { note: 69, velocity: 75 }, // A4
+        { note: 71, velocity: 90 }, // B4
+        { note: 72, velocity: 100 }, // C5
+      ],
     });
 
     const vco = patch.createModule("VCO", createVCO, {
@@ -98,7 +109,12 @@ export const PatchWorkspace: React.FC = () => {
       envelopeAmount: 0.7, // Nice filter sweep
     });
 
-    if (sequencer && vco && adsr && vcf) {
+    const masterOut = patch.createModule("MASTER_OUTPUT", createMasterOutput, {
+      volume: 0.7,
+      mute: false,
+    });
+
+    if (sequencer && vco && adsr && vcf && masterOut) {
       // Proper modular synthesis routing:
 
       // 1. Sequencer controls VCO pitch
@@ -116,8 +132,8 @@ export const PatchWorkspace: React.FC = () => {
       // 5. ADSR envelope modulates VCF cutoff for classic filter sweep
       patch.connect(adsr, "cv_out", vcf, "env_cv");
 
-      // 6. VCF output to speakers
-      vcf.audioOut?.connect(audioContext.destination);
+      // 6. VCF output to Master Output (instead of direct to speakers)
+      patch.connect(vcf, "audio_out", masterOut, "audio_in");
 
       // Layout modules in a logical signal flow with proper spacing
       const yOffset = 60 + PALETTE_HEIGHT;
@@ -138,7 +154,13 @@ export const PatchWorkspace: React.FC = () => {
           x: 60 + moduleSpacing * 2,
           y: yOffset + rowSpacing / 2,
           type: "VCF",
-        }, // Right: VCF (output, centered vertically)
+        }, // Center-right: VCF
+        {
+          id: masterOut.id,
+          x: 60 + moduleSpacing * 3,
+          y: yOffset + rowSpacing / 2,
+          type: "MASTER_OUTPUT",
+        }, // Right: Master Output (final output)
       ]);
     }
   }, [audioContext, patch]);
