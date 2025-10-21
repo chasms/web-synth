@@ -1,14 +1,11 @@
 import type { CreateModuleFn, ModuleInstance } from "../types";
 import { midiInputPorts, type MIDIInputTriggerParams } from "./triggers";
 
-// MIDI note to 1V/Oct CV conversion
-// A4 (440Hz) = MIDI note 69 = 4.75V (reference)
-function midiNoteToCV(noteNumber: number): number {
-  // MIDI note 69 (A4) = 4.75V
-  // Each semitone = 1/12 volt
-  const a4MidiNote = 69;
-  const a4Voltage = 4.75;
-  return a4Voltage + (noteNumber - a4MidiNote) / 12;
+// MIDI note to frequency conversion (Hz)
+function midiNoteToFrequency(noteNumber: number): number {
+  // Standard MIDI tuning: A4 (note 69) = 440 Hz
+  // Formula: freq = 440 * 2^((note - 69) / 12)
+  return 440 * Math.pow(2, (noteNumber - 69) / 12);
 }
 
 // Velocity curve transformations
@@ -35,14 +32,21 @@ export const createMIDIInputTrigger: CreateModuleFn<MIDIInputTriggerParams> = (
   const { audioContext, moduleId } = context;
 
   // Audio nodes for CV generation
+  // Gate signal: ConstantSource -> GainNode (same pattern as SequencerTrigger)
+  const gateConstantSource = audioContext.createConstantSource();
   const gateGainNode = audioContext.createGain();
   const pitchConstantSource = audioContext.createConstantSource();
   const velocityConstantSource = audioContext.createConstantSource();
   const triggerGainNode = audioContext.createGain();
 
-  // Initialize CV values
-  gateGainNode.gain.value = 0; // Gate off initially
-  pitchConstantSource.offset.value = 4.75; // A4 default
+  // Initialize gate signal chain
+  gateConstantSource.offset.value = 1; // Constant 1V signal
+  gateGainNode.gain.value = 0; // Gate off initially (gain acts as on/off switch)
+  gateConstantSource.connect(gateGainNode);
+  gateConstantSource.start();
+
+  // Initialize other CV values
+  pitchConstantSource.offset.value = 440; // A4 default (440 Hz)
   velocityConstantSource.offset.value = 0; // No velocity initially
   triggerGainNode.gain.value = 0; // Trigger off initially
 
@@ -132,13 +136,16 @@ export const createMIDIInputTrigger: CreateModuleFn<MIDIInputTriggerParams> = (
     // Store active note
     activeNotes.set(noteNumber, velocity);
 
-    // Update CV outputs
-    const pitchCV = midiNoteToCV(noteNumber);
+    // Convert MIDI note to frequency (Hz)
+    const frequency = midiNoteToFrequency(noteNumber);
+    console.log(
+      `MIDI Note ${noteNumber} -> Frequency ${frequency.toFixed(2)} Hz`,
+    );
     const velocityCV = applyVelocityCurve(velocity, velocityCurve);
 
     // Update audio parameters
     pitchConstantSource.offset.setValueAtTime(
-      pitchCV,
+      frequency,
       audioContext.currentTime,
     );
     velocityConstantSource.offset.setValueAtTime(
@@ -165,9 +172,9 @@ export const createMIDIInputTrigger: CreateModuleFn<MIDIInputTriggerParams> = (
       // Switch to most recent note (last note priority)
       const mostRecentNote = Array.from(activeNotes.keys()).pop();
       if (mostRecentNote !== undefined) {
-        const pitchCV = midiNoteToCV(mostRecentNote);
+        const frequency = midiNoteToFrequency(mostRecentNote);
         pitchConstantSource.offset.setValueAtTime(
-          pitchCV,
+          frequency,
           audioContext.currentTime,
         );
       }
@@ -243,12 +250,14 @@ export const createMIDIInputTrigger: CreateModuleFn<MIDIInputTriggerParams> = (
 
       // Clean up audio nodes
       try {
+        gateConstantSource.stop();
         pitchConstantSource.stop();
         velocityConstantSource.stop();
       } catch {
         /* already stopped */
       }
 
+      gateConstantSource.disconnect();
       gateGainNode.disconnect();
       pitchConstantSource.disconnect();
       velocityConstantSource.disconnect();

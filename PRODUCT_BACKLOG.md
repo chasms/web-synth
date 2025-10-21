@@ -318,6 +318,7 @@ Validated Test Cases:
 **Acceptance Criteria**:
 
 Core Sequencer Functionality:
+
 - [x] Configurable step count (1-32 steps)
 - [x] BPM control (60-200 BPM)
 - [x] Gate length control (10-100%)
@@ -329,6 +330,7 @@ Core Sequencer Functionality:
 - [x] Visual step indicators (mini-grid showing which steps have notes programmed)
 
 Piano Roll Editor:
+
 - [x] Piano roll modal with grid layout (steps × notes)
 - [x] Click to toggle notes on/off
 - [x] Chromatic scale display with proper note names (C4, C#4, D4, etc.)
@@ -339,6 +341,7 @@ Piano Roll Editor:
 - [x] Note octave calculation: correctly displays octave 4 as MIDI notes 60-71 (C4-B4)
 
 Signal Generation & Routing:
+
 - [x] Gate output: ConstantSource → GainNode pattern for proper CV signal generation
 - [x] Pitch CV output: Direct frequency in Hz (not voltage) for VCO frequency control
 - [x] Velocity CV output: Normalized velocity values (0-1)
@@ -347,6 +350,7 @@ Signal Generation & Routing:
 - [x] Proper AudioParam scheduling with `setValueAtTime()` for sample-accurate timing
 
 Integration with VCO:
+
 - [x] VCO accepts pitch CV directly on `oscillatorNode.frequency` parameter
 - [x] VCO pitch slider disabled when pitch CV connected (visual feedback)
 - [x] VCO blocks manual frequency updates when pitch CV connected (isPitchCVConnected flag)
@@ -354,11 +358,13 @@ Integration with VCO:
 - [x] VCO shows "GATE CONTROLLED" indicator when gate input connected
 
 Integration with ADSR:
+
 - [x] Sequencer gate output triggers ADSR envelope
 - [x] ADSR envelope modulates filter cutoff via Env CV connection
 - [x] Proper gate on/off timing with sequencer step duration
 
 Audio Output Validation:
+
 - [x] Sequencer plays C major scale correctly (C4, D4, E4, F4, G4, A4, B4, C5)
 - [x] Each note has distinct pitch (not stuck on same frequency)
 - [x] Audio waveform visible on MASTER OUT oscilloscope
@@ -368,6 +374,7 @@ Audio Output Validation:
 - [x] Clean audio with no clicks or pops from parameter changes
 
 Default Configuration:
+
 - [x] Default C major scale sequence programmed (8 steps)
 - [x] Default modules loaded: SEQUENCER → VCO → VCF → MASTER OUT
 - [x] Default connections: Gate (SEQ → VCO, SEQ → ADSR), Pitch CV (SEQ → VCO), Env CV (ADSR → VCF)
@@ -387,6 +394,7 @@ Default Configuration:
 - [x] Proper audio node cleanup in dispose methods
 
 Known Limitations & Future Enhancements:
+
 - [ ] Multiple pattern slots
 - [ ] Pattern chaining
 - [ ] Real-time recording mode
