@@ -923,3 +923,34 @@
   flex-direction: column;
   gap: 8px;
 }
+
+.github-button {
+  position: absolute;
+  bottom: 25px;
+  right: 25px;
+  height: 60px;
+  width: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  backdrop-filter: invert(30%);
+  cursor: pointer;
+  transition:
+    backdrop-filter 0.5s ease-in-out,
+    height 0.5s ease-in-out,
+    width 0.5s ease-in-out;
+
+  &:hover {
+    backdrop-filter: invert(80%);
+    height: 65px;
+    width: 65px;
+  }
+}
+
+.github-image {
+  height: 40px;
+  width: 40px;
+  margin: auto;
+  opacity: 0.7;
+}

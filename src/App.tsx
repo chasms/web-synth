@@ -1,5 +1,6 @@
 import "./App.css";
 
+import githubIcon from "./assets/github.png";
 import { AudioContextControls } from "./components/AudioContextControls";
 import { PatchWorkspace } from "./components/patch/PatchWorkspace";
 import { AudioContextProvider } from "./hooks/AudioContextProvider";
@@ -25,6 +26,14 @@ function App() {
           </PatchProvider>
         </div>
       </div>
+      <a
+        className="github-button"
+        href="https://github.com/chasms/web-synth"
+        target="_blank"
+        rel="noreferrer"
+      >
+        <img className="github-image" src={githubIcon} />
+      </a>
     </AudioContextProvider>
   );
 }
