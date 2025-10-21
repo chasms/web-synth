@@ -28,11 +28,15 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
 ) => {
   const { audioContext, moduleId } = context;
 
-  // Create master volume control
+  // Create master volume control (affects what the analyser sees)
   const masterVolumeNode = audioContext.createGain();
   masterVolumeNode.gain.value = parameters?.volume ?? 0.7; // Default to 70% volume for safety
 
-  // Create analyser for waveform visualization
+  // Create separate mute control (after analyser, so analyser always sees signal)
+  const muteNode = audioContext.createGain();
+  muteNode.gain.value = parameters?.mute ? 0 : 1;
+
+  // Create analyser for waveform visualization (between volume and mute)
   const analyserNode = audioContext.createAnalyser();
   analyserNode.fftSize = 2048;
   analyserNode.smoothingTimeConstant = 0.8;
@@ -44,15 +48,17 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
   testOscillator.type = "sawtooth";
   testGain.gain.value = parameters?.testTone ? 0.1 : 0; // Controlled by testTone parameter
   testOscillator.connect(testGain);
-  testGain.connect(masterVolumeNode);
+  testGain.connect(masterVolumeNode); // Connect test tone to volume control
   testOscillator.start();
 
-  // Audio chain: input -> volume -> analyser -> destination
+  // Audio chain: input -> volume -> analyser -> mute -> destination
+  // This ensures analyser sees the signal even when muted
   masterVolumeNode.connect(analyserNode);
-  analyserNode.connect(audioContext.destination);
+  analyserNode.connect(muteNode);
+  muteNode.connect(audioContext.destination);
 
   const portNodes: ModuleInstance["portNodes"] = {
-    audio_in: masterVolumeNode,
+    audio_in: masterVolumeNode, // Input connects to volume first
   };
 
   const instance: ModuleInstance = {
@@ -94,13 +100,9 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
         partial["mute"] !== undefined &&
         typeof partial["mute"] === "boolean"
       ) {
-        const currentVolume = masterVolumeNode.gain.value;
-        const nextVolume = partial["mute"]
-          ? 0
-          : currentVolume > 0
-            ? currentVolume
-            : (parameters?.volume ?? 0.7);
-        smoothParam(audioContext, masterVolumeNode.gain, nextVolume, {
+        // Mute controls separate mute node, not volume
+        const nextMuteGain = partial["mute"] ? 0 : 1;
+        smoothParam(audioContext, muteNode.gain, nextMuteGain, {
           mode: "linear",
           time: 0.02, // Quick mute/unmute
         });
@@ -119,7 +121,7 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
     getParams() {
       return {
         volume: masterVolumeNode.gain.value,
-        mute: masterVolumeNode.gain.value === 0,
+        mute: muteNode.gain.value === 0, // Check mute node, not volume node
         testTone: testGain.gain.value > 0,
       };
     },
@@ -144,6 +146,7 @@ export const createMasterOutput: CreateModuleFn<MasterOutputParams> = (
       testOscillator.disconnect();
       testGain.disconnect();
       masterVolumeNode.disconnect();
+      muteNode.disconnect();
       analyserNode.disconnect();
     },
   };
