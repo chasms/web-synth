@@ -25,7 +25,7 @@ export const SequencerControls: React.FC<SequencerControlsProps> = ({
     (initial.gate as number) || 0.8,
   );
   const [swing, setSwing] = React.useState<number>(
-    (initial.swing as number) || 0.5,
+    (initial.swing as number) ?? 0,
   );
   const [octave, setOctave] = React.useState<number>(
     (initial.octave as number) || 4,
@@ -200,14 +200,17 @@ export const SequencerControls: React.FC<SequencerControlsProps> = ({
           <div className="number-input-container">
             <input
               type="range"
-              min="0"
-              max="1"
+              min="-0.5"
+              max="0.5"
               step="0.01"
               value={swing}
               onChange={(e) => handleSwingChange(Number(e.target.value))}
               className="control-slider"
             />
-            <span className="value-display">{Math.round(swing * 100)}%</span>
+            <span className="value-display">
+              {swing >= 0 ? "+" : ""}
+              {Math.round(swing * 100)}%
+            </span>
           </div>
         </div>
 
