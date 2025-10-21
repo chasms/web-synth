@@ -1,6 +1,6 @@
 # Web Audio Minimoog Synthesizer - Product Backlog
 
-_Last Updated: October 21, 2025 - Added comprehensive sequencer acceptance criteria and validated test cases_
+_Last Updated: October 21, 2025 - Added MIDI Input module acceptance criteria and VCO pitch CV base frequency fix_
 
 ## Current Implementation ✅
 
@@ -59,13 +59,14 @@ Recent Progress (UI & Interaction):
 - [x] Precise port center alignment (runtime measurement with world-space offsets)
 - [x] Click-to-click cable connection with live pending path
 - [x] Port eligibility highlighting based on signal-type rules (AUDIO↔AUDIO, CV→non-AUDIO, GATE/TRIGGER interop)
-- [x] Cable deletion by clicking cable or a hover “×” handle near the midpoint
+- [x] Cable deletion by clicking cable or a hover "×" handle near the midpoint
 - [x] Cable colors by signal type (AUDIO, CV, GATE, TRIGGER)
 - [x] Restored module draggability while keeping cables clickable (pointer-events layering)
 - [x] Audio graph disconnection when a cable is removed (targeted disconnect of node/param)
 - [x] VCO controls (waveform, pitch, detune, gain) with sliders + validated text inputs; values apply live via module.updateParams
 - [x] VCO pitch CV input control: pitch slider disabled when CV connected, manual updates blocked via isPitchCVConnected flag
 - [x] VCO gate control: free-running mode (gain=1) vs gate-controlled mode (gain=0, gate signal controls amplitude)
+- [x] VCO pitch CV base frequency management: set to 0 when CV connected, restored when disconnected (fixes frequency addition bug)
 - [x] Interactive AHDSR envelope (Attack, Hold, Decay, Sustain, Release) with SVG editor, draggable & keyboard-accessible handles
 - [x] Hold stage added + total time display + sustain % vs dB toggle
 - [x] Zero-length stage support (A/H/D/R can be 0ms) & default Hold 20ms
@@ -74,6 +75,8 @@ Recent Progress (UI & Interaction):
 - [x] Parameter smoothing helper added (linear / exp / setTarget) to de-zipper UI param changes
 - [x] Sequencer module with transport controls, BPM, gate length, swing, and loop controls
 - [x] Piano roll editor for step programming with note grid and octave selection
+- [x] MIDI Input module with Web MIDI API integration, device/channel selection, transpose, velocity curves
+- [x] MIDI In signal generation: gate output (ConstantSource→GainNode), pitch CV (frequency in Hz), velocity CV, trigger pulse
 - [x] Master Out module with waveform visualizer (oscilloscope) showing real-time audio output
 - [x] VCF module with filter type selection, cutoff, resonance, envelope amount, and drive controls
 
@@ -89,7 +92,7 @@ Technical Notes:
 - **No built-in attenuverters** in core modules: signal conditioning handled by a Utility CV Module (mult / attenuator / attenuverter / inverter / offset / scale).
 - **Gate Signal Architecture**: ConstantSource → GainNode pattern. ConstantSource provides signal (offset=1), GainNode acts as on/off switch (gain switches 0/1). This allows gate timing via `setValueAtTime()` on the GainNode's gain parameter.
 - **Gate Control in VCO**: VCO uses `vcaGainNode` for amplitude control. Free-running mode: `gain.value = 1`. Gate-controlled mode: `gain.value = 0`, external gate signal adds to this base value to control amplitude.
-- **Pitch CV Control in VCO**: When pitch CV is connected, VCO sets `isPitchCVConnected = true` and blocks manual frequency updates in `updateParams()`. UI disables pitch slider when connection detected via `patch.connections` check.
+- **Pitch CV Control in VCO**: When pitch CV is connected, VCO sets `isPitchCVConnected = true` and blocks manual frequency updates in `updateParams()`. UI disables pitch slider when connection detected via `patch.connections` check. **CRITICAL**: VCO sets `oscillatorNode.frequency.value = 0` when pitch CV connects to prevent frequency addition (Web Audio adds connected signals to AudioParam's base value). Manual frequency restored when CV disconnected.
 - **Velocity CV**: Delivered as separate CV (0..1) for amplitude & modulation scaling.
 - **Envelopes**: Output CV via an AudioParam (gain) initially; may expose ConstantSourceNode in future for patch flexibility.
 - **Parameter Smoothing**: Smoothing utility wraps abrupt changes to prevent zipper noise (linear / exp / setTarget modes).
@@ -144,6 +147,29 @@ Validated Test Cases:
    - ✅ No audio clicks or pops during parameter changes
    - ✅ No console errors during playback
    - ✅ Clean disposal when modules removed
+
+9. **MIDI Input Integration**:
+   - ✅ MIDI In module detects connected devices (MidiKeys shown in device selector)
+   - ✅ MIDI keyboard input produces audible sound: MIDI IN → VCO → MASTER OUT
+   - ✅ Correct pitch frequencies: MIDI note 60 = 261.63 Hz (C4), note 69 = 440 Hz (A4)
+   - ✅ MIDI Gate → VCO Gate: VCO switches to "GATE CONTROLLED" mode
+   - ✅ MIDI Pitch CV → VCO Pitch CV: pitch slider disabled, frequency controlled by MIDI
+   - ✅ VCO base frequency set to 0 when CV connected (no frequency addition artifacts)
+   - ✅ Different MIDI notes produce correct pitch changes (verified C3-C5 range)
+   - ✅ Gate timing: notes start on key press, stop on key release
+   - ✅ Last-note priority: holding multiple keys switches to most recent note
+   - ✅ Waveform visible on Master Out during MIDI playback
+   - ✅ No stuck notes or console errors during MIDI input
+   - ✅ Transpose control shifts pitches correctly (±24 semitones)
+   - ✅ Velocity curves (Linear/Exponential/Logarithmic) affect velocity CV output
+
+10. **Trigger Module Architecture Consistency**:
+
+- ✅ Sequencer and MIDI In use identical signal generation patterns
+- ✅ Both output frequency in Hz using same formula: `440 × 2^((note - 69) / 12)`
+- ✅ Both use ConstantSource → GainNode for gate signals
+- ✅ Both work interchangeably with VCO pitch CV and gate inputs
+- ✅ VCO correctly handles pitch CV from either source (base frequency = 0 when connected)
 
 ### 1. Filter Section - HIGH PRIORITY
 
@@ -403,7 +429,106 @@ Known Limitations & Future Enhancements:
 - [ ] Pattern save/load functionality
 - [ ] MIDI export
 
-### 10. Educational Features - FUTURE
+### 10. MIDI Input Module - COMPLETED
+
+**Product Requirement**: External MIDI keyboard/controller interface for live performance and note input
+
+**Acceptance Criteria**:
+
+Core MIDI Functionality:
+
+- [x] Web MIDI API integration with device selection
+- [x] MIDI device dropdown showing available inputs
+- [x] "Any Device" option to accept input from all connected MIDI devices
+- [x] MIDI channel filtering (Omni mode + channels 1-16)
+- [x] Real-time MIDI message processing (note on/off, velocity)
+- [x] Visual status indicator showing "MIDI Available" or "No MIDI Devices"
+- [x] Console logging of MIDI device connections for debugging
+
+Signal Generation:
+
+- [x] Gate output port generates gate signal when MIDI note is held
+- [x] Gate signal uses ConstantSource → GainNode architecture (matching sequencer pattern)
+- [x] Gate on: `gateGainNode.gain.value = 1` when note pressed
+- [x] Gate off: `gateGainNode.gain.value = 0` when note released
+- [x] Pitch CV output port sends frequency in Hz (not voltage)
+- [x] MIDI note to frequency conversion: `440 × 2^((note - 69) / 12)`
+- [x] Velocity CV output port sends normalized velocity (0-1)
+- [x] Trigger output port sends 10ms pulse on note on
+- [x] All CV outputs use ConstantSource for clean signal generation
+
+VCO Integration:
+
+- [x] MIDI Pitch CV → VCO Pitch CV connection works correctly
+- [x] VCO receives frequency in Hz and plays correct pitches
+- [x] VCO sets base frequency to 0 when pitch CV connected (prevents frequency addition)
+- [x] VCO restores manual frequency when pitch CV disconnected
+- [x] VCO pitch slider disabled when MIDI pitch CV connected
+- [x] MIDI Gate → VCO Gate connection triggers proper gate-controlled mode
+- [x] VCO shows "GATE CONTROLLED" status when MIDI gate connected
+- [x] Different MIDI notes produce correct pitch changes (verified with console logging)
+- [x] No frequency offset or pitch shifting artifacts
+
+Parameter Controls:
+
+- [x] Transpose control (±24 semitones) shifts all incoming notes
+- [x] Transpose applied before frequency conversion
+- [x] Transposed notes clamped to valid MIDI range (0-127)
+- [x] Velocity curve selector (Linear, Exponential, Logarithmic)
+- [x] Linear curve: direct mapping (velocity / 127)
+- [x] Exponential curve: (velocity / 127)²
+- [x] Logarithmic curve: √(velocity / 127)
+- [x] Velocity curve affects velocity CV output only
+
+Note Priority & Polyphony:
+
+- [x] Monophonic operation with last-note priority
+- [x] When multiple keys pressed, most recent note plays
+- [x] When key released while others held, switches to most recent remaining note
+- [x] Active notes tracked in Map for proper note-off handling
+- [x] Gate remains on when switching between held notes
+- [x] Gate only turns off when all notes released
+
+Audio Validation:
+
+- [x] MIDI keyboard input produces audible sound when connected to VCO → Master Out
+- [x] Pitch corresponds to actual MIDI note played (verified correct frequencies)
+- [x] Gate timing matches note on/off events (no stuck notes)
+- [x] Audio stops when MIDI note released
+- [x] Waveform visible on Master Out oscilloscope during playback
+- [x] No console errors during MIDI playback
+- [x] Clean note transitions without clicks or pops
+
+Default Configuration:
+
+- [x] Default MIDI device: "Any Device"
+- [x] Default channel: Omni (accepts all channels)
+- [x] Default velocity curve: Linear
+- [x] Default transpose: 0 semitones
+- [x] Module outputs: Gate, Pitch CV, Velocity CV, Trigger ports
+- [x] Port colors match signal types (Gate=green, CV=yellow, Trigger=magenta)
+
+Architecture Consistency:
+
+- [x] MIDI In uses identical signal architecture as Sequencer module
+- [x] Both modules output frequency in Hz (not voltage)
+- [x] Both modules use ConstantSource → GainNode for gate signals
+- [x] Gate signal generation pattern consistent across trigger modules
+- [x] Pitch CV conversion formula identical: `midiNoteToFrequency(note)`
+- [x] Both modules work interchangeably with VCO inputs
+
+Future Enhancements:
+
+- [ ] Polyphonic mode with configurable voice count
+- [ ] MIDI CC (Continuous Controller) mapping to module parameters
+- [ ] Pitch bend support
+- [ ] Aftertouch/channel pressure support
+- [ ] MIDI clock sync for tempo synchronization
+- [ ] MIDI learn for parameter mapping
+- [ ] Per-channel voice allocation for multi-timbral operation
+- [ ] MIDI activity indicator (visual feedback for incoming messages)
+
+### 11. Educational Features - FUTURE
 
 **Product Requirement**: Learning tools for synthesis education
 
