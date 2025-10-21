@@ -58,10 +58,11 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
 
   // Track whether pitch CV is connected to prevent manual frequency control interference
   let isPitchCVConnected = false;
+  let manualBaseFrequency = parameters?.baseFrequency ?? 440;
 
   // Configure oscillator
   oscillatorNode.type = parameters?.waveform ?? "sawtooth";
-  oscillatorNode.frequency.value = parameters?.baseFrequency ?? 440;
+  oscillatorNode.frequency.value = manualBaseFrequency;
   if (parameters?.detuneCents)
     oscillatorNode.detune.value = parameters.detuneCents;
 
@@ -103,6 +104,8 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
       // Track pitch CV connection to prevent manual control interference
       if (portId === "pitch_cv") {
         isPitchCVConnected = true;
+        // Set base frequency to 0 so CV signal controls pitch directly
+        oscillatorNode.frequency.setValueAtTime(0, audioContext.currentTime);
       }
     },
     onIncomingDisconnection(portId) {
@@ -113,6 +116,11 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
       // Track pitch CV disconnection to allow manual control again
       if (portId === "pitch_cv") {
         isPitchCVConnected = false;
+        // Restore the manual base frequency
+        oscillatorNode.frequency.setValueAtTime(
+          manualBaseFrequency,
+          audioContext.currentTime,
+        );
       }
     },
     connect(fromPortId, target) {
@@ -149,9 +157,10 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         partial["baseFrequency"] !== undefined &&
         typeof partial["baseFrequency"] === "number"
       ) {
+        const nextHz = Math.max(0, partial["baseFrequency"]);
+        manualBaseFrequency = nextHz; // Store the manual frequency value
         // Only allow manual frequency control when pitch CV is not connected
         if (!isPitchCVConnected) {
-          const nextHz = Math.max(0, partial["baseFrequency"]);
           smoothParam(audioContext, oscillatorNode.frequency, nextHz, {
             mode: "setTarget",
             timeConstant: 0.03,
