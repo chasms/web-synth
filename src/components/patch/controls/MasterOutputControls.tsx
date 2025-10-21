@@ -46,6 +46,20 @@ export const MasterOutputControls: React.FC<MasterOutputControlsProps> = ({
 
   return (
     <div className="module-controls">
+      {/* Waveform Visualizer */}
+      {module.getAnalyserData && (
+        <div className="waveform-container">
+          <WaveformVisualizer
+            getAnalyserData={
+              module.getAnalyserData as () => MasterOutputAnalyserData
+            }
+            width={160}
+            height={80}
+            className="master-waveform"
+          />
+        </div>
+      )}
+
       {/* Master Volume */}
       <div className="module-control">
         <label htmlFor={`volume-${module.id}`}>Master Volume</label>
@@ -74,18 +88,6 @@ export const MasterOutputControls: React.FC<MasterOutputControlsProps> = ({
             onChange={(e) => handleVolumeChange(Number(e.target.value))}
           />
         </div>
-        <div className="volume-display">{Math.round(volume * 100)}%</div>
-      </div>
-
-      {/* Mute Button */}
-      <div className="module-control">
-        <button
-          className={`mute-button ${mute ? "muted" : "unmuted"}`}
-          onClick={handleMuteToggle}
-          aria-label={mute ? "Unmute" : "Mute"}
-        >
-          {mute ? "🔇 MUTED" : "🔊 ON"}
-        </button>
       </div>
 
       {/* Test Tone Button */}
@@ -99,29 +101,16 @@ export const MasterOutputControls: React.FC<MasterOutputControlsProps> = ({
         </button>
       </div>
 
-      {/* Output Level Indicator */}
+      {/* Mute Button */}
       <div className="module-control">
-        <div className="output-indicator">
-          <div className="output-label">Output</div>
-          <div className={`output-status ${mute ? "muted" : "active"}`}>
-            {mute ? "MUTED" : "TO SPEAKERS"}
-          </div>
-        </div>
+        <button
+          className={`mute-button ${mute ? "muted" : "unmuted"}`}
+          onClick={handleMuteToggle}
+          aria-label={mute ? "Unmute" : "Mute"}
+        >
+          {mute ? "🔇 MUTED" : "🔊 ON"}
+        </button>
       </div>
-
-      {/* Waveform Visualizer */}
-      {module.getAnalyserData && (
-        <div className="waveform-container">
-          <WaveformVisualizer
-            getAnalyserData={
-              module.getAnalyserData as () => MasterOutputAnalyserData
-            }
-            width={160}
-            height={80}
-            className="master-waveform"
-          />
-        </div>
-      )}
     </div>
   );
 };

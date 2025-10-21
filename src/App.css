@@ -721,8 +721,9 @@ header h1 {
   margin-bottom: 0;
 }
 
-.module-control .module-control-label {
-  font-size: 12px;
+.module-control .module-control-label,
+.module-control label {
+  font-size: 11px;
   color: #ccc;
 }
 
@@ -784,6 +785,87 @@ header h1 {
   border: 1px solid #444;
 }
 
+/* Master Output specific controls */
+.volume-display {
+  grid-column: 1 / span 2;
+  text-align: center;
+  font-size: 11px;
+  color: #ccc;
+  margin-top: 2px;
+}
+
+.output-indicator {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.output-label {
+  font-size: 10px;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.output-status {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.output-status.active {
+  color: #8f8;
+}
+
+.output-status.muted {
+  color: #f88;
+}
+
+/* Mute Button */
+.mute-button {
+  padding: 6px 12px;
+  border: 1px solid #444;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+  width: 100%;
+}
+
+.mute-button.unmuted {
+  background: #2d4a2d;
+  color: #8f8;
+  border-color: #4a7c4a;
+  box-shadow: 0 0 8px rgb(136 255 136 / 20%);
+}
+
+.mute-button.muted {
+  background: #5a2d2d;
+  color: #f88;
+  border-color: #7c4a4a;
+  box-shadow: 0 0 8px rgb(255 136 136 / 30%);
+}
+
+.mute-button.unmuted:hover {
+  background: #3a5a3a;
+  border-color: #5a8a5a;
+  box-shadow: 0 0 12px rgb(136 255 136 / 30%);
+}
+
+.mute-button.muted:hover {
+  background: #6a3a3a;
+  border-color: #8a5a5a;
+  box-shadow: 0 0 12px rgb(255 136 136 / 40%);
+}
+
 /* Test Tone Button */
 .test-tone-button {
   padding: 6px 12px;
@@ -791,7 +873,7 @@ header h1 {
   border-radius: 4px;
   background: #1d1d1d;
   color: #ccc;
-  font-size: 12px;
+  font-size: 11px;
   cursor: pointer;
   transition: all 0.15s ease;
   text-transform: uppercase;
@@ -806,9 +888,9 @@ header h1 {
 
 .test-tone-button.active {
   background: #2d4a2d;
-  color: #88ff88;
+  color: #8f8;
   border-color: #4a7c4a;
-  box-shadow: 0 0 8px rgba(136, 255, 136, 0.2);
+  box-shadow: 0 0 8px rgb(136 255 136 / 20%);
 }
 
 .test-tone-button:hover {

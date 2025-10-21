@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAudioContext } from "../../hooks/useAudioContext";
 import type {
-    Connection,
-    CreateModuleFn,
-    ModuleInstance,
-    PortSignalType,
+  Connection,
+  CreateModuleFn,
+  ModuleInstance,
+  PortSignalType,
 } from "../types";
 import { PatchContext, type PatchContextValue } from "./PatchContext";
 

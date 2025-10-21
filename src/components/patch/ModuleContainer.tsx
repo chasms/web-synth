@@ -31,12 +31,12 @@ const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
     controlsComponent: VCOControls,
   },
   [ModuleType.VCF]: {
-    controlsExtraHeight: 310,
+    controlsExtraHeight: 285,
     width: 180,
     controlsComponent: VCFControls,
   },
   [ModuleType.ADSR]: {
-    controlsExtraHeight: 185,
+    controlsExtraHeight: 170,
     width: 260,
     controlsComponent: AHDSRControls,
   },
@@ -46,12 +46,12 @@ const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
     controlsComponent: MIDIInputControls,
   },
   [ModuleType.SEQUENCER]: {
-    controlsExtraHeight: 490, // Increased to accommodate all sequencer controls (BPM, Steps, Gate, Swing, Octave, Loop)
+    controlsExtraHeight: 470, // Increased to accommodate all sequencer controls (BPM, Steps, Gate, Swing, Octave, Loop)
     width: 240,
     controlsComponent: SequencerControls,
   },
   [ModuleType.MASTER_OUTPUT]: {
-    controlsExtraHeight: 385, // Increased to accommodate volume control, mute/test buttons, and waveform display
+    controlsExtraHeight: 250, // Increased to accommodate volume control, mute/test buttons, and waveform display
     width: 200, // Increased to accommodate volume slider, buttons, and waveform display
     controlsComponent: MasterOutputControls,
   },
