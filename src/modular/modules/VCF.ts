@@ -45,11 +45,11 @@ export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
   const ENVELOPE_FREQUENCY_SCALE = 10000;
   const envelopeInverterNode = audioContext.createGain();
   envelopeInverterNode.gain.value = -1; // Invert the envelope signal
-  
+
   const envelopeScaleNode = audioContext.createGain();
   const envelopeAmount = parameters?.envelopeAmount ?? 0.0;
   envelopeScaleNode.gain.value = envelopeAmount * ENVELOPE_FREQUENCY_SCALE;
-  
+
   // Chain: env_cv_input → inverter → scaler → frequency
   envelopeInverterNode.connect(envelopeScaleNode);
 
@@ -93,24 +93,31 @@ export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
       const fromConnectionNode = portNodes[fromPortId];
       const toConnectionEntity = target.module.portNodes[target.portId];
       if (!fromConnectionNode || !toConnectionEntity) return;
-      
-      console.log(`[VCF ${moduleId}] Connecting from ${fromPortId} to ${target.module.id}.${target.portId}`, {
-        fromNode: fromConnectionNode,
-        toEntity: toConnectionEntity,
-      });
-      
+
+      console.log(
+        `[VCF ${moduleId}] Connecting from ${fromPortId} to ${target.module.id}.${target.portId}`,
+        {
+          fromNode: fromConnectionNode,
+          toEntity: toConnectionEntity,
+        },
+      );
+
       if (
         fromConnectionNode instanceof AudioNode &&
         toConnectionEntity instanceof AudioNode
       ) {
         fromConnectionNode.connect(toConnectionEntity);
-        console.log(`[VCF ${moduleId}] ✓ AudioNode → AudioNode connection made`);
+        console.log(
+          `[VCF ${moduleId}] ✓ AudioNode → AudioNode connection made`,
+        );
       } else if (
         fromConnectionNode instanceof AudioNode &&
         toConnectionEntity instanceof AudioParam
       ) {
         fromConnectionNode.connect(toConnectionEntity);
-        console.log(`[VCF ${moduleId}] ✓ AudioNode → AudioParam connection made`);
+        console.log(
+          `[VCF ${moduleId}] ✓ AudioNode → AudioParam connection made`,
+        );
       }
     },
     updateParams(partial) {

@@ -22,7 +22,7 @@ const ports: PortDefinition[] = [
 
 export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
   const { audioContext, moduleId } = context;
-  
+
   // Envelope constructed as ConstantSource (value=1) feeding a Gain whose gain is automated.
   // This allows the envelope to be treated as an AUDIO / CV signal node for downstream connections.
   const constantSourceNode = audioContext.createConstantSource();
@@ -31,7 +31,7 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
   const envelopeGainNode = audioContext.createGain();
   envelopeGainNode.gain.value = 0; // start at 0 (silent)
   constantSourceNode.connect(envelopeGainNode);
-  
+
   let attackTime = parameters?.attack ?? 0.01;
   let holdTime = parameters?.hold ?? 0.02; // default 20ms hold
   let decayTime = parameters?.decay ?? 0.2;
@@ -43,27 +43,29 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
   // Uses an AnalyserNode to sample the gate signal and detect transitions
   const gateDetectorNode = audioContext.createGain();
   gateDetectorNode.gain.value = 1;
-  
+
   const analyserNode = audioContext.createAnalyser();
   analyserNode.fftSize = 32; // Minimal FFT size for fast analysis
   analyserNode.smoothingTimeConstant = 0;
   gateDetectorNode.connect(analyserNode);
-  
+
   const dataArray = new Uint8Array(analyserNode.frequencyBinCount);
   let isGateHigh = false;
   const GATE_THRESHOLD = 128; // Mid-point threshold for 0-255 range
-  
+
   // Poll gate state at regular intervals
   let checkCount = 0;
   const checkGateState = () => {
     analyserNode.getByteTimeDomainData(dataArray);
     const gateValue = dataArray[0]; // Sample first value
-    
+
     // Debug: log every 100 checks (every 500ms)
     if (checkCount++ % 100 === 0) {
-      console.log(`[ADSR ${moduleId}] Gate check: value=${gateValue}, isHigh=${isGateHigh}`);
+      console.log(
+        `[ADSR ${moduleId}] Gate check: value=${gateValue}, isHigh=${isGateHigh}`,
+      );
     }
-    
+
     if (!isGateHigh && gateValue > GATE_THRESHOLD) {
       // Gate went high
       isGateHigh = true;
@@ -74,7 +76,7 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
       instance.gateOff?.();
     }
   };
-  
+
   // Check gate state every 5ms (200Hz polling rate)
   const gateCheckInterval = setInterval(checkGateState, 5);
 
@@ -92,17 +94,20 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
     connect(fromPortId, target) {
       const fromConnectionNode = portNodes[fromPortId];
       const toConnectionEntity = target.module.portNodes[target.portId];
-      
-      console.log(`[ADSR ${moduleId}] Connecting ${fromPortId} to ${target.module.id}.${target.portId}`, {
-        fromNode: fromConnectionNode,
-        toEntity: toConnectionEntity,
-      });
-      
+
+      console.log(
+        `[ADSR ${moduleId}] Connecting ${fromPortId} to ${target.module.id}.${target.portId}`,
+        {
+          fromNode: fromConnectionNode,
+          toEntity: toConnectionEntity,
+        },
+      );
+
       if (!fromConnectionNode || !toConnectionEntity) {
         console.error(`[ADSR ${moduleId}] Connection failed - missing nodes`);
         return;
       }
-      
+
       if (
         fromConnectionNode instanceof AudioNode &&
         toConnectionEntity instanceof AudioNode
@@ -127,14 +132,17 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
       const gainParam = envelopeGainNode.gain;
       gainParam.cancelScheduledValues(currentTime);
       gainParam.setValueAtTime(gainParam.value, currentTime);
-      
-      console.log(`[ADSR ${moduleId}] Gate ON - envelope attacking from ${gainParam.value.toFixed(3)} to ${peakScale}`, {
-        attack: attackTime,
-        hold: holdTime,
-        decay: decayTime,
-        sustain: sustainLevel,
-      });
-      
+
+      console.log(
+        `[ADSR ${moduleId}] Gate ON - envelope attacking from ${gainParam.value.toFixed(3)} to ${peakScale}`,
+        {
+          attack: attackTime,
+          hold: holdTime,
+          decay: decayTime,
+          sustain: sustainLevel,
+        },
+      );
+
       // Attack to peak
       gainParam.linearRampToValueAtTime(peakScale, currentTime + attackTime);
       const decayStart = currentTime + attackTime + holdTime;
