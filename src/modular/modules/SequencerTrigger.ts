@@ -56,7 +56,7 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
   let bpm = parameters?.bpm ?? 120;
   let steps = parameters?.steps ?? 8;
   let gateLength = parameters?.gate ?? 0.8;
-  let swing = parameters?.swing ?? 0.5; // 0.5 = no swing
+  let swing = parameters?.swing ?? 0; // 0 = no swing, -0.5 to +0.5 range
   let octave = parameters?.octave ?? 4;
   let loop = parameters?.loop ?? true;
 
@@ -70,16 +70,18 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
   // Step timing calculation
   const getStepDuration = (stepIndex: number): number => {
     const baseDuration = 60 / bpm / 4; // 16th notes at BPM
-    if (swing === 0.5) return baseDuration; // No swing
+    if (swing === 0) return baseDuration; // No swing
 
     // Apply swing to odd steps (off-beats)
+    // swing range: -0.5 to +0.5, where 0 = no swing
+    // positive swing delays off-beats, negative swing advances them
     const isOffBeat = stepIndex % 2 === 1;
     if (isOffBeat) {
-      // Delayed by swing amount
-      return baseDuration * (1 + (swing - 0.5));
+      // Delayed by swing amount (positive = delay, negative = advance)
+      return baseDuration * (1 + swing);
     } else {
-      // Compensate by shortening on-beats
-      return baseDuration * (2 - swing);
+      // Compensate by adjusting on-beats in opposite direction
+      return baseDuration * (1 - swing);
     }
   };
 
@@ -198,7 +200,7 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
         gateLength = Math.max(0.1, Math.min(1.0, partial.gate as number));
       }
       if (partial.swing !== undefined) {
-        swing = Math.max(0, Math.min(1, partial.swing as number));
+        swing = Math.max(-0.5, Math.min(0.5, partial.swing as number));
       }
       if (partial.octave !== undefined) {
         octave = Math.max(0, Math.min(7, partial.octave as number));
