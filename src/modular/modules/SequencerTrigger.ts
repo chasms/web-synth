@@ -17,11 +17,11 @@ const defaultSequence: SequenceStep[] = [
   { note: 72, velocity: 100 }, // C5
 ];
 
-// MIDI note to 1V/Oct CV conversion (same as MIDI input)
-function midiNoteToCV(noteNumber: number): number {
-  const a4MidiNote = 69;
-  const a4Voltage = 4.75;
-  return a4Voltage + (noteNumber - a4MidiNote) / 12;
+// MIDI note to frequency conversion (Hz)
+function midiNoteToFrequency(noteNumber: number): number {
+  // Standard MIDI tuning: A4 (note 69) = 440 Hz
+  // Formula: freq = 440 * 2^((note - 69) / 12)
+  return 440 * Math.pow(2, (noteNumber - 69) / 12);
 }
 
 export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
@@ -94,9 +94,9 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
       const velocity = (currentStepData.velocity ?? 100) / 127;
       const stepGateLength = currentStepData.gate ?? gateLength;
 
-      // Update CV outputs
-      const pitchCV = midiNoteToCV(noteNumber);
-      pitchConstantSource.offset.setValueAtTime(pitchCV, nextStepTime);
+      // Update outputs
+      const frequency = midiNoteToFrequency(noteNumber);
+      pitchConstantSource.offset.setValueAtTime(frequency, nextStepTime);
       velocityConstantSource.offset.setValueAtTime(velocity, nextStepTime);
 
       // Gate on

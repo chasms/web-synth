@@ -56,6 +56,9 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   const outputGainNode = audioContext.createGain();
   const vcaGainNode = audioContext.createGain(); // VCA for gate control
 
+  // Track whether pitch CV is connected to prevent manual frequency control interference
+  let isPitchCVConnected = false;
+
   // Configure oscillator
   oscillatorNode.type = parameters?.waveform ?? "sawtooth";
   oscillatorNode.frequency.value = parameters?.baseFrequency ?? 440;
@@ -77,8 +80,8 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   oscillatorNode.start();
 
   const portNodes: ModuleInstance["portNodes"] = {
-    pitch_cv: oscillatorNode.frequency, // Accept direct connection (assumes conversion upstream)
-    fm_cv: oscillatorNode.frequency, // For linear FM
+    pitch_cv: oscillatorNode.frequency, // CV controls frequency directly when connected
+    fm_cv: oscillatorNode.frequency, // For linear FM (direct Hz modulation)
     gate_in: vcaGainNode.gain, // Gate controls VCA gain directly (external gate signal adds to base value of 0)
     sync: undefined,
     wave_cv: undefined,
@@ -97,11 +100,19 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
       if (portId === "gate_in") {
         vcaGainNode.gain.value = 0; // Set base to 0 so external gate is sole controller
       }
+      // Track pitch CV connection to prevent manual control interference
+      if (portId === "pitch_cv") {
+        isPitchCVConnected = true;
+      }
     },
     onIncomingDisconnection(portId) {
       // When external gate disconnects, switch back to free-running
       if (portId === "gate_in") {
         vcaGainNode.gain.value = 1; // Set back to free-running
+      }
+      // Track pitch CV disconnection to allow manual control again
+      if (portId === "pitch_cv") {
+        isPitchCVConnected = false;
       }
     },
     connect(fromPortId, target) {
@@ -138,11 +149,14 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
         partial["baseFrequency"] !== undefined &&
         typeof partial["baseFrequency"] === "number"
       ) {
-        const nextHz = Math.max(0, partial["baseFrequency"]);
-        smoothParam(audioContext, oscillatorNode.frequency, nextHz, {
-          mode: "setTarget",
-          timeConstant: 0.03,
-        });
+        // Only allow manual frequency control when pitch CV is not connected
+        if (!isPitchCVConnected) {
+          const nextHz = Math.max(0, partial["baseFrequency"]);
+          smoothParam(audioContext, oscillatorNode.frequency, nextHz, {
+            mode: "setTarget",
+            timeConstant: 0.03,
+          });
+        }
       }
       if (
         partial["detuneCents"] !== undefined &&

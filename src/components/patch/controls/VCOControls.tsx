@@ -10,6 +10,7 @@ interface NumberControlProps {
   max: number;
   step?: number;
   onChange: (next: number) => void;
+  disabled?: boolean;
 }
 
 const NumberControl: React.FC<NumberControlProps> = ({
@@ -19,6 +20,7 @@ const NumberControl: React.FC<NumberControlProps> = ({
   max,
   step = 1,
   onChange,
+  disabled = false,
 }) => {
   const [text, setText] = React.useState<string>(() => String(value));
   React.useEffect(() => {
@@ -48,6 +50,7 @@ const NumberControl: React.FC<NumberControlProps> = ({
         type="text"
         inputMode="decimal"
         value={text}
+        disabled={disabled}
         onChange={(e) => setText(e.target.value)}
         onBlur={() => commit(text)}
         onKeyDown={(e) => {
@@ -64,6 +67,7 @@ const NumberControl: React.FC<NumberControlProps> = ({
           max={max}
           step={step}
           value={value}
+          disabled={disabled}
           onChange={(e) => onChange(clamp(Number(e.target.value)))}
         />
       </div>
@@ -102,6 +106,15 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
       (connection) =>
         connection.toModuleId === module.id &&
         connection.toPortId === "gate_in",
+    );
+  }, [patch.connections, module.id]);
+
+  // Check if pitch CV input is connected
+  const isPitchCVConnected = React.useMemo(() => {
+    return patch.connections.some(
+      (connection) =>
+        connection.toModuleId === module.id &&
+        connection.toPortId === "pitch_cv",
     );
   }, [patch.connections, module.id]);
 
@@ -150,6 +163,7 @@ export const VCOControls: React.FC<VCOControlsProps> = ({ module }) => {
         min={10}
         max={20000}
         step={1}
+        disabled={isPitchCVConnected}
         onChange={(v) => {
           setBaseFrequency(v);
           update({ baseFrequency: v });
