@@ -53,6 +53,8 @@ export interface ModuleInstance extends ModuleDescriptor {
     fromPortId: string,
     target: { module: ModuleInstance; portId: string },
   ) => void;
+  onIncomingConnection?: (portId: string) => void; // Called when something connects TO this module
+  onIncomingDisconnection?: (portId: string) => void; // Called when something disconnects FROM this module
   dispose: () => void;
   updateParams?: (partial: Record<string, unknown>) => void;
   getParams?: () => Record<string, unknown>;

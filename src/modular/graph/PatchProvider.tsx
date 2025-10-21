@@ -2,10 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAudioContext } from "../../hooks/useAudioContext";
 import type {
-  Connection,
-  CreateModuleFn,
-  ModuleInstance,
-  PortSignalType,
+    Connection,
+    CreateModuleFn,
+    ModuleInstance,
+    PortSignalType,
 } from "../types";
 import { PatchContext, type PatchContextValue } from "./PatchContext";
 
@@ -76,6 +76,10 @@ export const PatchProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!isCompatible(fromDef?.signal, toDef?.signal)) {
           return prev; // reject invalid connection
         }
+        
+        // Notify the target module that something is connecting to it
+        toModule.onIncomingConnection?.(toPort);
+        
         fromModule.connect(fromPort, { module: toModule, portId: toPort });
         return {
           ...prev,
@@ -109,6 +113,10 @@ export const PatchProvider: React.FC<{ children: React.ReactNode }> = ({
       // Attempt targeted audio graph disconnection
       const fromModule = prev.modules[connection.fromModuleId];
       const toModule = prev.modules[connection.toModuleId];
+      
+      // Notify the target module that the connection is being removed
+      toModule?.onIncomingDisconnection?.(connection.toPortId);
+      
       const fromEndpoint = fromModule?.portNodes[connection.fromPortId];
       const toEndpoint = toModule?.portNodes[connection.toPortId];
       try {

@@ -56,10 +56,6 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   const outputGainNode = audioContext.createGain();
   const vcaGainNode = audioContext.createGain(); // VCA for gate control
 
-  // Create a constant source for the gate (defaults to 1 for free-running)
-  const gateConstantSource = audioContext.createConstantSource();
-  gateConstantSource.offset.value = 1; // Default to gate "on" for free-running
-
   // Configure oscillator
   oscillatorNode.type = parameters?.waveform ?? "sawtooth";
   oscillatorNode.frequency.value = parameters?.baseFrequency ?? 440;
@@ -69,26 +65,21 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   // Configure gains
   outputGainNode.gain.value = parameters?.gain ?? 0.3;
 
-  // For free-running mode: Set VCA gain to 1 directly
-  // (Gate ConstantSource connection is prepared but not connected yet)
+  // VCA gain: Default to 1 for free-running mode
+  // When external gate connects, onIncomingConnection will set it to 0
   vcaGainNode.gain.value = 1;
 
   // Audio chain: OSC -> VCA -> Output Gain -> [external connections]
   oscillatorNode.connect(vcaGainNode);
   vcaGainNode.connect(outputGainNode);
 
-  // Gate ConstantSource is created but NOT connected for free-running mode
-  // When a gate is connected via the gate_in port, it will disconnect the constant source
-  // and connect the external gate signal instead
-
-  // Start both the oscillator and gate source
-  gateConstantSource.start();
+  // Start the oscillator
   oscillatorNode.start();
 
   const portNodes: ModuleInstance["portNodes"] = {
     pitch_cv: oscillatorNode.frequency, // Accept direct connection (assumes conversion upstream)
     fm_cv: oscillatorNode.frequency, // For linear FM
-    gate_in: gateConstantSource.offset, // Gate controls the constant source offset
+    gate_in: vcaGainNode.gain, // Gate controls VCA gain directly (external gate signal adds to base value of 0)
     sync: undefined,
     wave_cv: undefined,
     audio_out: outputGainNode,
@@ -101,6 +92,18 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
     ports,
     audioOut: outputGainNode,
     portNodes,
+    onIncomingConnection(portId) {
+      // When an external gate connects, switch from free-running to gate-controlled
+      if (portId === "gate_in") {
+        vcaGainNode.gain.value = 0; // Set base to 0 so external gate is sole controller
+      }
+    },
+    onIncomingDisconnection(portId) {
+      // When external gate disconnects, switch back to free-running
+      if (portId === "gate_in") {
+        vcaGainNode.gain.value = 1; // Set back to free-running
+      }
+    },
     connect(fromPortId, target) {
       const fromConnectionNode = portNodes[fromPortId];
       const toConnectionEntity = target.module.portNodes[target.portId];
@@ -180,15 +183,9 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
       } catch {
         /* already stopped */
       }
-      try {
-        gateConstantSource.stop();
-      } catch {
-        /* already stopped */
-      }
       oscillatorNode.disconnect();
       vcaGainNode.disconnect();
       outputGainNode.disconnect();
-      gateConstantSource.disconnect();
     },
   };
 
