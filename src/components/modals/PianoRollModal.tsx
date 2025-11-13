@@ -15,10 +15,10 @@ interface PianoRollModalProps {
   onClose: () => void;
   sequence: SequenceStep[];
   steps: number;
-  octave: number;
+  transpose: number;
   onSequenceChange: (sequence: SequenceStep[]) => void;
   onStepsChange: (steps: number) => void;
-  onOctaveChange: (octave: number) => void;
+  onTransposeChange: (transpose: number) => void;
 }
 
 // Piano key helpers
@@ -53,20 +53,32 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
   onClose,
   sequence,
   steps,
-  octave,
+  transpose,
   onSequenceChange,
   onStepsChange,
-  onOctaveChange,
+  onTransposeChange,
 }) => {
-  const [selectedStep, setSelectedStep] = React.useState<number | null>(null);
+  const gridContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Scroll to C4 (MIDI 60) on initial mount
+  React.useEffect(() => {
+    if (isOpen && gridContainerRef.current) {
+      // C4 is MIDI note 60, counting from 0 (C-1), so it's at index 60
+      // Each row is ~26px (25px height + 1px gap)
+      // We want C4 centered, so scroll to approximately its position
+      // Total notes: 128, C4 is at index 60 from bottom
+      // From top: 128 - 60 - 1 = 67
+      const rowHeight = 26; // 25px + 1px gap
+      const c4IndexFromTop = 128 - 60 - 1;
+      const scrollPosition = c4IndexFromTop * rowHeight - 150; // Offset to center
+      gridContainerRef.current.scrollTop = scrollPosition;
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  // Calculate note range for display (one octave)
-  // MIDI note 60 = C4, so for octave 4, baseNote should be 60
-  // Formula: octave * 12 + 12 (since C4 = 60, C3 = 48, etc.)
-  const baseNote = (octave + 1) * 12; // C of the selected octave
-  const noteRange = Array.from({ length: 12 }, (_, i) => baseNote + i);
+  // All MIDI notes (0-127, C-1 to G9)
+  const allNotes = Array.from({ length: 128 }, (_, i) => i);
 
   const handleCellClick = (stepIndex: number, midiNote: number) => {
     const newSequence = [...sequence];
@@ -90,15 +102,22 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
     }
 
     onSequenceChange(newSequence);
-    setSelectedStep(stepIndex);
   };
 
   const handleVelocityChange = (stepIndex: number, velocity: number) => {
     const newSequence = [...sequence];
+    // Ensure sequence is long enough
+    while (newSequence.length <= stepIndex) {
+      newSequence.push({});
+    }
+
     if (newSequence[stepIndex]) {
       newSequence[stepIndex] = { ...newSequence[stepIndex], velocity };
-      onSequenceChange(newSequence);
+    } else {
+      // If there's no note, don't set velocity
+      return;
     }
+    onSequenceChange(newSequence);
   };
 
   const clearSequence = () => {
@@ -109,7 +128,7 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
     const newSequence = Array.from({ length: steps }, () => {
       // 70% chance of having a note
       if (Math.random() > 0.3) {
-        const randomNote = noteRange[Math.floor(Math.random() * 12)];
+        const randomNote = Math.floor(Math.random() * 128); // Random note 0-127
         const randomVelocity = 60 + Math.random() * 67; // 60-127
         return { note: randomNote, velocity: Math.floor(randomVelocity) };
       }
@@ -118,9 +137,17 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
     onSequenceChange(newSequence);
   };
 
-  if (!isOpen) {
-    return null;
-  }
+  // Get the displayed note for a given programmed note (with transpose applied)
+  const getDisplayedNote = (programmedNote: number): number => {
+    return Math.max(0, Math.min(127, programmedNote + transpose));
+  };
+
+  // Check if a cell should be active (note is programmed and transposed to this position)
+  const isCellActive = (stepIndex: number, displayMidiNote: number): boolean => {
+    const step = sequence[stepIndex];
+    if (!step || step.note === undefined) return false;
+    return getDisplayedNote(step.note) === displayMidiNote;
+  };
 
   return createPortal(
     <div className="piano-roll-modal-overlay" onClick={onClose}>
@@ -140,17 +167,18 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
               <span>{steps}</span>
             </div>
             <div className="control-group">
-              <label>Octave:</label>
-              <select
-                value={octave}
-                onChange={(e) => onOctaveChange(Number(e.target.value))}
-              >
-                {Array.from({ length: 8 }, (_, i) => (
-                  <option key={i} value={i}>
-                    {i}
-                  </option>
-                ))}
-              </select>
+              <label>Transpose:</label>
+              <input
+                type="range"
+                min="-24"
+                max="24"
+                value={transpose}
+                onChange={(e) => onTransposeChange(Number(e.target.value))}
+              />
+              <span>
+                {transpose >= 0 ? "+" : ""}
+                {transpose}
+              </span>
             </div>
             <button onClick={clearSequence}>Clear</button>
             <button onClick={randomizeSequence}>Random</button>
@@ -158,77 +186,107 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
           </div>
         </div>
 
-        <div className="piano-roll-grid">
-          {/* Note labels */}
-          <div className="note-labels">
-            {noteRange
-              .slice()
-              .reverse()
-              .map((midiNote) => (
-                <div
-                  key={midiNote}
-                  className={`note-label ${isBlackKey(midiNote) ? "black-key" : "white-key"}`}
-                >
-                  {getNoteName(midiNote)}
+        <div className="piano-roll-content">
+          <div className="piano-roll-grid">
+            {/* Grid container with scroll - contains both labels and cells */}
+            <div className="grid-scroll-container" ref={gridContainerRef}>
+              {/* Step numbers header - sticky */}
+              <div className="step-numbers-header">
+                <div className="note-label-spacer"></div>
+                <div className="step-numbers">
+                  {Array.from({ length: steps }, (_, i) => (
+                    <div key={i} className="step-number">
+                      {i + 1}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              {/* Grid content - labels and cells side by side */}
+              <div className="grid-content">
+                {allNotes
+                  .slice()
+                  .reverse()
+                  .map((midiNote) => (
+                    <div key={midiNote} className="grid-row">
+                      {/* Note label for this row */}
+                      <div
+                        className={`note-label ${isBlackKey(midiNote) ? "black-key" : "white-key"}`}
+                      >
+                        {getNoteName(midiNote)}
+                      </div>
+
+                      {/* Grid cells for this row */}
+                      <div className="note-cells">
+                        {Array.from({ length: steps }, (_, stepIndex) => {
+                          const hasNote = isCellActive(stepIndex, midiNote);
+                          const step = sequence[stepIndex];
+                          const velocity = step?.velocity ?? 100;
+                          return (
+                            <button
+                              key={stepIndex}
+                              className={`grid-cell ${hasNote ? "active" : ""}`}
+                              onClick={() => handleCellClick(stepIndex, midiNote)}
+                              style={{
+                                opacity: hasNote ? velocity / 127 : 0.1,
+                              }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
           </div>
 
-          {/* Grid cells */}
-          <div className="grid-container">
-            <div className="step-numbers">
-              {Array.from({ length: steps }, (_, i) => (
-                <div key={i} className="step-number">
-                  {i + 1}
-                </div>
-              ))}
-            </div>
-            <div className="grid-cells">
-              {noteRange
-                .slice()
-                .reverse()
-                .map((midiNote) => (
-                  <div key={midiNote} className="note-row">
-                    {Array.from({ length: steps }, (_, stepIndex) => {
-                      const step = sequence[stepIndex];
-                      const hasNote = step?.note === midiNote;
-                      const velocity = step?.velocity ?? 100;
-                      return (
-                        <button
-                          key={stepIndex}
-                          className={`grid-cell ${hasNote ? "active" : ""} ${
-                            selectedStep === stepIndex ? "selected" : ""
-                          }`}
-                          onClick={() => handleCellClick(stepIndex, midiNote)}
-                          style={{
-                            opacity: hasNote ? velocity / 127 : 0.1,
-                          }}
-                        />
-                      );
-                    })}
+          {/* Velocity controls for each step */}
+          <div className="velocity-controls">
+            {/* Spacer for note labels column */}
+            <div className="velocity-label-spacer"></div>
+
+            {/* Velocity sliders aligned with grid columns */}
+            <div className="velocity-sliders">
+              {Array.from({ length: steps }, (_, stepIndex) => {
+                const step = sequence[stepIndex];
+                const hasNote = step?.note !== undefined;
+                const velocity = step?.velocity ?? 100;
+                return (
+                  <div key={stepIndex} className="velocity-slider-container">
+                    <input
+                      type="number"
+                      min="1"
+                      max="127"
+                      value={hasNote ? velocity : ""}
+                      placeholder="-"
+                      disabled={!hasNote}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "") return;
+                        const numValue = Math.max(
+                          1,
+                          Math.min(127, parseInt(value, 10) || 1),
+                        );
+                        handleVelocityChange(stepIndex, numValue);
+                      }}
+                      className="velocity-input"
+                    />
+                    <input
+                      type="range"
+                      min="1"
+                      max="127"
+                      value={hasNote ? velocity : 100}
+                      disabled={!hasNote}
+                      onChange={(e) =>
+                        handleVelocityChange(stepIndex, Number(e.target.value))
+                      }
+                      className="velocity-slider"
+                    />
                   </div>
-                ))}
+                );
+              })}
             </div>
           </div>
-
-          {/* Velocity editor for selected step */}
-          {selectedStep !== null && sequence[selectedStep]?.note && (
-            <div className="velocity-editor">
-              <label>
-                Step {selectedStep + 1} Velocity:
-                <input
-                  type="range"
-                  min="1"
-                  max="127"
-                  value={sequence[selectedStep]?.velocity ?? 100}
-                  onChange={(e) =>
-                    handleVelocityChange(selectedStep, Number(e.target.value))
-                  }
-                />
-                <span>{sequence[selectedStep]?.velocity ?? 100}</span>
-              </label>
-            </div>
-          )}
         </div>
       </div>
     </div>,

@@ -14,9 +14,11 @@
   border: 1px solid #333;
   border-radius: 4px;
   padding: 20px;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: auto;
+  width: 90vw;
+  max-width: 1200px;
+  height: 85vh;
+  display: flex;
+  flex-direction: column;
   color: white;
 }
 
@@ -27,6 +29,7 @@
   margin-bottom: 20px;
   border-bottom: 1px solid #333;
   padding-bottom: 15px;
+  flex-shrink: 0;
 }
 
 .piano-roll-header h2 {
@@ -50,17 +53,17 @@
 .piano-roll-controls label {
   font-size: 12px;
   color: #ccc;
+  white-space: nowrap;
 }
 
 .piano-roll-controls input[type="range"] {
-  width: 80px;
+  width: 100px;
 }
 
-.piano-roll-controls select {
-  background: #333;
-  color: white;
-  border: 1px solid #555;
-  padding: 2px 5px;
+.piano-roll-controls span {
+  min-width: 30px;
+  text-align: center;
+  font-size: 12px;
 }
 
 .piano-roll-controls button {
@@ -77,16 +80,69 @@
   background: #444;
 }
 
-.piano-roll-grid {
+.piano-roll-content {
+  flex: 1;
   display: flex;
-  gap: 10px;
-  margin-top: 15px;
+  flex-direction: column;
+  gap: 15px;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.note-labels {
+.piano-roll-grid {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.grid-scroll-container {
+  height: 100%;
+  overflow: hidden auto;
+  border: 1px solid #333;
+  border-radius: 2px;
+}
+
+.step-numbers-header {
   display: flex;
-  flex-direction: column-reverse;
+  position: sticky;
+  top: 0;
+  background: #1a1a1a;
+  z-index: 10;
+  border-bottom: 1px solid #333;
+  padding-bottom: 5px;
+}
+
+.note-label-spacer {
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.step-numbers {
+  display: flex;
+}
+
+.step-number {
+  width: 30px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #999;
+  border-right: 1px solid #333;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.grid-content {
+  display: flex;
+  flex-direction: column;
   gap: 1px;
+}
+
+.grid-row {
+  display: flex;
+  gap: 0;
 }
 
 .note-label {
@@ -95,9 +151,10 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: bold;
   border-radius: 2px;
+  flex-shrink: 0;
 }
 
 .note-label.white-key {
@@ -112,35 +169,8 @@
   border: 1px solid #444;
 }
 
-.grid-container {
-  flex: 1;
-}
-
-.step-numbers {
+.note-cells {
   display: flex;
-  margin-bottom: 5px;
-}
-
-.step-number {
-  min-width: 30px;
-  height: 20px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  color: #999;
-  border-right: 1px solid #333;
-}
-
-.grid-cells {
-  display: flex;
-  flex-direction: column-reverse;
-  gap: 1px;
-}
-
-.note-row {
-  display: flex;
-  gap: 1px;
 }
 
 .grid-cell {
@@ -150,6 +180,9 @@
   border: 1px solid #444;
   cursor: pointer;
   transition: all 0.1s ease;
+  flex-shrink: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 .grid-cell:hover {
@@ -161,31 +194,98 @@
   border-color: #ff8c5a;
 }
 
-.grid-cell.selected {
-  outline: 2px solid #fff;
-  outline-offset: -2px;
-}
-
-.velocity-editor {
-  margin-top: 15px;
-  padding-top: 15px;
+/* Velocity Controls */
+.velocity-controls {
+  flex-shrink: 0;
+  padding: 20px 0 10px;
   border-top: 1px solid #333;
-}
-
-.velocity-editor label {
   display: flex;
+  gap: 0;
+}
+
+.velocity-label-spacer {
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.velocity-sliders {
+  display: flex;
+  align-items: flex-start;
+}
+
+.velocity-slider-container {
+  width: 30px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  color: #ccc;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.velocity-editor input[type="range"] {
-  width: 120px;
-}
-
-.velocity-editor span {
-  min-width: 30px;
-  font-weight: bold;
+.velocity-input {
+  width: 30px;
+  height: 20px;
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 2px;
   color: #ff6b35;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  padding: 2px;
+  box-sizing: border-box;
+}
+
+.velocity-input:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  color: #666;
+}
+
+.velocity-input:focus {
+  outline: 1px solid #ff6b35;
+  border-color: #ff6b35;
+}
+
+/* Remove spinner arrows from number input */
+.velocity-input::-webkit-inner-spin-button,
+.velocity-input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.velocity-input[type="number"] {
+  appearance: textfield;
+}
+
+.velocity-slider {
+  width: 80px;
+  height: 18px;
+  transform: rotate(-90deg);
+  transform-origin: 40px 40px;
+  margin: 30px -30px 40px;
+  cursor: pointer;
+}
+
+.velocity-slider:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Scrollbar styling for grid */
+.grid-scroll-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.grid-scroll-container::-webkit-scrollbar-track {
+  background: #1a1a1a;
+}
+
+.grid-scroll-container::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.grid-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #666;
 }

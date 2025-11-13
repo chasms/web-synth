@@ -14,7 +14,7 @@ export interface SequencerTriggerParams {
   steps?: number; // Number of steps in sequence (1-32)
   gate?: number; // Gate length as fraction of step (0.1-1.0)
   swing?: number; // Swing amount (0-1, where 0.5 = straight)
-  octave?: number; // Base octave for piano roll display (0-7)
+  transpose?: number; // Semitones to transpose sequence (-24 to +24)
   loop?: boolean; // Whether to loop the sequence
 }
 
