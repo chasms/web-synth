@@ -143,7 +143,10 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
   };
 
   // Check if a cell should be active (note is programmed and transposed to this position)
-  const isCellActive = (stepIndex: number, displayMidiNote: number): boolean => {
+  const isCellActive = (
+    stepIndex: number,
+    displayMidiNote: number,
+  ): boolean => {
     const step = sequence[stepIndex];
     if (!step || step.note === undefined) return false;
     return getDisplayedNote(step.note) === displayMidiNote;
@@ -226,7 +229,9 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
                             <button
                               key={stepIndex}
                               className={`grid-cell ${hasNote ? "active" : ""}`}
-                              onClick={() => handleCellClick(stepIndex, midiNote)}
+                              onClick={() =>
+                                handleCellClick(stepIndex, midiNote)
+                              }
                               style={{
                                 opacity: hasNote ? velocity / 127 : 0.1,
                               }}

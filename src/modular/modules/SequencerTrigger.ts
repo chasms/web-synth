@@ -93,7 +93,10 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
 
     if (currentStepData?.note !== undefined) {
       // Apply transpose and clamp to valid MIDI range (0-127)
-      const noteNumber = Math.max(0, Math.min(127, currentStepData.note + transpose));
+      const noteNumber = Math.max(
+        0,
+        Math.min(127, currentStepData.note + transpose),
+      );
       const velocity = (currentStepData.velocity ?? 100) / 127;
       const stepGateLength = currentStepData.gate ?? gateLength;
 
