@@ -924,6 +924,11 @@
   gap: 8px;
 }
 
+/* Reduce label width for sequencer to fit sliders in 180px module */
+.sequencer-controls .control-row label {
+  min-width: 45px;
+}
+
 .github-button {
   position: absolute;
   bottom: 25px;
