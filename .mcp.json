@@ -1,12 +1,12 @@
 {
   "mcpServers": {
-    "Eslint": {
+    "eslint": {
       "type": "stdio",
       "command": "npx",
       "args": ["@eslint/mcp@latest"],
       "env": {}
     },
-    "Stylelint": {
+    "stylelint": {
       "type": "stdio",
       "command": "npx",
       "args": ["stylelint-mcp@latest"]

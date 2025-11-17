@@ -1,11 +1,11 @@
 {
   "servers": {
-    "ESLint": {
+    "eSLint": {
       "type": "stdio",
       "command": "npx",
       "args": ["@eslint/mcp@latest"]
     },
-    "Stylelint": {
+    "stylelint": {
       "type": "stdio",
       "command": "npx",
       "args": ["stylelint-mcp@latest"]
