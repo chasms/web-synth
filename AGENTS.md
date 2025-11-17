@@ -37,6 +37,7 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 ### TDD Workflow
 
 **For new features:**
+
 1. Document requirements and acceptance criteria (in issue, ADR, or `PRODUCT_BACKLOG.md`)
 2. Write failing unit tests that verify each acceptance criterion
 3. Run tests to confirm they fail (`npm run test`)
@@ -45,6 +46,7 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 6. Run all quality checks (`npm run lintfix && npm run stylelintfix && npm run typecheck && npm run test`)
 
 **For bug fixes:**
+
 1. Document reproduction steps and expected behavior
 2. Write a failing test that reproduces the bug
 3. Fix the bug
@@ -54,6 +56,7 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 ### Writing Testable Code
 
 **Prefer pure functions for business logic:**
+
 ```typescript
 // ❌ Hard to test - mixed concerns
 function updateSequenceStep(stepIndex: number) {
@@ -64,12 +67,7 @@ function updateSequenceStep(stepIndex: number) {
 }
 
 // ✅ Easy to test - pure function
-function setStepNote(
-  sequence: SequenceStep[],
-  stepIndex: number,
-  note: number,
-  velocity: number
-): SequenceStep[] {
+function setStepNote(sequence: SequenceStep[], stepIndex: number, note: number, velocity: number): SequenceStep[] {
   const newSequence = [...sequence];
   while (newSequence.length <= stepIndex) {
     newSequence.push({});
@@ -80,12 +78,14 @@ function setStepNote(
 ```
 
 **Characteristics of pure functions:**
+
 - No side effects (no mutations, no I/O, no DOM access)
 - Same input always produces same output
 - Can be tested without mocks or setup
 - Easy to reason about and refactor
 
 **Extract pure logic from components:**
+
 - Validation logic (e.g., `constrainToRange(value, min, max)`)
 - Calculations (e.g., `calculateScrollPosition(containerHeight, rowHeight)`)
 - Data transformations (e.g., `applyTranspose(sequence, semitones)`)
@@ -94,12 +94,14 @@ function setStepNote(
 ### Unit Testing Guidelines
 
 **Test file organization:**
+
 - Place tests adjacent to implementation: `Component.tsx` → `Component.test.tsx`
 - Group related tests using `describe` blocks
 - Use descriptive test names that explain the requirement being tested
 - Include references to acceptance criteria in comments
 
 **Example test structure:**
+
 ```typescript
 describe("SequenceManipulation", () => {
   // AC1: User can add notes by clicking grid cells
@@ -122,6 +124,7 @@ describe("SequenceManipulation", () => {
 ```
 
 **What to test:**
+
 - ✅ Pure functions (business logic, calculations, transformations)
 - ✅ Component behavior (rendering, user interactions, state changes)
 - ✅ Edge cases (boundary values, empty states, error conditions)
@@ -134,34 +137,41 @@ describe("SequenceManipulation", () => {
 **For UI/layout issues, follow this systematic debugging process:**
 
 **1. Document the Issue**
+
 - Write clear reproduction steps
 - Define acceptance criteria (what should happen vs what is happening)
 - Take baseline screenshot: `mcp__chrome-devtools__take_screenshot()`
 
 **Example issue template:**
+
 ```markdown
 ## Bug: Velocity sliders misaligned with grid columns
 
 ### Reproduction Steps
+
 1. Open Piano Roll Modal
 2. Add notes to steps 1, 4, and 8
 3. Observe velocity sliders at bottom
 
 ### Acceptance Criteria
+
 - [ ] Velocity slider for step 1 aligns with grid column 1
 - [ ] Velocity slider for step 4 aligns with grid column 4
 - [ ] Velocity slider for step 8 aligns with grid column 8
 - [ ] Alignment verified within 1px tolerance
 
 ### Current Behavior
+
 Velocity sliders appear offset to the right by ~5px
 ```
 
 **2. Measure Current State**
+
 ```typescript
 // Use evaluate_script to measure exact positions
-mcp__chrome-devtools__evaluate_script({
-  function: `() => {
+mcp__chrome -
+  devtools__evaluate_script({
+    function: `() => {
     const gridCell1 = document.querySelector('.grid-cell:nth-child(1)');
     const slider1 = document.querySelector('.velocity-slider-container:nth-child(1)');
     const cell1Rect = gridCell1.getBoundingClientRect();
@@ -171,15 +181,17 @@ mcp__chrome-devtools__evaluate_script({
       slider1Center: slider1Rect.left + slider1Rect.width / 2,
       offset: Math.abs((cell1Rect.left + cell1Rect.width / 2) - (slider1Rect.left + slider1Rect.width / 2))
     };
-  }`
-})
+  }`,
+  });
 ```
 
 **3. Make Changes**
+
 - Implement fix based on measurements
 - Hot reload should update the page automatically
 
 **4. Verify Fix**
+
 - Take post-fix screenshot: `mcp__chrome-devtools__take_screenshot()`
 - Re-measure to confirm alignment
 - Visual validation: Does it LOOK correct? (primary check)
@@ -187,11 +199,14 @@ mcp__chrome-devtools__evaluate_script({
 - Verify each acceptance criterion
 
 **5. Document Results**
+
 ```markdown
 ### Fix Applied
+
 Changed `.velocity-label-spacer` width from 40px to 43px to match `.note-label-spacer`
 
 ### Verification
+
 ✅ AC1: Step 1 aligned (offset: 0.5px, within 1px tolerance)
 ✅ AC2: Step 4 aligned (offset: 0.3px, within 1px tolerance)
 ✅ AC3: Step 8 aligned (offset: 0.7px, within 1px tolerance)
@@ -202,6 +217,7 @@ Fixed screenshot: after-fix.png
 ```
 
 **6. Add Regression Test**
+
 ```typescript
 it("should align velocity sliders with grid columns", () => {
   render(<PianoRollModal {...defaultProps} steps={8} />);
@@ -216,6 +232,7 @@ it("should align velocity sliders with grid columns", () => {
 ### Linking Tests to Requirements
 
 **In test files, reference requirements:**
+
 ```typescript
 // Reference to PRODUCT_BACKLOG.md requirement PB-023
 describe("Piano Roll Transposition", () => {
@@ -232,10 +249,12 @@ describe("Piano Roll Transposition", () => {
 ```
 
 **In requirements, reference tests:**
+
 ```markdown
 ## PB-023: Piano Roll Transposition
 
 ### Acceptance Criteria
+
 1. Transpose range is -24 to +24 semitones
    - Test: `PianoRollModal.test.tsx` - "should constrain transpose to valid range"
 2. Transposition is visual only
@@ -245,6 +264,7 @@ describe("Piano Roll Transposition", () => {
 ### Test Maintenance
 
 **When requirements change:**
+
 1. Update acceptance criteria in requirements document
 2. Update or add tests to match new criteria
 3. Run tests to see what breaks (`npm run test`)
@@ -252,6 +272,7 @@ describe("Piano Roll Transposition", () => {
 5. Verify all quality checks pass
 
 **Keep tests synchronized:**
+
 - Remove tests for removed features
 - Update test descriptions when behavior changes
 - Add tests for new edge cases discovered in production
@@ -267,6 +288,7 @@ describe("Piano Roll Transposition", () => {
 4. `npm run test` - Run all tests to ensure nothing broke
 
 **Workflow:**
+
 - Run all four commands after making changes
 - If any command reports errors that cannot be auto-fixed, manually fix them
 - Re-run the failing command to verify the fix
@@ -287,11 +309,13 @@ describe("Piano Roll Transposition", () => {
 ### Mandatory Workflow
 
 **Before making changes:**
+
 - [ ] Document acceptance criteria explicitly
 - [ ] Take baseline screenshot using `mcp__chrome-devtools__take_screenshot()`
 - [ ] Measure current state with `mcp__chrome-devtools__evaluate_script()`
 
 **After making changes:**
+
 - [ ] Take post-fix screenshot
 - [ ] Visual validation: Does it LOOK correct? (primary check)
 - [ ] Programmatic validation: Do measurements confirm? (secondary check)
@@ -303,19 +327,22 @@ describe("Piano Roll Transposition", () => {
 For specific tool usage patterns, see `docs/CHROME_DEVTOOLS_WORKFLOWS.md`. Key patterns:
 
 **Before/After Comparison:**
+
 ```javascript
 // 1. Before
-mcp__chrome-devtools__take_screenshot()
+mcp__chrome - devtools__take_screenshot();
 // 2. Make changes
 // 3. After
-mcp__chrome-devtools__take_screenshot()
+mcp__chrome - devtools__take_screenshot();
 // 4. Visual comparison (primary validation)
 ```
 
 **Element Alignment Check:**
+
 ```javascript
-mcp__chrome-devtools__evaluate_script({
-  function: `() => {
+mcp__chrome -
+  devtools__evaluate_script({
+    function: `() => {
     const elem1 = document.querySelector('.element-1');
     const elem2 = document.querySelector('.element-2');
     const rect1 = elem1.getBoundingClientRect();
@@ -326,8 +353,8 @@ mcp__chrome-devtools__evaluate_script({
       offset: (center1 - center2).toFixed(2),
       aligned: Math.abs(center1 - center2) < 1
     };
-  }`
-})
+  }`,
+  });
 ```
 
 ### Common Pitfalls to Avoid
@@ -341,6 +368,7 @@ mcp__chrome-devtools__evaluate_script({
 ### Documentation Requirements
 
 Every frontend fix must include:
+
 - Before screenshot (showing the problem)
 - After screenshot (showing the fix)
 - Measurement data (if applicable)
