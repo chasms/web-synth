@@ -23,6 +23,83 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 - Only fall back to terminal commands when specific MCP tools are not available
 - MCP tools provide better integration, structured output, and error handling
 
+## Frontend Debugging Protocol
+
+**For all UI/layout changes, follow the systematic validation process documented in `docs/FRONTEND_TESTING_PROTOCOL.md`.**
+
+### Core Principles
+
+1. **Visual Validation First**: If it looks wrong to human eyes, it IS wrong - measurements can lie
+2. **Before/After Screenshots**: ALWAYS capture baseline before making changes
+3. **Measure What Users See**: Measure visual elements, not containers or parent elements
+4. **Explicit Acceptance Criteria**: Document exactly what should be fixed before starting
+5. **Evidence-Based Validation**: Every fix requires screenshot and measurement proof
+
+### Mandatory Workflow
+
+**Before making changes:**
+- [ ] Document acceptance criteria explicitly
+- [ ] Take baseline screenshot using `mcp__chrome-devtools__take_screenshot()`
+- [ ] Measure current state with `mcp__chrome-devtools__evaluate_script()`
+
+**After making changes:**
+- [ ] Take post-fix screenshot
+- [ ] Visual validation: Does it LOOK correct? (primary check)
+- [ ] Programmatic validation: Do measurements confirm? (secondary check)
+- [ ] Verify EACH acceptance criterion with evidence
+- [ ] If visual and programmatic disagree, investigate why (trust visual)
+
+### MCP Chrome DevTools Workflows
+
+For specific tool usage patterns, see `docs/CHROME_DEVTOOLS_WORKFLOWS.md`. Key patterns:
+
+**Before/After Comparison:**
+```javascript
+// 1. Before
+mcp__chrome-devtools__take_screenshot()
+// 2. Make changes
+// 3. After
+mcp__chrome-devtools__take_screenshot()
+// 4. Visual comparison (primary validation)
+```
+
+**Element Alignment Check:**
+```javascript
+mcp__chrome-devtools__evaluate_script({
+  function: `() => {
+    const elem1 = document.querySelector('.element-1');
+    const elem2 = document.querySelector('.element-2');
+    const rect1 = elem1.getBoundingClientRect();
+    const rect2 = elem2.getBoundingClientRect();
+    const center1 = rect1.left + rect1.width / 2;
+    const center2 = rect2.left + rect2.width / 2;
+    return {
+      offset: (center1 - center2).toFixed(2),
+      aligned: Math.abs(center1 - center2) < 1
+    };
+  }`
+})
+```
+
+### Common Pitfalls to Avoid
+
+- ❌ **Never skip baseline screenshot** - Without it, you can't prove the fix worked
+- ❌ **Never measure containers instead of visual elements** - Containers can be aligned while contents are not
+- ❌ **Never trust measurements over eyes** - If it looks wrong, investigate why measurements disagree
+- ❌ **Never declare success without visual check** - Code can lie, pixels don't
+- ❌ **Never test only one state** - Check multiple scenarios, zoom levels, screen sizes
+
+### Documentation Requirements
+
+Every frontend fix must include:
+- Before screenshot (showing the problem)
+- After screenshot (showing the fix)
+- Measurement data (if applicable)
+- Pass/fail for each acceptance criterion
+- Evidence that visual and programmatic validation agree
+
+See `docs/templates/FRONTEND_BUG_REPORT.md` for the required format.
+
 ## Audio Architecture
 
 - Create custom hooks for each synthesizer module (useOscillator, useFilter, etc.)
