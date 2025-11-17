@@ -77,169 +77,194 @@ This methodology produces maintainable, well-tested code with clear requirements
 
 ### Audio Architecture
 
-- Custom React hooks for each synthesizer module (`useOscillator`, `useSynthesizer`, `useAudioContext`)
-- Proper Web Audio API node management with cleanup
-- Real-time parameter updates without audio dropouts
-- Modular component architecture separating audio logic from UI
+**Module System**
 
-## 🚀 Future Vision
+- Factory pattern for creating audio modules with consistent lifecycle (init, update, dispose)
+- Port-based connection system with signal type validation (AUDIO, CV, GATE, TRIGGER)
+- Real-time audio graph manipulation without clicks or dropouts
+- ConstantSource → GainNode pattern for CV/Gate signal generation
 
-We're building towards a full-featured Minimoog emulation with:
+**Web Audio Integration**
 
-- **Filter Section**: Classic 24dB/octave lowpass filter with resonance
-- **AHDSR Envelopes**: Amplitude and filter modulation (Hold stage + dB/percent sustain toggle)
-- **LFO Modulation**: Vibrato, tremolo, and filter sweeps
-- **Virtual Keyboard**: Play notes with mouse or computer keyboard
-- **Preset Management**: Save, load, and share synthesizer patches
+- Custom React hooks for audio context management and module orchestration
+- Proper node cleanup using useEffect lifecycle hooks
+- Sample-accurate timing using AudioContext.currentTime
+- Parameter automation with `setValueAtTime()` and `linearRampToValueAtTime()`
 
-See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed feature roadmap.
+**Design Patterns**
+
+- Separation of concerns: audio logic in modules, UI in components, state in hooks
+- Pure function extraction for testable business logic
+- Type-safe module parameters with TypeScript interfaces
+- Immutable state updates with React best practices
+
+## 🚀 Roadmap
+
+Planned enhancements to complete the modular synthesizer platform:
+
+- **Polyphonic Voice Management**: Configurable voice count with voice stealing strategies
+- **LFO Module**: Low-frequency oscillator for vibrato, tremolo, and modulation effects
+- **Utility CV Modules**: Attenuverters, mixers, multiples, and signal conditioning
+- **Preset System**: Save/load patches with factory presets and JSON import/export
+- **Virtual Keyboard**: Computer keyboard and on-screen keyboard with velocity sensitivity
+- **Effects Modules**: Delay, reverb, distortion, and chorus
+- **Performance Tools**: MIDI CC mapping, parameter automation, and pattern chaining
+
+See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed acceptance criteria and technical specifications.
 
 ## 🛠️ Technology Stack
 
 ### Core Technologies
 
 - **React 19** - Modern React with hooks and concurrent features
-- **TypeScript** - Strict type safety for reliable audio code
-- **Vite** - Fast development server and build tool
-- **Web Audio API** - Native browser audio synthesis
+- **TypeScript 5.8** - Strict type safety with no implicit any, strict null checks
+- **Vite 7** - Lightning-fast dev server with HMR, optimized production builds
+- **Web Audio API** - Native browser audio synthesis with modular routing
 
-### Development Tools
+### Development & Quality Tools
 
-- **Vitest** - Fast unit testing with Web Audio API mocks
-- **ESLint + Prettier** - Code quality and formatting
-- **React Testing Library** - Component testing utilities
-- **Playwright, [Playwright MCP](https://github.com/microsoft/playwright-mcp), and the [Playwright MCP Chrome Extension](https://github.com/microsoft/playwright-mcp/blob/main/extension/README.md)** - Enabling Copilot to interact with and debug the frontend via the browser and development server
+**Testing Infrastructure**
+
+- **Vitest 3** - Fast unit testing with Web Audio API mocks and snapshot testing
+- **React Testing Library** - Component testing with user-centric queries
+- **@testing-library/user-event** - Realistic user interaction simulation
+- **jsdom** - DOM environment for headless testing
+
+**Code Quality & Linting**
+
+- **ESLint 9** - Static analysis with React hooks rules and import sorting
+- **Prettier** - Opinionated code formatting for consistency
+- **Stylelint** - CSS linting with standard config
+- **TypeScript Compiler** - Continuous type checking with watch mode
+
+**AI-Assisted Development**
+
+- **Chrome DevTools MCP** - Programmatic browser control for systematic UI debugging
+- **ESLint MCP** - Structured linting feedback for AI code analysis
+- **Stylelint MCP** - CSS validation integrated into AI workflow
+- **GitHub Copilot** - Context-aware code suggestions with workspace instructions
 
 ### Architecture Decisions
 
-- **Custom Hooks Pattern**: Each audio module is a reusable React hook
-- **Context-based Audio Management**: Centralized AudioContext lifecycle
-- **Component Composition**: Modular UI components for different control types
-- **State-driven Audio**: React state drives audio parameter changes
-- **Smoothing Layer**: `smoothParam`/`smoothParams` apply short ramps (linear/exp/setTarget) with cancellation to avoid zipper noise; envelopes schedule their own ramps and should not be smoothed directly
+**Modular Synthesis Design**
+
+- **Module Factory Pattern**: Consistent lifecycle (create, connect, update, dispose) for all audio modules
+- **Port-based Routing**: Signal type validation ensures correct connections (AUDIO ↔ AUDIO, CV → any, GATE ↔ TRIGGER)
+- **CV/Gate Standard**: 1V/Oct pitch standard with frequency-based CV (not voltage simulation)
+- **Separation of Concerns**: Audio graph in Web Audio API, state in React, UI in components
+
+**React Integration**
+
+- **Context-based Audio Management**: Centralized AudioContext lifecycle with provider pattern
+- **Custom Hooks**: `usePatch` for module graph, `useAudioContext` for shared audio context
+- **Pure Functions**: Business logic extracted from components for testability
+- **Immutable Updates**: State changes never mutate, always create new objects
+
+**Performance & Quality**
+
+- **Parameter Smoothing**: `smoothParam` utility prevents zipper noise with configurable ramp modes
+- **Lazy Initialization**: Modules only create audio nodes when needed
+- **Proper Cleanup**: All audio nodes disconnected and disposed in useEffect cleanup
+- **Type Safety**: Full TypeScript coverage with strict compiler settings
 
 ## 📚 Documentation
 
-- **[Product Backlog](PRODUCT_BACKLOG.md)** – Feature roadmap and requirements
-- **[Modular Architecture](docs/ARCHITECTURE_MODULAR.md)** – Patch graph, ports, signal domains, design rationale
-- **[Envelope Design](docs/ENVELOPE_DESIGN.md)** – ADSR implementation strategy (ConstantSource + Gain) and trade‑offs
-- **[Copilot Instructions](.github/copilot-instructions.md)** – AI-assisted development guidelines
+**Product & Requirements**
+
+- **[Product Backlog](PRODUCT_BACKLOG.md)** – Feature roadmap with acceptance criteria and validated test cases
+- **[AGENTS.md](AGENTS.md)** – Comprehensive AI development guidelines and engineering standards
+
+**Architecture & Design**
+
+- **[Modular Architecture](docs/ARCHITECTURE_MODULAR.md)** – Module system, port types, signal routing, CV/Gate semantics
+- **[Envelope Design](docs/ENVELOPE_DESIGN.md)** – AHDSR implementation with ConstantSource + GainNode pattern
+- **[Frontend Testing Protocol](docs/FRONTEND_TESTING_PROTOCOL.md)** – Systematic UI validation methodology
+- **[Chrome DevTools Workflows](docs/CHROME_DEVTOOLS_WORKFLOWS.md)** – Browser debugging patterns for AI assistants
 
 ## 🚦 Getting Started
 
 ### Prerequisites
 
-- Node.js 18+
-- Modern web browser with Web Audio API support
+- **Node.js 18+** - Runtime environment
+- **npm 9+** - Package manager
+- **Modern Browser** - Chrome, Firefox, Safari, or Edge with Web Audio API support
+- **MIDI Device (Optional)** - External MIDI keyboard for live performance
 
-### Installation
+### Installation & Setup
 
-1. **Install dependencies**
+```bash
+# Clone the repository
+git clone https://github.com/chasms/web-audio-synth.git
+cd web-audio-synth
 
-   ```bash
-   npm install
-   ```
+# Install dependencies
+npm install
 
-2. **Start development server**
+# Start development server
+npm run dev
+```
 
-   ```bash
-   npm run dev
-   ```
+Open `http://localhost:5173` in your browser.
 
-3. **Open in browser**
-   Navigate to `http://localhost:5173`
+### Quick Start Guide
 
-### First Steps
+**1. Initialize Audio Context**
 
-1. **Start Audio Context** - Click "Start Audio Context" button (required by browsers)
-2. **Test Sound** - Use C4, E4, G4 buttons to hear the synthesizer
-3. **Explore Controls** - Adjust oscillator parameters, waveforms, and master volume
-4. **Experiment** - Try different detuning values for rich, layered sounds
+- Click "Start Audio Context" button (required by browser security policy)
+- Confirm audio context state shows "running"
+
+**2. Load Default Patch**
+
+- Default configuration: SEQUENCER → VCO → VCF → MASTER OUT
+- Pre-programmed C major scale sequence ready to play
+
+**3. Play Your First Sound**
+
+- Click **Play** button on the sequencer module
+- Watch the step counter advance and hear the sequence
+- Observe waveform on the Master Out oscilloscope
+
+**4. Experiment with Modules**
+
+- Drag modules to reposition them on the workspace
+- Click cable endpoints to delete connections
+- Click ports to create new connections (matching signal types)
+- Adjust VCO waveform, filter cutoff, envelope attack/release
 
 ### Available Scripts
 
-- `npm run dev` - Start development server with hot reload
-- `npm run build` - Build production bundle
-- `npm run preview` - Preview production build locally
-- `npm run test` - Run unit tests
-- `npm run test:ui` - Run tests with UI interface
-- `npm run lint` - Check code quality
-- `npm run typecheck` - Check typescript compiler output
-- `npm run typewatch` - Runs an active shell for checking ts compiler output on changes
-
-## 🎛️ Using the Synthesizer
-
-### Basic Operation
-
-1. Start the audio context to enable sound
-2. Click test note buttons (C4, E4, G4) to play predefined notes
-3. Use the Stop button to silence all oscillators
-4. Adjust master volume for overall output level
-
-### Oscillator Controls
-
-Each of the three oscillators has independent controls:
-
-- **Frequency**: Base pitch in Hz (20-20,000Hz)
-- **Waveform**: Choose from sine, square, sawtooth, or triangle waves
-- **Gain**: Individual oscillator volume (0-1)
-- **Detune**: Pitch offset in cents (-1200 to +1200)
-
-### Sound Design Tips
-
-- Use slight detuning (±7 cents) between oscillators for thickness
-- Set oscillator 3 to a lower octave for bass foundation
-- Experiment with different waveform combinations
-- Start with sawtooth waves for classic analog sounds
-
-## 🧪 Development
-
-### Project Structure
-
-```
-src/
-├── components/     # UI components (Controls, Synthesizer, etc.)
-├── hooks/         # Custom React hooks for audio logic
-├── types/         # TypeScript type definitions
-└── test/          # Test setup and utilities
-```
-
-### Key Files
-
-- `hooks/useAudioContext.tsx` - Audio context management
-- `hooks/useOscillator.ts` - Individual oscillator logic
-- `hooks/useSynthesizer.ts` - Three-oscillator synthesizer
-- `components/Synthesizer.tsx` - Main synthesizer interface
-
-### Testing
-
-Web Audio API is mocked for testing using Vitest. All audio hooks include comprehensive unit tests.
+**Development**
 
 ```bash
-npm run test        # Run all tests
-npm run test:ui     # Interactive test runner
+npm run dev          # Start dev server with HMR on http://localhost:5173
+npm run build        # Build optimized production bundle
+npm run preview      # Preview production build locally
 ```
 
-### Code Quality
+**Testing**
 
-The project uses strict TypeScript configuration and ESLint rules optimized for audio development:
+```bash
+npm run test         # Run all tests in watch mode
+npm run test:run     # Run all tests once (CI mode)
+npm run test:ui      # Interactive test UI with Vitest
+```
 
-- Strict null checks and type safety
-- React hooks linting
-- Prettier code formatting
-- Web Audio API best practices
+**Code Quality**
 
-## 🤝 Contributing
+```bash
+npm run lint         # Check ESLint errors
+npm run lintfix      # Auto-fix ESLint issues
+npm run stylelint    # Check CSS/style errors
+npm run stylelintfix # Auto-fix style issues
+npm run typecheck    # Verify TypeScript types
+npm run typewatch    # Type checking in watch mode
+```
 
-This project follows modern React and Web Audio development patterns. See the [Product Backlog](PRODUCT_BACKLOG.md) for areas where contributions are needed.
+**Quality Gate (run before commits)**
 
-### Development Guidelines
-
-- Use TypeScript interfaces for all audio parameters
-- Implement proper cleanup in useEffect hooks
-- Test audio logic with mocked Web Audio API
-- Follow the established custom hooks pattern
-- Maintain separation between audio logic and UI components
+```bash
+npm run lintfix && npm run stylelintfix && npm run typecheck && npm run test:run
+```
 
 ## 📄 License
 
