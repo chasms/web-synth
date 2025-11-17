@@ -65,13 +65,15 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
     if (isOpen && gridContainerRef.current) {
       // C4 is MIDI note 60, counting from 0 (C-1), so it's at index 60
       // Each row is ~26px (25px height + 1px gap)
-      // We want C4 centered, so scroll to approximately its position
+      // We want C4 centered, so scroll to its position based on container height
       // Total notes: 128, C4 is at index 60 from bottom
       // From top: 128 - 60 - 1 = 67
       const rowHeight = 26; // 25px + 1px gap
       const c4IndexFromTop = 128 - 60 - 1;
-      const scrollPosition = c4IndexFromTop * rowHeight - 150; // Offset to center
-      gridContainerRef.current.scrollTop = scrollPosition;
+      const containerHeight = gridContainerRef.current.clientHeight;
+      const c4Position = c4IndexFromTop * rowHeight;
+      const scrollPosition = c4Position - containerHeight / 2 + rowHeight / 2;
+      gridContainerRef.current.scrollTop = Math.max(0, scrollPosition);
     }
   }, [isOpen]);
 
