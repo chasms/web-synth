@@ -113,7 +113,7 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
       newSequence.push({});
     }
 
-    if (newSequence[stepIndex]) {
+    if (newSequence[stepIndex]?.note !== undefined) {
       newSequence[stepIndex] = { ...newSequence[stepIndex], velocity };
     } else {
       // If there's no note, don't set velocity
