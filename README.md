@@ -2,19 +2,77 @@
 
 A modern web-based implementation of the classic Minimoog synthesizer, built with React, TypeScript, Vite, and the Web Audio API.
 
-This project is an experiment to enable Copilot and Claude Code to develop clean maintainable code by setting up the guardrails and tooling to they need to debug the frontend as a human developer might.
+## 🧪 Engineering Methodology
+
+This project serves dual purposes: building a functional synthesizer **and** pioneering a rigorous, requirements-driven development framework for AI-assisted coding. Rather than treating AI assistants as code generators, this project establishes systematic engineering practices that enable AI to work like experienced human developers.
+
+### Development Framework Highlights
+
+**Requirements-First Approach**
+
+- Every feature begins with explicit acceptance criteria documented in the [Product Backlog](PRODUCT_BACKLOG.md)
+- No code written until requirements are clear, measurable, and validated
+- Bi-directional traceability: requirements link to tests, tests reference requirements
+
+**Test-Driven Development**
+
+- Write failing tests first, then implement code to pass them
+- Pure function extraction for business logic (easy to test, easy to reason about)
+- Comprehensive test suite with [Vitest](https://vitest.dev/) and React Testing Library
+- ~90% code coverage with unit and integration tests
+
+**Systematic Frontend Debugging**
+
+- Evidence-based validation using Chrome DevTools MCP integration
+- Visual validation protocol: screenshots before/after every change
+- Programmatic measurement verification (but trust visual over metrics)
+- Documented debugging workflows in [Frontend Testing Protocol](docs/FRONTEND_TESTING_PROTOCOL.md)
+
+**Code Quality Automation**
+
+- Four-stage quality gate: `lintfix` → `stylelintfix` → `typecheck` → `test`
+- Strict TypeScript with no implicit any, strict null checks, and full type safety
+- ESLint + Prettier for code consistency
+- Automated pre-commit hooks ensure quality standards
+
+**Architectural Documentation**
+
+- Architecture Decision Records (ADRs) document key design choices
+- Modular patch architecture with CV/Gate semantics (see [Modular Architecture](docs/ARCHITECTURE_MODULAR.md))
+- 1V/Oct pitch standard with frequency conversion utilities
+- Parameter smoothing system to prevent audio artifacts
+
+This methodology produces maintainable, well-tested code with clear requirements traceability—demonstrating that AI can be taught to follow professional engineering practices when given proper tooling and guardrails.
 
 ## 🎵 What We've Built
 
 ### Current Features
 
-- **Multi-Oscillator Synthesis Engine**: Independent control over frequency, waveform, gain, and detuning
-- **Modular Patch Workspace (Experimental)**: Drag modules, connect AUDIO / CV / GATE / TRIGGER ports with colored cables
-- **Interactive AHDSR Envelope**: Attack, Hold, Decay, Sustain, Release editor with SVG curve, draggable + keyboard handles & ms numeric inputs
-- **Parameter Smoothing Utility**: Helpers to schedule safe linear/setTarget ramps to prevent clicks on UI-driven parameter changes
-- **Real-time Parameter Control**: Live adjustment of synthesizer parameters while playing
-- **Master Volume Control**: Proper audio routing through a master gain stage
-- **Modern UI**: Clean, high-contrast interface optimized for audio work
+**Modular Synthesis Architecture**
+
+- **Drag-and-Drop Patch Workspace**: Visual modular synthesizer with pan/zoom, grid snapping, and cable routing
+- **Click-to-Click Cable Connections**: Connect modules with color-coded cables (AUDIO, CV, GATE, TRIGGER)
+- **Real-time Audio Graph**: Web Audio API nodes dynamically created and routed based on patch configuration
+- **Module Library**: VCO (oscillator), VCF (filter), ADSR envelope, sequencer, MIDI input, and master output
+
+**Sound Generation & Control**
+
+- **VCO Module**: Voltage-controlled oscillator with frequency, waveform, detune, and gain controls
+- **VCF Module**: 24dB/octave lowpass filter with cutoff, resonance, envelope amount, and drive
+- **AHDSR Envelope**: Attack, Hold, Decay, Sustain, Release with interactive SVG editor and draggable handles
+- **Parameter Smoothing**: Automatic ramping prevents zipper noise on parameter changes (linear/exp/setTarget modes)
+
+**Sequencing & Performance**
+
+- **16-Step Sequencer**: BPM control, gate length, swing, loop mode, and transport controls
+- **Piano Roll Editor**: Full 128-note MIDI range with velocity controls, transpose (±24 semitones), and vertical scrolling
+- **MIDI Input**: Web MIDI API integration with device selection, channel filtering, transpose, and velocity curves
+- **CV/Gate Signal Generation**: Industry-standard control voltage and gate timing for modular synthesis
+
+**Visualization & Output**
+
+- **Master Output Module**: Real-time waveform oscilloscope showing audio output
+- **Visual Feedback**: Port highlighting, connection eligibility, module status indicators
 - **Cross-browser Compatibility**: Works with modern browsers including Safari (webkitAudioContext support)
 
 ### Audio Architecture
