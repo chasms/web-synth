@@ -23,6 +23,20 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 - Only fall back to terminal commands when specific MCP tools are not available
 - MCP tools provide better integration, structured output, and error handling
 
+## Code Quality Checks
+
+**After completing any code changes, ALWAYS run the following commands in sequence and fix any errors:**
+
+1. `npm run lintfix` - Auto-fix ESLint issues
+2. `npm run stylelintfix` - Auto-fix CSS/styling issues
+3. `npm run typecheck` - Verify TypeScript type correctness
+
+**Workflow:**
+- Run all three commands after making changes
+- If any command reports errors that cannot be auto-fixed, manually fix them
+- Re-run the failing command to verify the fix
+- Only consider the task complete when all three checks pass successfully
+
 ## Frontend Debugging Protocol
 
 **For all UI/layout changes, follow the systematic validation process documented in `docs/FRONTEND_TESTING_PROTOCOL.md`.**
