@@ -1,12 +1,14 @@
 # Web Audio Minimoog Synthesizer
 
-A modern web-based implementation of the classic Minimoog synthesizer, built with React, TypeScript, Vite, and the Web Audio API. This project demonstrates advanced audio programming techniques while providing an intuitive interface for music creation.
+A modern web-based implementation of the classic Minimoog synthesizer, built with React, TypeScript, Vite, and the Web Audio API.
+
+This project is an experiment to enable Copilot and Claude Code to develop clean maintainable code by setting up the guardrails and tooling to they need to debug the frontend as a human developer might.
 
 ## 🎵 What We've Built
 
 ### Current Features
 
-- **Three-Oscillator Synthesis Engine**: Independent control over frequency, waveform, gain, and detuning
+- **Multi-Oscillator Synthesis Engine**: Independent control over frequency, waveform, gain, and detuning
 - **Modular Patch Workspace (Experimental)**: Drag modules, connect AUDIO / CV / GATE / TRIGGER ports with colored cables
 - **Interactive AHDSR Envelope**: Attack, Hold, Decay, Sustain, Release editor with SVG curve, draggable + keyboard handles & ms numeric inputs
 - **Parameter Smoothing Utility**: Helpers to schedule safe linear/setTarget ramps to prevent clicks on UI-driven parameter changes
