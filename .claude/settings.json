@@ -1,7 +1,7 @@
 {
   "enableAllProjectMcpServers": true,
   "permissions": {
-    "allow": ["mcp__chrome-devtools", "mcp__eslint", "mcp__stylelint"]
+    "allow": ["mcp__chrome-devtools", "mcp__eslint", "mcp__stylelint", "Bash(npm:*)"]
   },
   "hooks": {
     "SessionStart": [
