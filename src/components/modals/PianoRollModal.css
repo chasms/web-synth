@@ -66,6 +66,36 @@
   font-size: 12px;
 }
 
+.piano-roll-controls .value-input {
+  width: 45px;
+  height: 24px;
+  background: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 2px;
+  color: #ff6b35;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  padding: 2px 4px;
+  box-sizing: border-box;
+}
+
+.piano-roll-controls .value-input:focus {
+  outline: 1px solid #ff6b35;
+  border-color: #ff6b35;
+}
+
+/* Remove spinner arrows from number input */
+.piano-roll-controls .value-input::-webkit-inner-spin-button,
+.piano-roll-controls .value-input::-webkit-outer-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.piano-roll-controls .value-input[type="number"] {
+  appearance: textfield;
+}
+
 .piano-roll-controls button {
   background: #333;
   color: white;

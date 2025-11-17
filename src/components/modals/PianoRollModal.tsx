@@ -167,7 +167,22 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
                 value={steps}
                 onChange={(e) => onStepsChange(Number(e.target.value))}
               />
-              <span>{steps}</span>
+              <input
+                type="number"
+                min="1"
+                max="32"
+                value={steps}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "") return;
+                  const numValue = Math.max(
+                    1,
+                    Math.min(32, parseInt(value, 10) || 1),
+                  );
+                  onStepsChange(numValue);
+                }}
+                className="value-input"
+              />
             </div>
             <div className="control-group">
               <label>Transpose:</label>
@@ -178,10 +193,22 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
                 value={transpose}
                 onChange={(e) => onTransposeChange(Number(e.target.value))}
               />
-              <span>
-                {transpose >= 0 ? "+" : ""}
-                {transpose}
-              </span>
+              <input
+                type="number"
+                min="-24"
+                max="24"
+                value={transpose}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (value === "" || value === "-") return;
+                  const numValue = Math.max(
+                    -24,
+                    Math.min(24, parseInt(value, 10) || 0),
+                  );
+                  onTransposeChange(numValue);
+                }}
+                className="value-input"
+              />
             </div>
             <button onClick={clearSequence}>Clear</button>
             <button onClick={randomizeSequence}>Random</button>
