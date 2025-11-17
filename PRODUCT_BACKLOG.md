@@ -424,10 +424,136 @@ Known Limitations & Future Enhancements:
 - [ ] Multiple pattern slots
 - [ ] Pattern chaining
 - [ ] Real-time recording mode
-- [ ] Note velocity per step (currently uses default velocity)
 - [ ] Note length per step (currently tied to gate length parameter)
 - [ ] Pattern save/load functionality
 - [ ] MIDI export
+
+**Piano Roll UI Improvements - COMPLETED**:
+
+Issue: Piano roll editor had several usability and layout problems including misaligned columns, hidden velocity controls, octave-limited note range, and unstable modal width.
+
+Acceptance Criteria:
+
+- [x] **Column Width Alignment**: Step number headers have identical width to grid cell columns
+  - Implementation: Step numbers use 30px width + 1px border-right; grid cells use 30px width + 1px gap
+  - Velocity sliders use 30px width + 1px gap to match column spacing exactly
+  - Headers and columns align within 1px tolerance
+  - Visual validation: Vertical lines from step numbers align perfectly with column boundaries
+
+- [x] **Per-Step Velocity Controls**: Velocity controls positioned below each step column
+  - Each step column has its own velocity slider directly below it
+  - Velocity controls always visible (not conditional on step selection)
+  - Velocity defaults to 100 for new notes
+  - Editable numeric input field above each slider (1-127, integers only)
+  - Input validation: values clamped to 1-127 range
+  - Slider disabled when no note present in step
+  - Sliders properly aligned and not cut off at bottom
+  - 40px spacer added to align with note labels column
+
+- [x] **Vertical Note Scrolling**: Full chromatic range (128 MIDI notes) with vertical scrolling
+  - Displays all MIDI notes (0-127, C-1 to G9) in scrollable container
+  - Octave selector dropdown removed from controls
+  - Note labels scroll with grid rows (no longer fixed on side)
+  - Step numbers remain sticky at top during vertical scroll
+  - Auto-scrolls to center on C4 (MIDI note 60) on modal open
+  - White/black key visual styling preserved throughout range
+  - Smooth scrolling with custom scrollbar styling
+
+- [x] **Transpose Control**: Real-time sequence transposition
+  - Transpose slider in modal header (±24 semitones, default 0)
+  - Transpose shifts all programmed notes up/down by semitone increments
+  - Visual update: Notes move to new positions in grid in real-time as transpose changes
+  - Transposition applies to playback immediately via SequencerTrigger module
+  - Transposed notes clamped to valid MIDI range (0-127)
+  - Display shows "+/-" prefix for clarity
+  - Stored in module state and persisted across sessions
+
+- [x] **Fixed Modal Layout**: Modal width and controls remain stable during manipulation
+  - Modal has fixed width (90vw, max 1200px) and height (85vh)
+  - Steps slider positioned in header with fixed layout
+  - Modal width remains constant when steps value changes from 1 to 32
+  - Slider thumb moves smoothly without control jumping
+  - All controls remain stable during slider manipulation
+
+**Test Plan (All Tests Passing)**:
+
+1. **Column Alignment Test**:
+   - ✅ Load piano roll editor
+   - ✅ Set steps to various values (4, 8, 16, 32)
+   - ✅ Step number headers align perfectly with grid columns
+   - ✅ Velocity sliders align perfectly with their columns (30px + 1px gap)
+   - ✅ Measurement: Step numbers (30px + 1px border), cells (30px + 1px gap), velocity sliders (30px + 1px gap) all match
+
+2. **Velocity Controls Test**:
+   - ✅ Add notes to multiple steps
+   - ✅ Velocity slider appears below each step column
+   - ✅ Editable numeric input appears above each slider
+   - ✅ Input validation: only integers 1-127 accepted
+   - ✅ Change velocity for each step independently via slider or input
+   - ✅ Velocity changes reflected in note opacity (velocity / 127)
+   - ✅ Velocity values saved and restored correctly
+   - ✅ Sliders not cut off at bottom (40px bottom margin added)
+   - ✅ Disabled state shows placeholder "-" when no note present
+
+3. **Vertical Scrolling Test**:
+   - ✅ Open piano roll editor
+   - ✅ No octave dropdown present (removed from UI)
+   - ✅ Scroll vertically to see all MIDI notes from C-1 to G9 (128 notes)
+   - ✅ Initial view centered on C4 (MIDI 60)
+   - ✅ Note labels scroll with grid rows
+   - ✅ Step numbers remain sticky at top
+   - ✅ Add notes across different octaves by scrolling
+   - ✅ White/black key styling correct throughout range
+   - ✅ Custom scrollbar styling applied
+
+4. **Transpose Test**:
+   - ✅ Program a sequence (e.g., C major scale: C4, D4, E4, F4, G4, A4, B4, C5)
+   - ✅ Adjust transpose slider to +2 semitones
+   - ✅ Notes visually shift up 2 positions in grid (C→D, D→E, etc.)
+   - ✅ Play sequence and verify audio is transposed correctly
+   - ✅ Transpose range limits work (±24 semitones)
+   - ✅ Note clamping at MIDI boundaries (0 and 127)
+   - ✅ Display shows "+/-" prefix (e.g., "+2", "-5")
+   - ✅ Transpose persisted in module state
+
+5. **Fixed Layout Test**:
+   - ✅ Open piano roll editor with steps = 8
+   - ✅ Modal has fixed width (90vw, max 1200px) and height (85vh)
+   - ✅ Drag steps slider from 8 to 32
+   - ✅ Modal width does not change
+   - ✅ Steps slider position does not change
+   - ✅ Slider thumb moves smoothly without control jumping
+   - ✅ Repeat test from 32 to 1 - bidirectional stability confirmed
+
+**Implementation Summary**:
+
+- **Architecture Changes**:
+  - Added `transpose` parameter to `SequencerTriggerParams` interface
+  - Removed `octave` parameter (replaced by transpose)
+  - Updated `SequencerTrigger.ts` to apply transpose during step scheduling
+  - Modified `SequencerControls.tsx` to manage transpose state
+
+- **UI Structure**:
+  - Grid container now scrollable with all 128 MIDI notes
+  - Note labels moved inside scroll container to scroll with rows
+  - Step numbers made sticky at top of scroll container
+  - Velocity controls restructured with 40px spacer to align with note labels
+  - Each velocity slider container is 30px wide + 1px gap to match grid cells
+
+- **Velocity Controls**:
+  - Numeric input field (type="number") with validation
+  - Range slider below input for fine control
+  - Both controls sync bidirectionally
+  - Input validation clamps values to 1-127
+  - Spinner arrows removed via CSS for cleaner appearance
+  - 40px bottom margin on slider prevents cutoff
+
+- **Files Modified**:
+  - `src/modular/modules/triggers.ts` - Updated interface
+  - `src/modular/modules/SequencerTrigger.ts` - Transpose logic
+  - `src/components/patch/controls/SequencerControls.tsx` - State management
+  - `src/components/modals/PianoRollModal.tsx` - Complete UI rewrite
+  - `src/components/modals/PianoRollModal.css` - Updated layout and styling
 
 ### 10. MIDI Input Module - COMPLETED
 

@@ -27,8 +27,8 @@ export const SequencerControls: React.FC<SequencerControlsProps> = ({
   const [swing, setSwing] = React.useState<number>(
     (initial.swing as number) ?? 0,
   );
-  const [octave, setOctave] = React.useState<number>(
-    (initial.octave as number) || 4,
+  const [transpose, setTranspose] = React.useState<number>(
+    (initial.transpose as number) ?? 0,
   );
   const [loop, setLoop] = React.useState<boolean>(
     (initial.loop as boolean) ?? true,
@@ -80,9 +80,9 @@ export const SequencerControls: React.FC<SequencerControlsProps> = ({
     module.updateParams?.({ swing: newSwing });
   };
 
-  const handleOctaveChange = (newOctave: number) => {
-    setOctave(newOctave);
-    module.updateParams?.({ octave: newOctave });
+  const handleTransposeChange = (newTranspose: number) => {
+    setTranspose(newTranspose);
+    module.updateParams?.({ transpose: newTranspose });
   };
 
   const handleLoopChange = (newLoop: boolean) => {
@@ -215,20 +215,6 @@ export const SequencerControls: React.FC<SequencerControlsProps> = ({
         </div>
 
         <div className="control-row">
-          <label>Octave:</label>
-          <select
-            value={octave}
-            onChange={(e) => handleOctaveChange(Number(e.target.value))}
-          >
-            {Array.from({ length: 8 }, (_, i) => (
-              <option key={i} value={i}>
-                {i}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="control-row">
           <label>Loop:</label>
           <input
             type="checkbox"
@@ -244,10 +230,10 @@ export const SequencerControls: React.FC<SequencerControlsProps> = ({
         onClose={() => setIsModalOpen(false)}
         sequence={sequence}
         steps={steps}
-        octave={octave}
+        transpose={transpose}
         onSequenceChange={handleSequenceChange}
         onStepsChange={handleStepsChange}
-        onOctaveChange={handleOctaveChange}
+        onTransposeChange={handleTransposeChange}
       />
     </div>
   );

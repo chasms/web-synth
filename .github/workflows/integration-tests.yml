@@ -22,6 +22,10 @@ jobs:
         run: |
           npm ci
 
+      - name: Test
+        run: |
+          npm run test
+
       - name: Types
         run: |
           npm run typecheck

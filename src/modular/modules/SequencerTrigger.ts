@@ -57,7 +57,7 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
   let steps = parameters?.steps ?? 8;
   let gateLength = parameters?.gate ?? 0.8;
   let swing = parameters?.swing ?? 0; // 0 = no swing, -0.5 to +0.5 range
-  let octave = parameters?.octave ?? 4;
+  let transpose = parameters?.transpose ?? 0; // Transpose in semitones
   let loop = parameters?.loop ?? true;
 
   // Sequence state
@@ -92,7 +92,11 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
     const currentStepData = sequence[currentStep];
 
     if (currentStepData?.note !== undefined) {
-      const noteNumber = currentStepData.note + (octave - 4) * 12;
+      // Apply transpose and clamp to valid MIDI range (0-127)
+      const noteNumber = Math.max(
+        0,
+        Math.min(127, currentStepData.note + transpose),
+      );
       const velocity = (currentStepData.velocity ?? 100) / 127;
       const stepGateLength = currentStepData.gate ?? gateLength;
 
@@ -202,8 +206,8 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
       if (partial.swing !== undefined) {
         swing = Math.max(-0.5, Math.min(0.5, partial.swing as number));
       }
-      if (partial.octave !== undefined) {
-        octave = Math.max(0, Math.min(7, partial.octave as number));
+      if (partial.transpose !== undefined) {
+        transpose = Math.max(-24, Math.min(24, partial.transpose as number));
       }
       if (partial.loop !== undefined) {
         loop = partial.loop as boolean;
@@ -219,7 +223,7 @@ export const createSequencerTrigger: CreateModuleFn<SequencerTriggerParams> = (
         steps,
         gate: gateLength,
         swing,
-        octave,
+        transpose,
         loop,
         sequence: [...sequence],
         isPlaying,
