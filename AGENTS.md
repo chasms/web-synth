@@ -23,6 +23,240 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 - Only fall back to terminal commands when specific MCP tools are not available
 - MCP tools provide better integration, structured output, and error handling
 
+## Test-Driven Development & Testability
+
+**Adopt a test-first approach for all new features and bug fixes.**
+
+### Core Principles
+
+1. **Tests Link to Requirements**: Every test must directly map to a product requirement or acceptance criterion
+2. **Pure Functions First**: Extract business logic into pure functions that are easy to test
+3. **Maintain Tests with Requirements**: When requirements change, update tests first, then implementation
+4. **Red-Green-Refactor**: Write failing test → Make it pass → Refactor for quality
+
+### TDD Workflow
+
+**For new features:**
+1. Document requirements and acceptance criteria (in issue, ADR, or `PRODUCT_BACKLOG.md`)
+2. Write failing unit tests that verify each acceptance criterion
+3. Run tests to confirm they fail (`npm run test`)
+4. Implement minimal code to make tests pass
+5. Refactor for code quality while keeping tests green
+6. Run all quality checks (`npm run lintfix && npm run stylelintfix && npm run typecheck && npm run test`)
+
+**For bug fixes:**
+1. Document reproduction steps and expected behavior
+2. Write a failing test that reproduces the bug
+3. Fix the bug
+4. Verify the test now passes
+5. Add edge case tests to prevent regression
+
+### Writing Testable Code
+
+**Prefer pure functions for business logic:**
+```typescript
+// ❌ Hard to test - mixed concerns
+function updateSequenceStep(stepIndex: number) {
+  const sequence = getSequence();
+  sequence[stepIndex] = { note: 60, velocity: 100 };
+  saveSequence(sequence);
+  renderUI();
+}
+
+// ✅ Easy to test - pure function
+function setStepNote(
+  sequence: SequenceStep[],
+  stepIndex: number,
+  note: number,
+  velocity: number
+): SequenceStep[] {
+  const newSequence = [...sequence];
+  while (newSequence.length <= stepIndex) {
+    newSequence.push({});
+  }
+  newSequence[stepIndex] = { note, velocity };
+  return newSequence;
+}
+```
+
+**Characteristics of pure functions:**
+- No side effects (no mutations, no I/O, no DOM access)
+- Same input always produces same output
+- Can be tested without mocks or setup
+- Easy to reason about and refactor
+
+**Extract pure logic from components:**
+- Validation logic (e.g., `constrainToRange(value, min, max)`)
+- Calculations (e.g., `calculateScrollPosition(containerHeight, rowHeight)`)
+- Data transformations (e.g., `applyTranspose(sequence, semitones)`)
+- Business rules (e.g., `shouldEnableVelocityInput(step)`)
+
+### Unit Testing Guidelines
+
+**Test file organization:**
+- Place tests adjacent to implementation: `Component.tsx` → `Component.test.tsx`
+- Group related tests using `describe` blocks
+- Use descriptive test names that explain the requirement being tested
+- Include references to acceptance criteria in comments
+
+**Example test structure:**
+```typescript
+describe("SequenceManipulation", () => {
+  // AC1: User can add notes by clicking grid cells
+  it("should add note when clicking empty cell", () => {
+    // Arrange
+    const initialSequence = [];
+
+    // Act
+    const result = setStepNote(initialSequence, 0, 60, 100);
+
+    // Assert
+    expect(result[0]).toEqual({ note: 60, velocity: 100 });
+  });
+
+  // AC2: Clicking an occupied cell removes the note
+  it("should remove note when clicking occupied cell", () => {
+    // Test implementation
+  });
+});
+```
+
+**What to test:**
+- ✅ Pure functions (business logic, calculations, transformations)
+- ✅ Component behavior (rendering, user interactions, state changes)
+- ✅ Edge cases (boundary values, empty states, error conditions)
+- ✅ Integration between components
+- ❌ Implementation details (private methods, internal state structure)
+- ❌ Third-party library internals
+
+### Frontend Testing with Chrome DevTools MCP
+
+**For UI/layout issues, follow this systematic debugging process:**
+
+**1. Document the Issue**
+- Write clear reproduction steps
+- Define acceptance criteria (what should happen vs what is happening)
+- Take baseline screenshot: `mcp__chrome-devtools__take_screenshot()`
+
+**Example issue template:**
+```markdown
+## Bug: Velocity sliders misaligned with grid columns
+
+### Reproduction Steps
+1. Open Piano Roll Modal
+2. Add notes to steps 1, 4, and 8
+3. Observe velocity sliders at bottom
+
+### Acceptance Criteria
+- [ ] Velocity slider for step 1 aligns with grid column 1
+- [ ] Velocity slider for step 4 aligns with grid column 4
+- [ ] Velocity slider for step 8 aligns with grid column 8
+- [ ] Alignment verified within 1px tolerance
+
+### Current Behavior
+Velocity sliders appear offset to the right by ~5px
+```
+
+**2. Measure Current State**
+```typescript
+// Use evaluate_script to measure exact positions
+mcp__chrome-devtools__evaluate_script({
+  function: `() => {
+    const gridCell1 = document.querySelector('.grid-cell:nth-child(1)');
+    const slider1 = document.querySelector('.velocity-slider-container:nth-child(1)');
+    const cell1Rect = gridCell1.getBoundingClientRect();
+    const slider1Rect = slider1.getBoundingClientRect();
+    return {
+      gridCell1Center: cell1Rect.left + cell1Rect.width / 2,
+      slider1Center: slider1Rect.left + slider1Rect.width / 2,
+      offset: Math.abs((cell1Rect.left + cell1Rect.width / 2) - (slider1Rect.left + slider1Rect.width / 2))
+    };
+  }`
+})
+```
+
+**3. Make Changes**
+- Implement fix based on measurements
+- Hot reload should update the page automatically
+
+**4. Verify Fix**
+- Take post-fix screenshot: `mcp__chrome-devtools__take_screenshot()`
+- Re-measure to confirm alignment
+- Visual validation: Does it LOOK correct? (primary check)
+- Programmatic validation: Do measurements confirm? (secondary check)
+- Verify each acceptance criterion
+
+**5. Document Results**
+```markdown
+### Fix Applied
+Changed `.velocity-label-spacer` width from 40px to 43px to match `.note-label-spacer`
+
+### Verification
+✅ AC1: Step 1 aligned (offset: 0.5px, within 1px tolerance)
+✅ AC2: Step 4 aligned (offset: 0.3px, within 1px tolerance)
+✅ AC3: Step 8 aligned (offset: 0.7px, within 1px tolerance)
+✅ AC4: All measurements within tolerance
+
+Baseline screenshot: before-fix.png
+Fixed screenshot: after-fix.png
+```
+
+**6. Add Regression Test**
+```typescript
+it("should align velocity sliders with grid columns", () => {
+  render(<PianoRollModal {...defaultProps} steps={8} />);
+
+  // This test documents the alignment requirement
+  // If layout breaks, this test serves as a regression check
+  const sliders = document.querySelectorAll('.velocity-slider-container');
+  expect(sliders).toHaveLength(8);
+});
+```
+
+### Linking Tests to Requirements
+
+**In test files, reference requirements:**
+```typescript
+// Reference to PRODUCT_BACKLOG.md requirement PB-023
+describe("Piano Roll Transposition", () => {
+  // AC1: Transpose range is -24 to +24 semitones
+  it("should constrain transpose to valid range", () => {
+    // Test implementation
+  });
+
+  // AC2: Transposition is visual only, doesn't modify programmed notes
+  it("should display transposed notes without modifying sequence", () => {
+    // Test implementation
+  });
+});
+```
+
+**In requirements, reference tests:**
+```markdown
+## PB-023: Piano Roll Transposition
+
+### Acceptance Criteria
+1. Transpose range is -24 to +24 semitones
+   - Test: `PianoRollModal.test.tsx` - "should constrain transpose to valid range"
+2. Transposition is visual only
+   - Test: `PianoRollModal.test.tsx` - "should display transposed notes without modifying sequence"
+```
+
+### Test Maintenance
+
+**When requirements change:**
+1. Update acceptance criteria in requirements document
+2. Update or add tests to match new criteria
+3. Run tests to see what breaks (`npm run test`)
+4. Update implementation to make tests pass
+5. Verify all quality checks pass
+
+**Keep tests synchronized:**
+- Remove tests for removed features
+- Update test descriptions when behavior changes
+- Add tests for new edge cases discovered in production
+- Review test coverage regularly
+
 ## Code Quality Checks
 
 **After completing any code changes, ALWAYS run the following commands in sequence and fix any errors:**
@@ -30,12 +264,13 @@ This is a React TypeScript project for building a Web Audio API-based Minimoog s
 1. `npm run lintfix` - Auto-fix ESLint issues
 2. `npm run stylelintfix` - Auto-fix CSS/styling issues
 3. `npm run typecheck` - Verify TypeScript type correctness
+4. `npm run test` - Run all tests to ensure nothing broke
 
 **Workflow:**
-- Run all three commands after making changes
+- Run all four commands after making changes
 - If any command reports errors that cannot be auto-fixed, manually fix them
 - Re-run the failing command to verify the fix
-- Only consider the task complete when all three checks pass successfully
+- Only consider the task complete when all four checks pass successfully
 
 ## Frontend Debugging Protocol
 
