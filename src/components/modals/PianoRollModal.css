@@ -113,7 +113,7 @@
 }
 
 .note-label-spacer {
-  width: 40px;
+  width: 42px;
   flex-shrink: 0;
 }
 
@@ -197,6 +197,7 @@
 /* Velocity Controls */
 .velocity-controls {
   flex-shrink: 0;
+  min-height: 140px;
   padding: 20px 0 10px;
   border-top: 1px solid #333;
   display: flex;
@@ -204,7 +205,7 @@
 }
 
 .velocity-label-spacer {
-  width: 40px;
+  width: 43px;
   flex-shrink: 0;
 }
 
@@ -259,11 +260,10 @@
 }
 
 .velocity-slider {
-  width: 80px;
+  width: 120px;
   height: 18px;
   transform: rotate(-90deg);
-  transform-origin: 40px 40px;
-  margin: 30px -30px 40px;
+  transform-origin: 84px 34px;
   cursor: pointer;
 }
 
