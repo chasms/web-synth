@@ -1,8 +1,8 @@
-# Web Audio Minimoog Synthesizer
+# Web Audio Synthesizer - [web-audio-synth.chas.ms](https://web-audio-synth.chas.ms/)
 
 A modern web-based implementation of the classic Minimoog synthesizer, built with React, TypeScript, Vite, and the Web Audio API.
 
-## 🧪 Engineering Methodology
+## Engineering Methodology
 
 This project serves dual purposes: building a functional synthesizer **and** pioneering a rigorous, requirements-driven development framework for AI-assisted coding. Rather than treating AI assistants as code generators, this project establishes systematic engineering practices that enable AI to work like experienced human developers.
 
@@ -43,7 +43,7 @@ This project serves dual purposes: building a functional synthesizer **and** pio
 
 This methodology produces maintainable, well-tested code with clear requirements traceability—demonstrating that AI can be taught to follow professional engineering practices when given proper tooling and guardrails.
 
-## 🎵 What We've Built
+## What We've Built
 
 ### Current Features
 
@@ -97,21 +97,21 @@ This methodology produces maintainable, well-tested code with clear requirements
 - Type-safe module parameters with TypeScript interfaces
 - Immutable state updates with React best practices
 
-## 🚀 Roadmap
+## Roadmap
 
-Planned enhancements to complete the modular synthesizer platform:
+Potential enhancements to complete the modular synthesizer platform:
 
-- **Polyphonic Voice Management**: Configurable voice count with voice stealing strategies
+- **Saturator Module**: Saturator to beef up the waveform sound with drive and tone controls
 - **LFO Module**: Low-frequency oscillator for vibrato, tremolo, and modulation effects
 - **Utility CV Modules**: Attenuverters, mixers, multiples, and signal conditioning
 - **Preset System**: Save/load patches with factory presets and JSON import/export
-- **Virtual Keyboard**: Computer keyboard and on-screen keyboard with velocity sensitivity
+- **Virtual Keyboard**: Computer keyboard and on-screen keyboard
 - **Effects Modules**: Delay, reverb, distortion, and chorus
 - **Performance Tools**: MIDI CC mapping, parameter automation, and pattern chaining
 
 See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed acceptance criteria and technical specifications.
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Core Technologies
 
@@ -166,7 +166,7 @@ See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed acceptance criteria a
 - **Proper Cleanup**: Audio nodes disconnected and disposed in useEffect cleanup
 - **Type Safety**: TypeScript with strict compiler settings
 
-## 📚 Documentation
+## Documentation
 
 **Product & Requirements**
 
