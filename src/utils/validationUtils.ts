@@ -107,7 +107,10 @@ export function parseAndConstrainNumber(
  * Parses an integer input with validation
  * @param input - The string input to parse
  * @param options - Parsing options
- * @returns A result object with validation status and parsed value
+ * @returns A result object with validation status and parsed value.
+ *          Note: When isValid is false due to a non-integer value, the value
+ *          field will contain the floored version of the parsed number.
+ *          For example, input "5.7" returns { isValid: false, value: 5 }.
  */
 export function parseIntegerInput(
   input: string,
