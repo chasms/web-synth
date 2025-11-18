@@ -2,6 +2,7 @@ import React from "react";
 
 import { usePatch } from "../../../modular/graph/usePatch";
 import type { ModuleInstance } from "../../../modular/types";
+import { constrainToRange } from "../../../utils/mathUtils";
 
 interface NumberControlProps {
   label: string;
@@ -27,8 +28,6 @@ const NumberControl: React.FC<NumberControlProps> = ({
     setText(String(value));
   }, [value]);
 
-  const clamp = (v: number) => Math.min(max, Math.max(min, v));
-
   const commit = (raw: string) => {
     const trimmed = raw.trim();
     const parsed = Number(trimmed);
@@ -36,7 +35,7 @@ const NumberControl: React.FC<NumberControlProps> = ({
       setText(String(value));
       return;
     }
-    const clamped = clamp(parsed);
+    const clamped = constrainToRange(parsed, min, max);
     setText(String(clamped));
     onChange(clamped);
   };
@@ -68,7 +67,9 @@ const NumberControl: React.FC<NumberControlProps> = ({
           step={step}
           value={value}
           disabled={disabled}
-          onChange={(e) => onChange(clamp(Number(e.target.value)))}
+          onChange={(e) =>
+            onChange(constrainToRange(Number(e.target.value), min, max))
+          }
         />
       </div>
     </div>

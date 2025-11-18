@@ -3,12 +3,23 @@ import "./PianoRollModal.css";
 import React from "react";
 import { createPortal } from "react-dom";
 
-// Sequence step data structure (matching triggers module)
-interface SequenceStep {
-  note?: number; // MIDI note number (0-127, undefined = rest)
-  velocity?: number; // Note velocity (0-127)
-  gate?: number; // Gate length override for this step (0-1)
-}
+import { calculateMiddleCScrollPosition } from "../../utils/layoutUtils";
+import { constrainToRange } from "../../utils/mathUtils";
+import {
+  constrainMidiVelocity,
+  getMidiNoteName,
+  isBlackKey,
+  normalizeMidiVelocity,
+} from "../../utils/midiUtils";
+import type { SequenceStep } from "../../utils/sequenceUtils";
+import {
+  createEmptySequence,
+  generateRandomSequence,
+  isSequenceCellActive,
+  setSequenceStepNote,
+  setSequenceStepVelocity,
+  stepHasNote,
+} from "../../utils/sequenceUtils";
 
 interface PianoRollModalProps {
   isOpen: boolean;
@@ -19,33 +30,6 @@ interface PianoRollModalProps {
   onSequenceChange: (sequence: SequenceStep[]) => void;
   onStepsChange: (steps: number) => void;
   onTransposeChange: (transpose: number) => void;
-}
-
-// Piano key helpers
-const BLACK_KEYS = [1, 3, 6, 8, 10]; // C#, D#, F#, G#, A#
-
-function isBlackKey(noteIndex: number): boolean {
-  return BLACK_KEYS.includes(noteIndex % 12);
-}
-
-function getNoteName(midiNote: number): string {
-  const noteNames = [
-    "C",
-    "C#",
-    "D",
-    "D#",
-    "E",
-    "F",
-    "F#",
-    "G",
-    "G#",
-    "A",
-    "A#",
-    "B",
-  ];
-  const noteIndex = midiNote % 12;
-  const octaveNumber = Math.floor(midiNote / 12) - 1;
-  return `${noteNames[noteIndex]}${octaveNumber}`;
 }
 
 export const PianoRollModal: React.FC<PianoRollModalProps> = ({
@@ -63,17 +47,13 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
   // Scroll to C4 (MIDI 60) on initial mount
   React.useEffect(() => {
     if (isOpen && gridContainerRef.current) {
-      // C4 is MIDI note 60, counting from 0 (C-1), so it's at index 60
-      // Each row is ~26px (25px height + 1px gap)
-      // We want C4 centered, so scroll to its position based on container height
-      // Total notes: 128, C4 is at index 60 from bottom
-      // From top: 128 - 60 - 1 = 67
       const rowHeight = 26; // 25px + 1px gap
-      const c4IndexFromTop = 128 - 60 - 1;
       const containerHeight = gridContainerRef.current.clientHeight;
-      const c4Position = c4IndexFromTop * rowHeight;
-      const scrollPosition = c4Position - containerHeight / 2 + rowHeight / 2;
-      gridContainerRef.current.scrollTop = Math.max(0, scrollPosition);
+      const scrollPosition = calculateMiddleCScrollPosition(
+        containerHeight,
+        rowHeight,
+      );
+      gridContainerRef.current.scrollTop = scrollPosition;
     }
   }, [isOpen]);
 
@@ -83,75 +63,22 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
   const allNotes = Array.from({ length: 128 }, (_, i) => i);
 
   const handleCellClick = (stepIndex: number, midiNote: number) => {
-    const newSequence = [...sequence];
-
-    // Ensure sequence is long enough
-    while (newSequence.length <= stepIndex) {
-      newSequence.push({});
-    }
-
-    const currentStep = newSequence[stepIndex];
-    if (currentStep.note === midiNote) {
-      // Remove note if clicking on existing note
-      newSequence[stepIndex] = { ...currentStep, note: undefined };
-    } else {
-      // Add or change note
-      newSequence[stepIndex] = {
-        ...currentStep,
-        note: midiNote,
-        velocity: currentStep.velocity ?? 100,
-      };
-    }
-
+    const newSequence = setSequenceStepNote(sequence, stepIndex, midiNote);
     onSequenceChange(newSequence);
   };
 
   const handleVelocityChange = (stepIndex: number, velocity: number) => {
-    const newSequence = [...sequence];
-    // Ensure sequence is long enough
-    while (newSequence.length <= stepIndex) {
-      newSequence.push({});
-    }
-
-    if (newSequence[stepIndex]?.note !== undefined) {
-      newSequence[stepIndex] = { ...newSequence[stepIndex], velocity };
-    } else {
-      // If there's no note, don't set velocity
-      return;
-    }
+    const newSequence = setSequenceStepVelocity(sequence, stepIndex, velocity);
     onSequenceChange(newSequence);
   };
 
   const clearSequence = () => {
-    onSequenceChange(new Array(steps).fill({}));
+    onSequenceChange(createEmptySequence(steps));
   };
 
   const randomizeSequence = () => {
-    const newSequence = Array.from({ length: steps }, () => {
-      // 70% chance of having a note
-      if (Math.random() > 0.3) {
-        const randomNote = Math.floor(Math.random() * 128); // Random note 0-127
-        const randomVelocity = 60 + Math.random() * 67; // 60-127
-        return { note: randomNote, velocity: Math.floor(randomVelocity) };
-      }
-      return {};
-    });
+    const newSequence = generateRandomSequence(steps);
     onSequenceChange(newSequence);
-  };
-
-  // Get the displayed note for a given programmed note (with transpose applied)
-  const getDisplayedNote = (programmedNote: number): number => {
-    return Math.max(0, Math.min(127, programmedNote + transpose));
-  };
-
-  // Check if a cell should be active (note is programmed and transposed to this position)
-  const isCellActive = (
-    stepIndex: number,
-    displayMidiNote: number,
-  ): boolean => {
-    const step = sequence[stepIndex];
-    if (!step || step.note === undefined) return false;
-    return getDisplayedNote(step.note) === displayMidiNote;
   };
 
   return createPortal(
@@ -177,9 +104,10 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === "") return;
-                  const numValue = Math.max(
+                  const numValue = constrainToRange(
+                    parseInt(value, 10) || 1,
                     1,
-                    Math.min(32, parseInt(value, 10) || 1),
+                    32,
                   );
                   onStepsChange(numValue);
                 }}
@@ -203,9 +131,10 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === "" || value === "-") return;
-                  const numValue = Math.max(
+                  const numValue = constrainToRange(
+                    parseInt(value, 10) || 0,
                     -24,
-                    Math.min(24, parseInt(value, 10) || 0),
+                    24,
                   );
                   onTransposeChange(numValue);
                 }}
@@ -245,13 +174,18 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
                       <div
                         className={`note-label ${isBlackKey(midiNote) ? "black-key" : "white-key"}`}
                       >
-                        {getNoteName(midiNote)}
+                        {getMidiNoteName(midiNote)}
                       </div>
 
                       {/* Grid cells for this row */}
                       <div className="note-cells">
                         {Array.from({ length: steps }, (_, stepIndex) => {
-                          const hasNote = isCellActive(stepIndex, midiNote);
+                          const hasNote = isSequenceCellActive(
+                            sequence,
+                            stepIndex,
+                            midiNote,
+                            transpose,
+                          );
                           const step = sequence[stepIndex];
                           const velocity = step?.velocity ?? 100;
                           return (
@@ -262,7 +196,9 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
                                 handleCellClick(stepIndex, midiNote)
                               }
                               style={{
-                                opacity: hasNote ? velocity / 127 : 0.1,
+                                opacity: hasNote
+                                  ? normalizeMidiVelocity(velocity)
+                                  : 0.1,
                               }}
                             />
                           );
@@ -283,7 +219,7 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
             <div className="velocity-sliders">
               {Array.from({ length: steps }, (_, stepIndex) => {
                 const step = sequence[stepIndex];
-                const hasNote = step?.note !== undefined;
+                const hasNote = stepHasNote(step);
                 const velocity = step?.velocity ?? 100;
                 return (
                   <div key={stepIndex} className="velocity-slider-container">
@@ -297,9 +233,8 @@ export const PianoRollModal: React.FC<PianoRollModalProps> = ({
                       onChange={(e) => {
                         const value = e.target.value;
                         if (value === "") return;
-                        const numValue = Math.max(
-                          1,
-                          Math.min(127, parseInt(value, 10) || 1),
+                        const numValue = constrainMidiVelocity(
+                          parseInt(value, 10) || 1,
                         );
                         handleVelocityChange(stepIndex, numValue);
                       }}

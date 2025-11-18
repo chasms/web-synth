@@ -1,3 +1,4 @@
+import { ensureNonNegative, normalizeToUnitRange } from "../../utils/mathUtils";
 import type { CreateModuleFn, ModuleInstance, PortDefinition } from "../types";
 
 export interface ADSRParams {
@@ -171,37 +172,37 @@ export const createADSR: CreateModuleFn<ADSRParams> = (context, parameters) => {
         partial["attack"] !== undefined &&
         typeof partial["attack"] === "number"
       ) {
-        attackTime = Math.max(0, partial["attack"]);
+        attackTime = ensureNonNegative(partial["attack"]);
       }
       if (
         partial["hold"] !== undefined &&
         typeof partial["hold"] === "number"
       ) {
-        holdTime = Math.max(0, partial["hold"]);
+        holdTime = ensureNonNegative(partial["hold"]);
       }
       if (
         partial["decay"] !== undefined &&
         typeof partial["decay"] === "number"
       ) {
-        decayTime = Math.max(0, partial["decay"]);
+        decayTime = ensureNonNegative(partial["decay"]);
       }
       if (
         partial["sustain"] !== undefined &&
         typeof partial["sustain"] === "number"
       ) {
-        sustainLevel = Math.min(1, Math.max(0, partial["sustain"]));
+        sustainLevel = normalizeToUnitRange(partial["sustain"]);
       }
       if (
         partial["release"] !== undefined &&
         typeof partial["release"] === "number"
       ) {
-        releaseTime = Math.max(0, partial["release"]);
+        releaseTime = ensureNonNegative(partial["release"]);
       }
       if (
         partial["gain"] !== undefined &&
         typeof partial["gain"] === "number"
       ) {
-        peakScale = Math.max(0, partial["gain"]);
+        peakScale = ensureNonNegative(partial["gain"]);
       }
     },
     getParams() {
