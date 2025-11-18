@@ -3,6 +3,12 @@
  * Handles module placement with surface-area aware collision detection and optimal positioning
  */
 
+import type { RectangleBounds } from "../../../utils/layoutUtils";
+import {
+  doRectanglesOverlap,
+  expandRectangle,
+} from "../../../utils/layoutUtils";
+
 export interface ModuleBounds {
   x: number;
   y: number;
@@ -74,20 +80,25 @@ export function doModulesOverlapWithSpacing(
   bounds2: ModuleBounds,
   minimumSpacing: number = getMinimumSpacing(),
 ): boolean {
-  // Expand bounds by minimum spacing to ensure adequate separation
-  const expandedBounds1 = {
-    x: bounds1.x - minimumSpacing,
-    y: bounds1.y - minimumSpacing,
-    width: bounds1.width + minimumSpacing * 2,
-    height: bounds1.height + minimumSpacing * 2,
+  // Convert ModuleBounds to RectangleBounds (x/y -> left/top)
+  const rect1: RectangleBounds = {
+    left: bounds1.x,
+    top: bounds1.y,
+    width: bounds1.width,
+    height: bounds1.height,
   };
 
-  return !(
-    expandedBounds1.x + expandedBounds1.width <= bounds2.x ||
-    bounds2.x + bounds2.width <= expandedBounds1.x ||
-    expandedBounds1.y + expandedBounds1.height <= bounds2.y ||
-    bounds2.y + bounds2.height <= expandedBounds1.y
-  );
+  const rect2: RectangleBounds = {
+    left: bounds2.x,
+    top: bounds2.y,
+    width: bounds2.width,
+    height: bounds2.height,
+  };
+
+  // Expand bounds by minimum spacing to ensure adequate separation
+  const expandedRect1 = expandRectangle(rect1, minimumSpacing);
+
+  return doRectanglesOverlap(expandedRect1, rect2);
 }
 
 /**

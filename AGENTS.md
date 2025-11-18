@@ -395,6 +395,335 @@ See `docs/templates/FRONTEND_BUG_REPORT.md` for the required format.
 - Use TypeScript interfaces for synthesizer parameter objects
 - Avoid abbreviations and acronyms in variable, function, and type names; prefer fully spelled-out descriptive identifiers (e.g., `oscillatorNode` not `osc`, `outputGainNode` not `out`).
 
+## Pure Functional Patterns & Code Organization
+
+**Maximize code testability and maintainability by extracting business logic into pure functions organized in utility modules.**
+
+### Core Principles
+
+1. **Pure Functions**: Functions with no side effects that always return the same output for the same input
+2. **Immutability**: Never mutate input parameters; always return new values
+3. **Single Responsibility**: Each function should do one thing well
+4. **Descriptive Naming**: Use full words, no abbreviations (e.g., `constrainToRange` not `clamp`)
+5. **Type Safety**: Leverage TypeScript's type system for compile-time guarantees
+
+### Utility Module Organization
+
+**All reusable utility functions should be organized in `/src/utils/` by domain:**
+
+```
+src/utils/
+├── mathUtils.ts          # Mathematical operations (constrain, interpolate, etc.)
+├── midiUtils.ts          # MIDI note/music theory functions
+├── sequenceUtils.ts      # Sequence manipulation functions
+├── validationUtils.ts    # Input validation and parsing
+├── layoutUtils.ts        # Layout and positioning calculations
+└── [domain]Utils.ts      # Other domain-specific utilities
+```
+
+**Each utility module should have:**
+- A corresponding `.test.ts` file with comprehensive unit tests
+- JSDoc comments explaining each function's purpose, parameters, and return values
+- Exported constants for magic numbers and reusable values
+- Pure functions only (no side effects, no state)
+
+### When to Extract a Pure Function
+
+**Extract business logic when you find:**
+
+1. **Calculations**: Any mathematical computation (clamping, scaling, interpolation)
+2. **Transformations**: Converting data from one format to another
+3. **Validations**: Checking if values meet criteria
+4. **Derived Values**: Computing values based on inputs
+5. **Business Rules**: Logic that implements domain requirements
+6. **Repeated Logic**: Code patterns that appear in multiple places
+
+**Example: Extracting from a Component**
+
+```typescript
+// ❌ Before: Logic embedded in component
+function PianoRollModal() {
+  const handleCellClick = (stepIndex: number, midiNote: number) => {
+    const newSequence = [...sequence];
+    while (newSequence.length <= stepIndex) {
+      newSequence.push({});
+    }
+    const currentStep = newSequence[stepIndex];
+    if (currentStep.note === midiNote) {
+      newSequence[stepIndex] = { ...currentStep, note: undefined };
+    } else {
+      newSequence[stepIndex] = {
+        ...currentStep,
+        note: midiNote,
+        velocity: currentStep.velocity ?? 100,
+      };
+    }
+    onSequenceChange(newSequence);
+  };
+}
+
+// ✅ After: Pure function extracted to utility module
+// In src/utils/sequenceUtils.ts
+export function setSequenceStepNote(
+  sequence: SequenceStep[],
+  stepIndex: number,
+  midiNote: number,
+  velocity: number = DEFAULT_VELOCITY,
+): SequenceStep[] {
+  const workingSequence = ensureSequenceLength(sequence, stepIndex + 1);
+  const newSequence = [...workingSequence];
+  const currentStep = newSequence[stepIndex];
+
+  if (currentStep.note === midiNote) {
+    newSequence[stepIndex] = { ...currentStep, note: undefined };
+  } else {
+    newSequence[stepIndex] = {
+      ...currentStep,
+      note: midiNote,
+      velocity: currentStep.velocity ?? velocity,
+    };
+  }
+
+  return newSequence;
+}
+
+// In component
+import { setSequenceStepNote } from '../../utils/sequenceUtils';
+
+function PianoRollModal() {
+  const handleCellClick = (stepIndex: number, midiNote: number) => {
+    const newSequence = setSequenceStepNote(sequence, stepIndex, midiNote);
+    onSequenceChange(newSequence);
+  };
+}
+```
+
+### Pure Function Guidelines
+
+**Structure:**
+```typescript
+/**
+ * Brief description of what the function does
+ * @param parameterName - Description of parameter
+ * @returns Description of return value
+ */
+export function functionName(
+  parameterName: ParameterType,
+  anotherParameter: AnotherType,
+): ReturnType {
+  // Implementation
+  return result;
+}
+```
+
+**Characteristics of Good Pure Functions:**
+
+✅ **Do:**
+- Return new objects/arrays instead of mutating inputs
+- Use descriptive parameter and variable names
+- Keep functions short and focused (< 20 lines ideal)
+- Use early returns for edge cases
+- Provide default parameter values when appropriate
+- Export constants for magic numbers
+- Include comprehensive JSDoc comments
+
+❌ **Don't:**
+- Mutate input parameters
+- Access external state or variables
+- Perform I/O operations (console.log, fetch, localStorage)
+- Access DOM elements
+- Generate random values without accepting a seed parameter
+- Use timestamps or dates without passing them as parameters
+
+**Example: Well-Structured Pure Functions**
+
+```typescript
+// src/utils/mathUtils.ts
+
+/**
+ * Constrains a value to be within a specified range
+ * @param value - The value to constrain
+ * @param minimum - The minimum allowed value
+ * @param maximum - The maximum allowed value
+ * @returns The constrained value
+ */
+export function constrainToRange(
+  value: number,
+  minimum: number,
+  maximum: number,
+): number {
+  return Math.min(maximum, Math.max(minimum, value));
+}
+
+/**
+ * Maps a value from one range to another
+ * @param value - The value to map
+ * @param fromMinimum - The minimum of the source range
+ * @param fromMaximum - The maximum of the source range
+ * @param toMinimum - The minimum of the target range
+ * @param toMaximum - The maximum of the target range
+ * @returns The mapped value
+ */
+export function mapRange(
+  value: number,
+  fromMinimum: number,
+  fromMaximum: number,
+  toMinimum: number,
+  toMaximum: number,
+): number {
+  const normalizedValue = (value - fromMinimum) / (fromMaximum - fromMinimum);
+  return toMinimum + normalizedValue * (toMaximum - toMinimum);
+}
+```
+
+### Testing Pure Functions
+
+**Pure functions are trivial to test:**
+
+```typescript
+// src/utils/mathUtils.test.ts
+import { describe, it, expect } from 'vitest';
+import { constrainToRange, mapRange } from './mathUtils';
+
+describe('mathUtils', () => {
+  describe('constrainToRange', () => {
+    // Test normal cases
+    it('should return value when within range', () => {
+      expect(constrainToRange(5, 0, 10)).toBe(5);
+    });
+
+    // Test edge cases
+    it('should constrain to minimum when too low', () => {
+      expect(constrainToRange(-5, 0, 10)).toBe(0);
+    });
+
+    it('should constrain to maximum when too high', () => {
+      expect(constrainToRange(15, 0, 10)).toBe(10);
+    });
+
+    // Test boundary conditions
+    it('should accept values at boundaries', () => {
+      expect(constrainToRange(0, 0, 10)).toBe(0);
+      expect(constrainToRange(10, 0, 10)).toBe(10);
+    });
+  });
+
+  describe('mapRange', () => {
+    it('should map value from one range to another', () => {
+      expect(mapRange(5, 0, 10, 0, 100)).toBe(50);
+    });
+
+    it('should handle inverted ranges', () => {
+      expect(mapRange(5, 0, 10, 100, 0)).toBe(50);
+    });
+  });
+});
+```
+
+### Integration with Components
+
+**Components should:**
+1. Import pure functions from utility modules
+2. Handle user interactions and events
+3. Manage local UI state with React hooks
+4. Call pure functions with current state
+5. Update state with results from pure functions
+
+**Example Pattern:**
+
+```typescript
+// Component handles UI concerns
+export function MyComponent({ data, onDataChange }) {
+  const [localState, setLocalState] = useState(data);
+
+  const handleUserAction = (userInput: string) => {
+    // Validate using pure function
+    const validationResult = validateInput(userInput);
+    if (!validationResult.isValid) {
+      showError(validationResult.errorMessage);
+      return;
+    }
+
+    // Transform using pure function
+    const transformedData = transformData(localState, validationResult.value);
+
+    // Calculate using pure function
+    const computedValue = computeDerivedValue(transformedData);
+
+    // Update state and notify parent
+    setLocalState(transformedData);
+    onDataChange(transformedData);
+  };
+
+  return (
+    <div>
+      {/* Render UI */}
+    </div>
+  );
+}
+```
+
+### Available Utility Modules
+
+**Current utility modules in `/src/utils/`:**
+
+1. **mathUtils.ts** - Mathematical operations
+   - `constrainToRange()`, `clampValue()`, `ensureNonNegative()`
+   - `linearInterpolate()`, `mapRange()`
+   - `normalizeToUnitRange()`, `ensurePositive()`
+   - `roundToDecimalPlaces()`, `approximatelyEqual()`
+
+2. **midiUtils.ts** - MIDI and music theory
+   - `isBlackKey()`, `isWhiteKey()`, `getMidiNoteName()`
+   - `transposeMidiNote()`, `isValidMidiNote()`
+   - `midiNoteToFrequency()`, `frequencyToMidiNote()`
+   - `getMidiNoteOctave()`, `getMidiNoteOffset()`
+   - `constrainMidiVelocity()`, `normalizeMidiVelocity()`
+
+3. **sequenceUtils.ts** - Sequence manipulation
+   - `ensureSequenceLength()`, `setSequenceStepNote()`
+   - `setSequenceStepVelocity()`, `createEmptySequence()`
+   - `generateRandomSequence()`, `transposeSequence()`
+   - `countNotesInSequence()`, `extractSubsequence()`
+
+4. **validationUtils.ts** - Input validation and parsing
+   - `parseNumberInput()`, `parseAndConstrainNumber()`
+   - `parseIntegerInput()`, `isValueInRange()`
+   - `formatNumberForDisplay()`, `formatPercentage()`
+   - `sanitizeNumericInput()`, `parseBoolean()`
+
+5. **layoutUtils.ts** - Layout and positioning
+   - `calculateCenterScrollPosition()`, `calculatePianoRollNotePosition()`
+   - `calculateRectangleCenterX()`, `calculateRectangleCenterY()`
+   - `areElementsAlignedHorizontally()`, `areElementsAlignedVertically()`
+   - `doRectanglesOverlap()`, `expandRectangle()`
+   - `calculateDistance()`, `isPointInRectangle()`
+
+**When adding new utilities:**
+1. Choose or create appropriate domain module
+2. Write function with JSDoc comments
+3. Export any related constants
+4. Write comprehensive unit tests
+5. Update this documentation list
+
+### Refactoring Checklist
+
+**When refactoring code to extract pure functions:**
+
+- [ ] Identify business logic embedded in components/hooks
+- [ ] Extract logic into appropriately named utility functions
+- [ ] Use descriptive, fully-spelled-out names (no abbreviations)
+- [ ] Ensure functions are pure (no side effects)
+- [ ] Add comprehensive JSDoc comments
+- [ ] Write unit tests covering:
+  - [ ] Normal/happy path cases
+  - [ ] Edge cases (boundaries, empty inputs)
+  - [ ] Error cases (invalid inputs)
+  - [ ] Type coercion if applicable
+- [ ] Update component to use utility function
+- [ ] Run all quality checks (lintfix, stylelintfix, typecheck, test)
+- [ ] Verify component still works correctly
+
 ## Requirement-Oriented Development Framework
 
 **Adopt a skeptical validation approach over optimistic assumptions. Every feature must be rigorously validated before being considered complete.**

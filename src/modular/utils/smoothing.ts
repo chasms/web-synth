@@ -8,6 +8,8 @@
  *  - 'setTarget': one-pole smoothing using setTargetAtTime with timeConstant
  */
 
+import { clampValue, ensurePositive } from "../../utils/mathUtils";
+
 export type SmoothMode = "linear" | "exp" | "setTarget";
 
 export interface SmoothOptions {
@@ -35,13 +37,14 @@ const DEFAULTS: Required<Omit<SmoothOptions, "clamp">> = {
   epsilon: 1e-5,
 };
 
-function clampValue(v: number, clamp?: { min?: number; max?: number }): number {
-  if (!clamp) return v;
-  const { min, max } = clamp;
-  let out = v;
-  if (min !== undefined) out = Math.max(min, out);
-  if (max !== undefined) out = Math.min(max, out);
-  return out;
+function clampValueInternal(
+  value: number,
+  clamp?: { min?: number; max?: number },
+): number {
+  return clampValue(value, {
+    minimum: clamp?.min,
+    maximum: clamp?.max,
+  });
 }
 
 /**
@@ -57,7 +60,7 @@ export function smoothParam(
   const { mode, time, timeConstant, cancelPrevious, minDelta, epsilon, clamp } =
     { ...DEFAULTS, ...options } as Required<SmoothOptions>;
 
-  const clampedTarget = clampValue(target, clamp);
+  const clampedTarget = clampValueInternal(target, clamp);
 
   // Anchor from the latest instantaneous value to avoid stale tails
   const current = param.value;
@@ -71,15 +74,15 @@ export function smoothParam(
 
   switch (mode) {
     case "linear": {
-      const horizon = Math.max(0.001, time);
+      const horizon = ensurePositive(time, 0.001);
       param.linearRampToValueAtTime(clampedTarget, now + horizon);
       break;
     }
     case "exp": {
       // Use setTargetAtTime with a timeConstant derived from requested time
-      const tc = Math.max(0.001, time / 3);
-      const safeStart = Math.max(epsilon, current);
-      const safeTarget = Math.max(epsilon, clampedTarget);
+      const tc = ensurePositive(time / 3, 0.001);
+      const safeStart = ensurePositive(current, epsilon);
+      const safeTarget = ensurePositive(clampedTarget, epsilon);
       param.setValueAtTime(safeStart, now);
       param.setTargetAtTime(safeTarget, now, tc);
       // Optionally land near the target after ~4 tau
@@ -88,7 +91,7 @@ export function smoothParam(
     }
     case "setTarget":
     default: {
-      const tc = Math.max(0.001, timeConstant);
+      const tc = ensurePositive(timeConstant, 0.001);
       // setTarget works across zero; no special epsilon handling needed here
       param.setTargetAtTime(clampedTarget, now, tc);
       // Optionally land at the target later to avoid long tails when reading value

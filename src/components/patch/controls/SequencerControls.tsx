@@ -1,13 +1,9 @@
 import React from "react";
 
 import type { ModuleInstance } from "../../../modular/types";
+import type { SequenceStep } from "../../../utils/sequenceUtils";
+import { formatPercentage } from "../../../utils/validationUtils";
 import { PianoRollModal } from "../../modals/PianoRollModal";
-
-interface SequenceStep {
-  note?: number;
-  velocity?: number;
-  gate?: number;
-}
 
 interface SequencerControlsProps {
   module: ModuleInstance;
@@ -190,7 +186,7 @@ export const SequencerControls: React.FC<SequencerControlsProps> = ({
               className="control-slider"
             />
             <span className="value-display">
-              {Math.round(gateLength * 100)}%
+              {formatPercentage(gateLength)}
             </span>
           </div>
         </div>
@@ -208,8 +204,7 @@ export const SequencerControls: React.FC<SequencerControlsProps> = ({
               className="control-slider"
             />
             <span className="value-display">
-              {swing >= 0 ? "+" : ""}
-              {Math.round(swing * 100)}%
+              {formatPercentage(swing, true)}
             </span>
           </div>
         </div>
