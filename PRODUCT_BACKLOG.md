@@ -1,6 +1,6 @@
 # Web Audio Minimoog Synthesizer - Product Backlog
 
-_Last Updated: October 21, 2025 - Added MIDI Input module acceptance criteria and VCO pitch CV base frequency fix_
+_Last Updated: November 18, 2025 - Completed comprehensive tests for parameter smoothing utility_
 
 ## Current Implementation ✅
 
@@ -765,7 +765,7 @@ Acceptance Criteria:
 - [x] Cancellation safety: cancels prior ramps cleanly
 - [x] Minimum delta threshold to skip smoothing on trivial changes
 - [x] Works with AudioParam & wrapper for multiple params
-- [ ] Tests measure step discontinuities below tolerance
+- [x] Tests measure step discontinuities below tolerance
 
 Stretch:
 
