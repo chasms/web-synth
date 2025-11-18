@@ -220,10 +220,33 @@ export function isValidArrayIndex(index: number, arrayLength: number): boolean {
 }
 
 /**
- * Sanitizes a numeric input by removing non-numeric characters (except decimal point and minus sign)
+ * Sanitizes a numeric input by removing non-numeric characters and ensuring valid number format
+ * Ensures at most one leading minus sign and one decimal point
  * @param input - The input string to sanitize
- * @returns The sanitized string
+ * @returns The sanitized string with valid numeric format
+ * @example
+ * sanitizeNumericInput("12.34.56") // "12.3456"
+ * sanitizeNumericInput("--12") // "-12"
+ * sanitizeNumericInput("12-34") // "1234"
  */
 export function sanitizeNumericInput(input: string): string {
-  return input.replace(/[^\d.-]/g, "");
+  // Remove all non-digit, non-decimal, non-minus characters
+  let sanitized = input.replace(/[^\d.-]/g, "");
+
+  // Check if the minus appears before any digits (leading position)
+  const hasLeadingMinus = /^-/.test(sanitized);
+
+  // Only allow a single leading minus sign
+  sanitized = sanitized.replace(/-/g, "");
+  if (hasLeadingMinus) {
+    sanitized = "-" + sanitized;
+  }
+
+  // Only allow a single decimal point
+  const parts = sanitized.split(".");
+  if (parts.length > 1) {
+    sanitized = parts[0] + "." + parts.slice(1).join("");
+  }
+
+  return sanitized;
 }

@@ -313,5 +313,46 @@ describe("validationUtils", () => {
     it("should remove spaces", () => {
       expect(sanitizeNumericInput("1 2 3")).toBe("123");
     });
+
+    it("should handle multiple decimal points", () => {
+      expect(sanitizeNumericInput("12.34.56")).toBe("12.3456");
+      expect(sanitizeNumericInput("1.2.3.4")).toBe("1.234");
+      expect(sanitizeNumericInput("..12")).toBe(".12");
+    });
+
+    it("should handle multiple minus signs", () => {
+      expect(sanitizeNumericInput("--12")).toBe("-12");
+      expect(sanitizeNumericInput("---12")).toBe("-12");
+      expect(sanitizeNumericInput("--12.34")).toBe("-12.34");
+    });
+
+    it("should remove minus signs that are not leading", () => {
+      expect(sanitizeNumericInput("12-34")).toBe("1234");
+      expect(sanitizeNumericInput("12.34-56")).toBe("12.3456");
+      expect(sanitizeNumericInput("12-")).toBe("12");
+    });
+
+    it("should handle complex invalid inputs", () => {
+      expect(sanitizeNumericInput("--12.34.56")).toBe("-12.3456");
+      expect(sanitizeNumericInput("$-12.34.56abc")).toBe("-12.3456");
+      expect(sanitizeNumericInput("12.-34-.56")).toBe("12.3456");
+    });
+
+    it("should preserve leading minus with whitespace", () => {
+      expect(sanitizeNumericInput("  -12")).toBe("-12");
+      expect(sanitizeNumericInput("  -12.34")).toBe("-12.34");
+    });
+
+    it("should handle only special characters", () => {
+      expect(sanitizeNumericInput("---")).toBe("-");
+      expect(sanitizeNumericInput("...")).toBe(".");
+      expect(sanitizeNumericInput("-.-")).toBe("-.");
+    });
+
+    it("should handle decimal-only inputs", () => {
+      expect(sanitizeNumericInput(".5")).toBe(".5");
+      expect(sanitizeNumericInput("-.5")).toBe("-.5");
+      expect(sanitizeNumericInput(".")).toBe(".");
+    });
   });
 });
