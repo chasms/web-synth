@@ -227,18 +227,3 @@ export function isValidArrayIndex(index: number, arrayLength: number): boolean {
 export function sanitizeNumericInput(input: string): string {
   return input.replace(/[^\d.-]/g, "");
 }
-
-/**
- * Checks if two numbers are approximately equal within a tolerance
- * @param a - First number
- * @param b - Second number
- * @param tolerance - The tolerance for equality (default: 1e-6)
- * @returns True if the numbers are approximately equal
- */
-export function approximatelyEqual(
-  a: number,
-  b: number,
-  tolerance: number = 1e-6,
-): boolean {
-  return Math.abs(a - b) < tolerance;
-}

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  approximatelyEqual,
   formatNumberForDisplay,
   formatPercentage,
   isNonEmptyString,
@@ -313,33 +312,6 @@ describe("validationUtils", () => {
 
     it("should remove spaces", () => {
       expect(sanitizeNumericInput("1 2 3")).toBe("123");
-    });
-  });
-
-  describe("approximatelyEqual", () => {
-    it("should return true for equal numbers", () => {
-      expect(approximatelyEqual(5, 5)).toBe(true);
-      expect(approximatelyEqual(0, 0)).toBe(true);
-    });
-
-    it("should return true for numbers within default tolerance", () => {
-      expect(approximatelyEqual(5, 5.0000001)).toBe(true);
-      expect(approximatelyEqual(5, 4.9999999)).toBe(true);
-    });
-
-    it("should return false for numbers outside default tolerance", () => {
-      expect(approximatelyEqual(5, 5.001)).toBe(false);
-      expect(approximatelyEqual(5, 4.999)).toBe(false);
-    });
-
-    it("should respect custom tolerance", () => {
-      expect(approximatelyEqual(5, 5.05, 0.1)).toBe(true);
-      expect(approximatelyEqual(5, 5.05, 0.01)).toBe(false);
-    });
-
-    it("should work with negative numbers", () => {
-      expect(approximatelyEqual(-5, -5.0000001)).toBe(true);
-      expect(approximatelyEqual(-5, -5.001)).toBe(false);
     });
   });
 });
