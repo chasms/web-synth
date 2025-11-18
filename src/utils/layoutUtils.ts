@@ -115,30 +115,30 @@ export function calculateVerticalOffset(
  * Checks if two elements are aligned horizontally within a tolerance
  * @param element1CenterX - The center X position of the first element
  * @param element2CenterX - The center X position of the second element
- * @param tolerance - The alignment tolerance in pixels (default: 1)
- * @returns True if the elements are aligned within tolerance
+ * @param tolerance - The alignment tolerance in pixels (default: 1, inclusive)
+ * @returns True if the elements are aligned within tolerance (inclusive)
  */
 export function areElementsAlignedHorizontally(
   element1CenterX: number,
   element2CenterX: number,
   tolerance: number = 1,
 ): boolean {
-  return Math.abs(element1CenterX - element2CenterX) < tolerance;
+  return Math.abs(element1CenterX - element2CenterX) <= tolerance;
 }
 
 /**
  * Checks if two elements are aligned vertically within a tolerance
  * @param element1CenterY - The center Y position of the first element
  * @param element2CenterY - The center Y position of the second element
- * @param tolerance - The alignment tolerance in pixels (default: 1)
- * @returns True if the elements are aligned within tolerance
+ * @param tolerance - The alignment tolerance in pixels (default: 1, inclusive)
+ * @returns True if the elements are aligned within tolerance (inclusive)
  */
 export function areElementsAlignedVertically(
   element1CenterY: number,
   element2CenterY: number,
   tolerance: number = 1,
 ): boolean {
-  return Math.abs(element1CenterY - element2CenterY) < tolerance;
+  return Math.abs(element1CenterY - element2CenterY) <= tolerance;
 }
 
 /**

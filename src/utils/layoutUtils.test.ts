@@ -168,6 +168,12 @@ describe("layoutUtils", () => {
       expect(areElementsAlignedHorizontally(100, 100.9)).toBe(true);
       expect(areElementsAlignedHorizontally(100, 101.1)).toBe(false);
     });
+
+    it("should include boundary case (exactly at tolerance)", () => {
+      expect(areElementsAlignedHorizontally(100, 101)).toBe(true); // Exactly 1.0
+      expect(areElementsAlignedHorizontally(100, 99)).toBe(true); // Exactly -1.0
+      expect(areElementsAlignedHorizontally(100, 101.01)).toBe(false); // Just over
+    });
   });
 
   describe("areElementsAlignedVertically", () => {
@@ -183,6 +189,12 @@ describe("layoutUtils", () => {
     it("should use default tolerance of 1", () => {
       expect(areElementsAlignedVertically(100, 100.9)).toBe(true);
       expect(areElementsAlignedVertically(100, 101.1)).toBe(false);
+    });
+
+    it("should include boundary case (exactly at tolerance)", () => {
+      expect(areElementsAlignedVertically(100, 101)).toBe(true); // Exactly 1.0
+      expect(areElementsAlignedVertically(100, 99)).toBe(true); // Exactly -1.0
+      expect(areElementsAlignedVertically(100, 101.01)).toBe(false); // Just over
     });
   });
 
