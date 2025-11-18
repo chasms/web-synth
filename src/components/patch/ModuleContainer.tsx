@@ -43,7 +43,7 @@ const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
     controlsComponent: AHDSRControls,
   },
   [ModuleType.SATURATOR]: {
-    controlsExtraHeight: 200,
+    controlsExtraHeight: 240,
     width: 180,
     controlsComponent: SaturatorControls,
   },
