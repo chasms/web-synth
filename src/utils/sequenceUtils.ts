@@ -112,12 +112,21 @@ export function createEmptySequence(numberOfSteps: number): SequenceStep[] {
 /**
  * Generates a random sequence with notes
  * @param numberOfSteps - The number of steps in the sequence
- * @param noteProbability - Probability of a step having a note (0-1, default: 0.7)
- * @param minimumNote - Minimum MIDI note (default: 0)
- * @param maximumNote - Maximum MIDI note (default: 127)
- * @param minimumVelocity - Minimum velocity (default: 60)
- * @param maximumVelocity - Maximum velocity (default: 127)
+ * @param options - Configuration options
+ * @param options.noteProbability - Probability of a step having a note (0-1, default: 0.7)
+ * @param options.minimumNote - Minimum MIDI note (default: 0)
+ * @param options.maximumNote - Maximum MIDI note (default: 127)
+ * @param options.minimumVelocity - Minimum velocity (default: 60)
+ * @param options.maximumVelocity - Maximum velocity (default: 127)
+ * @param options.randomNumberGenerator - Random number generator function (default: Math.random)
  * @returns A new random sequence
+ * @example
+ * // Production usage with default Math.random
+ * generateRandomSequence(8)
+ *
+ * // Testing with deterministic RNG
+ * const deterministicRng = () => 0.5;
+ * generateRandomSequence(8, { randomNumberGenerator: deterministicRng })
  */
 export function generateRandomSequence(
   numberOfSteps: number,
@@ -127,6 +136,7 @@ export function generateRandomSequence(
     maximumNote?: number;
     minimumVelocity?: number;
     maximumVelocity?: number;
+    randomNumberGenerator?: () => number;
   } = {},
 ): SequenceStep[] {
   const {
@@ -135,18 +145,22 @@ export function generateRandomSequence(
     maximumNote = 127,
     minimumVelocity = 60,
     maximumVelocity = 127,
+    randomNumberGenerator = Math.random,
   } = options;
 
   return Array.from({ length: numberOfSteps }, () => {
-    if (Math.random() > noteProbability) {
+    if (randomNumberGenerator() > noteProbability) {
       return {}; // Empty step (rest)
     }
 
     const randomNote =
-      minimumNote + Math.floor(Math.random() * (maximumNote - minimumNote + 1));
+      minimumNote +
+      Math.floor(randomNumberGenerator() * (maximumNote - minimumNote + 1));
     const randomVelocity =
       minimumVelocity +
-      Math.floor(Math.random() * (maximumVelocity - minimumVelocity + 1));
+      Math.floor(
+        randomNumberGenerator() * (maximumVelocity - minimumVelocity + 1),
+      );
 
     return { note: randomNote, velocity: randomVelocity };
   });

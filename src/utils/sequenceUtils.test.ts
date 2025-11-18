@@ -194,6 +194,64 @@ describe("sequenceUtils", () => {
       const stepsWithNotes = result.filter((step) => step.note !== undefined);
       expect(stepsWithNotes).toHaveLength(0);
     });
+
+    it("should accept custom random number generator", () => {
+      // Deterministic RNG that returns 0.5 (always creates notes, mid-range values)
+      const deterministicRng = () => 0.5;
+      const result = generateRandomSequence(4, {
+        minimumNote: 60,
+        maximumNote: 72,
+        minimumVelocity: 80,
+        maximumVelocity: 100,
+        noteProbability: 0.7, // 0.5 > 0.7 is false, so all steps will have notes
+        randomNumberGenerator: deterministicRng,
+      });
+
+      // With 0.5, all steps should have notes (0.5 is not > 0.7)
+      expect(result.every((step) => step.note !== undefined)).toBe(true);
+
+      // Each note should be mid-range: 60 + floor(0.5 * 13) = 60 + 6 = 66
+      result.forEach((step) => {
+        expect(step.note).toBe(66);
+        // Each velocity should be mid-range: 80 + floor(0.5 * 21) = 80 + 10 = 90
+        expect(step.velocity).toBe(90);
+      });
+    });
+
+    it("should produce deterministic results with deterministic RNG", () => {
+      let callCount = 0;
+      const values = [0.3, 0.6, 0.4, 0.8, 0.2, 0.9, 0.1, 0.5, 0.7];
+      const sequentialRng = () => values[callCount++ % values.length];
+
+      const result1 = generateRandomSequence(3, {
+        minimumNote: 60,
+        maximumNote: 62,
+        randomNumberGenerator: sequentialRng,
+      });
+
+      // Reset call count
+      callCount = 0;
+      const result2 = generateRandomSequence(3, {
+        minimumNote: 60,
+        maximumNote: 62,
+        randomNumberGenerator: sequentialRng,
+      });
+
+      // Same RNG sequence should produce same results
+      expect(result1).toEqual(result2);
+    });
+
+    it("should handle RNG for empty steps correctly", () => {
+      // RNG that always returns 0.9 (> 0.7, so no notes)
+      const highValueRng = () => 0.9;
+      const result = generateRandomSequence(5, {
+        noteProbability: 0.7,
+        randomNumberGenerator: highValueRng,
+      });
+
+      // All steps should be empty (0.9 > 0.7)
+      expect(result.every((step) => step.note === undefined)).toBe(true);
+    });
   });
 
   describe("stepHasNote", () => {
