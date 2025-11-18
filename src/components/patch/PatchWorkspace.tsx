@@ -271,6 +271,7 @@ export const PatchWorkspace: React.FC = () => {
         created = patch.createModule("SATURATOR", createSaturator, {
           drive: 2.0,
           tone: 500,
+          mix: 1.0,
           output: 0,
         });
         break;

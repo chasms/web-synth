@@ -2,6 +2,139 @@ import React from "react";
 
 import type { ModuleInstance } from "../../../modular/types";
 
+interface SaturationCurveVisualizerProps {
+  drive: number;
+}
+
+/**
+ * Visualizes the saturation transfer function curve.
+ * Shows input vs output to demonstrate how the waveshaping affects the signal.
+ */
+const SaturationCurveVisualizer: React.FC<SaturationCurveVisualizerProps> = ({
+  drive,
+}) => {
+  const width = 160;
+  const height = 80;
+  const points = 100;
+
+  // Generate the saturation curve using the same tanh function as the audio module
+  const pathPoints: string[] = [];
+  const inputSignalPoints: string[] = [];
+
+  for (let i = 0; i < points; i++) {
+    const x = (i / (points - 1)) * width;
+    // Input range: -1 to 1
+    const input = (i / (points - 1)) * 2 - 1;
+
+    // Apply drive and saturation (same as Saturator.ts)
+    const drivenInput = input * drive;
+    const saturated = Math.tanh(drivenInput * 1.5);
+
+    // Map to screen coordinates (flip y-axis)
+    const inputY = height - ((input + 1) / 2) * height;
+    const outputY = height - ((saturated + 1) / 2) * height;
+
+    pathPoints.push(i === 0 ? `M ${x} ${outputY}` : `L ${x} ${outputY}`);
+    inputSignalPoints.push(i === 0 ? `M ${x} ${inputY}` : `L ${x} ${inputY}`);
+  }
+
+  return (
+    <div
+      style={{
+        padding: "4px 8px",
+        background: "#0a0a0a",
+        borderRadius: "4px",
+        margin: "4px 0",
+      }}
+    >
+      <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+        {/* Grid lines */}
+        <defs>
+          <pattern
+            id="saturation-grid"
+            width="20"
+            height="20"
+            patternUnits="userSpaceOnUse"
+          >
+            <path
+              d="M 20 0 L 0 0 0 20"
+              fill="none"
+              stroke="#333"
+              strokeWidth="0.5"
+              opacity="0.3"
+            />
+          </pattern>
+        </defs>
+        <rect width={width} height={height} fill="url(#saturation-grid)" />
+
+        {/* Center line (0) */}
+        <line
+          x1="0"
+          y1={height / 2}
+          x2={width}
+          y2={height / 2}
+          stroke="#555"
+          strokeWidth="1"
+          opacity="0.5"
+        />
+
+        {/* Unity gain line (input = output, no saturation) */}
+        <line
+          x1="0"
+          y1={height}
+          x2={width}
+          y2="0"
+          stroke="#666"
+          strokeWidth="1"
+          strokeDasharray="2,2"
+          opacity="0.3"
+        />
+
+        {/* Input signal reference (light gray) */}
+        <path
+          d={inputSignalPoints.join(" ")}
+          fill="none"
+          stroke="#666"
+          strokeWidth="1"
+          opacity="0.5"
+        />
+
+        {/* Saturation curve (orange) */}
+        <path
+          d={pathPoints.join(" ")}
+          fill="none"
+          stroke="#ff9500"
+          strokeWidth="2"
+          strokeLinecap="round"
+        />
+
+        {/* Labels */}
+        <text x="4" y="12" fontSize="9" fill="#888" fontFamily="monospace">
+          +1
+        </text>
+        <text
+          x="4"
+          y={height - 2}
+          fontSize="9"
+          fill="#888"
+          fontFamily="monospace"
+        >
+          -1
+        </text>
+        <text
+          x={width - 18}
+          y={height / 2 + 10}
+          fontSize="8"
+          fill="#666"
+          fontFamily="monospace"
+        >
+          in
+        </text>
+      </svg>
+    </div>
+  );
+};
+
 interface NumberControlProps {
   label: string;
   value: number;
@@ -90,6 +223,7 @@ interface SaturatorControlsProps {
  * Provides controls for:
  * - Drive: Input saturation amount (0.5x to 10x)
  * - Tone: High-pass filter for brightness (20Hz to 5000Hz)
+ * - Mix: Dry/wet blend (0% to 100%)
  * - Output: Output level compensation (-12dB to +12dB)
  */
 export const SaturatorControls: React.FC<SaturatorControlsProps> = ({
@@ -103,6 +237,9 @@ export const SaturatorControls: React.FC<SaturatorControlsProps> = ({
   const [tone, setTone] = React.useState<number>(
     typeof initial["tone"] === "number" ? (initial["tone"] as number) : 20,
   );
+  const [mix, setMix] = React.useState<number>(
+    typeof initial["mix"] === "number" ? (initial["mix"] as number) : 1.0,
+  );
   const [output, setOutput] = React.useState<number>(
     typeof initial["output"] === "number" ? (initial["output"] as number) : 0,
   );
@@ -114,11 +251,8 @@ export const SaturatorControls: React.FC<SaturatorControlsProps> = ({
 
   return (
     <div className="module-controls">
-      <div className="module-control">
-        <div className="module-info-text">
-          <span className="module-info-label">TR-303 Saturator</span>
-        </div>
-      </div>
+      {/* Saturation curve visualization */}
+      <SaturationCurveVisualizer drive={drive} />
 
       <NumberControl
         label="Drive"
@@ -143,6 +277,20 @@ export const SaturatorControls: React.FC<SaturatorControlsProps> = ({
         onChange={(v) => {
           setTone(v);
           update({ tone: v });
+        }}
+      />
+
+      <NumberControl
+        label="Mix"
+        value={mix * 100}
+        min={0}
+        max={100}
+        step={1}
+        suffix="%"
+        onChange={(v) => {
+          const normalized = v / 100;
+          setMix(normalized);
+          update({ mix: normalized });
         }}
       />
 

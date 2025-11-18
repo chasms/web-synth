@@ -4,6 +4,7 @@ import { smoothParam } from "../utils/smoothing";
 export interface SaturatorParams {
   drive?: number; // Input drive/saturation (0.5 to 10.0, 1.0 = unity)
   tone?: number; // High-pass filter frequency for brightness (20Hz to 5000Hz)
+  mix?: number; // Dry/wet mix (0.0 = dry, 1.0 = wet)
   output?: number; // Output gain in dB (-12 to +12)
 }
 
@@ -13,9 +14,12 @@ const ports: PortDefinition[] = [
 ];
 
 /**
- * Creates a TR-303 style saturator module with drive, tone, and output controls.
+ * Creates a TR-303 style saturator module with drive, tone, mix, and output controls.
  *
- * Signal chain: input → drive gain → waveshaper (saturation) → tone filter → output gain
+ * Signal chain:
+ * - Dry: input → dry gain → mixer
+ * - Wet: input → drive gain → waveshaper → tone filter → wet gain → mixer
+ * - mixer → output gain
  *
  * The waveshaper provides analog-style soft clipping characteristic of the TR-303.
  */
@@ -25,9 +29,19 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
 ) => {
   const { audioContext, moduleId } = context;
 
+  // Input splitter
+  const inputNode = audioContext.createGain();
+  inputNode.gain.value = 1.0;
+
+  // === DRY PATH ===
+  const dryGainNode = audioContext.createGain();
+  const mix = parameters?.mix ?? 1.0;
+  dryGainNode.gain.value = 1.0 - mix; // Inverse of wet
+
+  // === WET PATH ===
   // Input drive gain (pre-saturation boost)
-  const inputGainNode = audioContext.createGain();
-  inputGainNode.gain.value = parameters?.drive ?? 1.0;
+  const driveGainNode = audioContext.createGain();
+  driveGainNode.gain.value = parameters?.drive ?? 1.0;
 
   // WaveShaper for saturation curve (TR-303 style soft clipping)
   const waveShaperNode = audioContext.createWaveShaper();
@@ -40,24 +54,43 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
   toneFilterNode.frequency.value = parameters?.tone ?? 20; // Default: no filtering
   toneFilterNode.Q.value = 0.707; // Butterworth response
 
-  // Output gain for level compensation
+  // Wet gain for mix control
+  const wetGainNode = audioContext.createGain();
+  wetGainNode.gain.value = mix;
+
+  // === MIXER ===
+  const mixerNode = audioContext.createGain();
+  mixerNode.gain.value = 1.0;
+
+  // === OUTPUT ===
   const outputGainNode = audioContext.createGain();
   const outputDb = parameters?.output ?? 0;
   outputGainNode.gain.value = dbToGain(outputDb);
 
-  // Connect the signal chain
-  inputGainNode.connect(waveShaperNode);
+  // Connect the signal chains
+  // Dry path
+  inputNode.connect(dryGainNode);
+  dryGainNode.connect(mixerNode);
+
+  // Wet path
+  inputNode.connect(driveGainNode);
+  driveGainNode.connect(waveShaperNode);
   waveShaperNode.connect(toneFilterNode);
-  toneFilterNode.connect(outputGainNode);
+  toneFilterNode.connect(wetGainNode);
+  wetGainNode.connect(mixerNode);
+
+  // Output
+  mixerNode.connect(outputGainNode);
 
   const portNodes: ModuleInstance["portNodes"] = {
-    audio_in: inputGainNode,
+    audio_in: inputNode,
     audio_out: outputGainNode,
   };
 
   console.log(`[Saturator ${moduleId}] Created with:`, {
-    drive: inputGainNode.gain.value,
+    drive: driveGainNode.gain.value,
     tone: toneFilterNode.frequency.value,
+    mix,
     outputDb,
     outputGain: outputGainNode.gain.value,
   });
@@ -106,7 +139,7 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
         typeof partial["drive"] === "number"
       ) {
         const nextDrive = Math.max(0.5, Math.min(10, partial["drive"]));
-        smoothParam(audioContext, inputGainNode.gain, nextDrive, {
+        smoothParam(audioContext, driveGainNode.gain, nextDrive, {
           mode: "linear",
           time: 0.02,
         });
@@ -119,6 +152,20 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
         smoothParam(audioContext, toneFilterNode.frequency, nextTone, {
           mode: "setTarget",
           timeConstant: 0.03,
+        });
+      }
+      if (partial["mix"] !== undefined && typeof partial["mix"] === "number") {
+        const nextMix = Math.max(0, Math.min(1, partial["mix"]));
+        // Equal-power crossfade for smooth mixing
+        const wetGain = nextMix;
+        const dryGain = 1.0 - nextMix;
+        smoothParam(audioContext, wetGainNode.gain, wetGain, {
+          mode: "linear",
+          time: 0.02,
+        });
+        smoothParam(audioContext, dryGainNode.gain, dryGain, {
+          mode: "linear",
+          time: 0.02,
         });
       }
       if (
@@ -135,15 +182,20 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
     },
     getParams() {
       return {
-        drive: inputGainNode.gain.value,
+        drive: driveGainNode.gain.value,
         tone: toneFilterNode.frequency.value,
+        mix: wetGainNode.gain.value,
         output: gainToDb(outputGainNode.gain.value),
       };
     },
     dispose() {
-      inputGainNode.disconnect();
+      inputNode.disconnect();
+      dryGainNode.disconnect();
+      driveGainNode.disconnect();
       waveShaperNode.disconnect();
       toneFilterNode.disconnect();
+      wetGainNode.disconnect();
+      mixerNode.disconnect();
       outputGainNode.disconnect();
     },
   };
