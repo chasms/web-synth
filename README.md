@@ -1,8 +1,8 @@
-# Web Audio Minimoog Synthesizer
+# Web Audio Synthesizer - [web-audio-synth.chas.ms](https://web-audio-synth.chas.ms/)
 
 A modern web-based implementation of the classic Minimoog synthesizer, built with React, TypeScript, Vite, and the Web Audio API.
 
-## 🧪 Engineering Methodology
+## Engineering Methodology
 
 This project serves dual purposes: building a functional synthesizer **and** pioneering a rigorous, requirements-driven development framework for AI-assisted coding. Rather than treating AI assistants as code generators, this project establishes systematic engineering practices that enable AI to work like experienced human developers.
 
@@ -18,8 +18,8 @@ This project serves dual purposes: building a functional synthesizer **and** pio
 
 - Write failing tests first, then implement code to pass them
 - Pure function extraction for business logic (easy to test, easy to reason about)
-- Comprehensive test suite with [Vitest](https://vitest.dev/) and React Testing Library
-- ~90% code coverage with unit and integration tests
+- Test suite with [Vitest](https://vitest.dev/) and React Testing Library
+- Unit and integration test coverage for critical features
 
 **Systematic Frontend Debugging**
 
@@ -33,18 +33,17 @@ This project serves dual purposes: building a functional synthesizer **and** pio
 - Four-stage quality gate: `lintfix` → `stylelintfix` → `typecheck` → `test`
 - Strict TypeScript with no implicit any, strict null checks, and full type safety
 - ESLint + Prettier for code consistency
-- Automated pre-commit hooks ensure quality standards
 
 **Architectural Documentation**
 
-- Architecture Decision Records (ADRs) document key design choices
 - Modular patch architecture with CV/Gate semantics (see [Modular Architecture](docs/ARCHITECTURE_MODULAR.md))
 - 1V/Oct pitch standard with frequency conversion utilities
 - Parameter smoothing system to prevent audio artifacts
+- Systematic debugging protocols documented
 
 This methodology produces maintainable, well-tested code with clear requirements traceability—demonstrating that AI can be taught to follow professional engineering practices when given proper tooling and guardrails.
 
-## 🎵 What We've Built
+## What We've Built
 
 ### Current Features
 
@@ -64,7 +63,7 @@ This methodology produces maintainable, well-tested code with clear requirements
 
 **Sequencing & Performance**
 
-- **16-Step Sequencer**: BPM control, gate length, swing, loop mode, and transport controls
+- **Step Sequencer**: 1-32 steps, BPM control, gate length, swing, loop mode, and transport controls
 - **Piano Roll Editor**: Full 128-note MIDI range with velocity controls, transpose (±24 semitones), and vertical scrolling
 - **MIDI Input**: Web MIDI API integration with device selection, channel filtering, transpose, and velocity curves
 - **CV/Gate Signal Generation**: Industry-standard control voltage and gate timing for modular synthesis
@@ -98,21 +97,21 @@ This methodology produces maintainable, well-tested code with clear requirements
 - Type-safe module parameters with TypeScript interfaces
 - Immutable state updates with React best practices
 
-## 🚀 Roadmap
+## Roadmap
 
-Planned enhancements to complete the modular synthesizer platform:
+Potential enhancements to complete the modular synthesizer platform:
 
-- **Polyphonic Voice Management**: Configurable voice count with voice stealing strategies
+- **Saturator Module**: Saturator to beef up the waveform sound with drive and tone controls
 - **LFO Module**: Low-frequency oscillator for vibrato, tremolo, and modulation effects
 - **Utility CV Modules**: Attenuverters, mixers, multiples, and signal conditioning
 - **Preset System**: Save/load patches with factory presets and JSON import/export
-- **Virtual Keyboard**: Computer keyboard and on-screen keyboard with velocity sensitivity
+- **Virtual Keyboard**: Computer keyboard and on-screen keyboard
 - **Effects Modules**: Delay, reverb, distortion, and chorus
 - **Performance Tools**: MIDI CC mapping, parameter automation, and pattern chaining
 
 See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed acceptance criteria and technical specifications.
 
-## 🛠️ Technology Stack
+## Technology Stack
 
 ### Core Technologies
 
@@ -125,7 +124,7 @@ See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed acceptance criteria a
 
 **Testing Infrastructure**
 
-- **Vitest 3** - Fast unit testing with Web Audio API mocks and snapshot testing
+- **Vitest 3** - Fast unit testing with Web Audio API mocks
 - **React Testing Library** - Component testing with user-centric queries
 - **@testing-library/user-event** - Realistic user interaction simulation
 - **jsdom** - DOM environment for headless testing
@@ -158,21 +157,21 @@ See our [Product Backlog](PRODUCT_BACKLOG.md) for detailed acceptance criteria a
 - **Context-based Audio Management**: Centralized AudioContext lifecycle with provider pattern
 - **Custom Hooks**: `usePatch` for module graph, `useAudioContext` for shared audio context
 - **Pure Functions**: Business logic extracted from components for testability
-- **Immutable Updates**: State changes never mutate, always create new objects
+- **Immutable Updates**: State changes use immutable patterns, creating new objects rather than mutating
 
 **Performance & Quality**
 
 - **Parameter Smoothing**: `smoothParam` utility prevents zipper noise with configurable ramp modes
 - **Lazy Initialization**: Modules only create audio nodes when needed
-- **Proper Cleanup**: All audio nodes disconnected and disposed in useEffect cleanup
-- **Type Safety**: Full TypeScript coverage with strict compiler settings
+- **Proper Cleanup**: Audio nodes disconnected and disposed in useEffect cleanup
+- **Type Safety**: TypeScript with strict compiler settings
 
-## 📚 Documentation
+## Documentation
 
 **Product & Requirements**
 
 - **[Product Backlog](PRODUCT_BACKLOG.md)** – Feature roadmap with acceptance criteria and validated test cases
-- **[AGENTS.md](AGENTS.md)** – Comprehensive AI development guidelines and engineering standards
+- **[AGENTS.md](AGENTS.md)** – AI development guidelines and engineering standards
 
 **Architecture & Design**
 
@@ -244,7 +243,7 @@ npm run preview      # Preview production build locally
 **Testing**
 
 ```bash
-npm run test         # Run all tests once
+npm run test         # Run all tests once (CI mode)
 npm run test:run     # Run all tests in watch mode
 npm run test:ui      # Interactive test UI with Vitest
 ```
@@ -263,5 +262,5 @@ npm run typewatch    # Type checking in watch mode
 **Quality Gate (run before commits)**
 
 ```bash
-npm run lintfix && npm run stylelintfix && npm run typecheck && npm run test:run
+npm run lintfix && npm run stylelintfix && npm run typecheck && npm run test
 ```
