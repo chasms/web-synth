@@ -244,8 +244,8 @@ npm run preview      # Preview production build locally
 **Testing**
 
 ```bash
-npm run test         # Run all tests in watch mode
-npm run test:run     # Run all tests once (CI mode)
+npm run test         # Run all tests once
+npm run test:run     # Run all tests in watch mode
 npm run test:ui      # Interactive test UI with Vitest
 ```
 
@@ -265,7 +265,3 @@ npm run typewatch    # Type checking in watch mode
 ```bash
 npm run lintfix && npm run stylelintfix && npm run typecheck && npm run test:run
 ```
-
-## 📄 License
-
-This project is open source and available under the MIT License.
