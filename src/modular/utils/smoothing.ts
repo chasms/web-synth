@@ -116,3 +116,31 @@ export function smoothParams(
     smoothParam(ctx, param, target, options);
   }
 }
+
+/**
+ * Calculates equal-power crossfade gains for dry/wet mixing.
+ *
+ * Equal-power crossfading maintains constant perceived loudness across the
+ * mix range, preventing the "dip" in loudness that occurs with linear mixing
+ * at the center position (50%).
+ *
+ * Uses square-root law: wet = sqrt(mix), dry = sqrt(1 - mix)
+ *
+ * @param mixAmount - Mix amount in range [0.0, 1.0] where 0=dry, 1=wet
+ * @returns Object with wet and dry gain values
+ *
+ * @example
+ * const { wetGain, dryGain } = calculateEqualPowerCrossfade(0.5);
+ * // wetGain ≈ 0.707, dryGain ≈ 0.707
+ * // Combined power: 0.707² + 0.707² = 1.0 (constant loudness)
+ */
+export function calculateEqualPowerCrossfade(mixAmount: number): {
+  wetGain: number;
+  dryGain: number;
+} {
+  const clampedMix = Math.max(0, Math.min(1, mixAmount));
+  return {
+    wetGain: Math.sqrt(clampedMix),
+    dryGain: Math.sqrt(1.0 - clampedMix),
+  };
+}
