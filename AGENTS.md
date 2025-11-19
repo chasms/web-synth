@@ -294,6 +294,83 @@ describe("Piano Roll Transposition", () => {
 - Re-run the failing command to verify the fix
 - Only consider the task complete when all four checks pass successfully
 
+## Git Operations
+
+**CRITICAL: Follow these git practices to maintain repository integrity and enable safe collaboration.**
+
+### Prohibited Git Operations
+
+**NEVER do the following:**
+
+1. **Never use `git commit --amend`**
+   - Amending commits rewrites git history
+   - Creates conflicts for collaborators who have pulled the original commit
+   - Instead: Create a new commit with fixes
+
+2. **Never use `git push --force` or `git push -f`**
+   - Force pushing overwrites remote history
+   - Can cause data loss for collaborators
+   - Breaks branch synchronization
+   - Instead: Always use regular `git push`
+
+3. **Never rebase commits that have been pushed**
+   - Rebasing rewrites commit history
+   - Creates divergent branches for collaborators
+   - Instead: Use merge commits for integrating changes
+
+### Safe Git Workflow
+
+**For making changes:**
+
+```bash
+# 1. Make your changes
+# 2. Stage changes
+git add <files>
+
+# 3. Create a NEW commit (never amend)
+git commit -m "Descriptive commit message"
+
+# 4. Push normally (never force)
+git push -u origin <branch-name>
+```
+
+**For fixing mistakes:**
+
+```bash
+# If you made a mistake in the last commit:
+# DON'T: git commit --amend
+# DO: Create a follow-up commit
+git add <fixes>
+git commit -m "Fix: <description of what was wrong>"
+git push
+```
+
+**For addressing code review feedback:**
+
+```bash
+# DON'T: Amend and force push
+# DO: Add new commits addressing feedback
+git add <changes>
+git commit -m "Address review feedback: <specific changes>"
+git push
+```
+
+### Git Commit Guidelines
+
+- Write clear, descriptive commit messages
+- Use conventional commit format when appropriate
+- Reference issue/PR numbers when relevant
+- Keep commits focused on a single logical change
+- Commit early and often rather than large batches
+
+### Why These Rules Matter
+
+- **Collaboration**: Multiple people may work on the same branch
+- **History**: Git history is a valuable debugging and auditing tool
+- **Safety**: Force operations can cause permanent data loss
+- **CI/CD**: Automated systems rely on stable commit history
+- **Code Review**: Clean history makes reviews easier to understand
+
 ## Frontend Debugging Protocol
 
 **For all UI/layout changes, follow the systematic validation process documented in `docs/FRONTEND_TESTING_PROTOCOL.md`.**

@@ -144,7 +144,7 @@ export const PatchProvider: React.FC<{ children: React.ReactNode }> = ({
     setState((prev) => {
       const mod = prev.modules[id];
       if (mod) mod.dispose();
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+
       const { [id]: _omit, ...rest } = prev.modules;
       return {
         modules: rest,
