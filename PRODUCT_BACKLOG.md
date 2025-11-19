@@ -55,6 +55,9 @@ Deliverables / Acceptance Criteria:
 
 Recent Progress (UI & Interaction):
 
+- [x] Auto-load default modules on app startup (happens automatically when audio context initializes)
+- [x] Dynamic Load/Clear button: shows "Load Default Modules" when grid is empty, "Clear" when modules present
+- [x] Clear functionality: removes all modules and connections from workspace
 - [x] Patch workspace with pan/zoom, grid with snap, and background panning
 - [x] Precise port center alignment (runtime measurement with world-space offsets)
 - [x] Click-to-click cable connection with live pending path
@@ -170,6 +173,18 @@ Validated Test Cases:
 - ✅ Both use ConstantSource → GainNode for gate signals
 - ✅ Both work interchangeably with VCO pitch CV and gate inputs
 - ✅ VCO correctly handles pitch CV from either source (base frequency = 0 when connected)
+
+11. **Auto-Load Default Modules & Clear Functionality**:
+
+- ✅ Default modules auto-load when app starts and audio context initializes
+- ✅ Button shows "Load Default Modules" when workspace is empty (0 modules)
+- ✅ Button shows "Clear" when workspace has any modules (≥1 modules)
+- ✅ "Load Default Modules" creates default patch: SEQUENCER → VCO → VCF → MASTER OUT
+- ✅ "Clear" removes all modules and connections from workspace
+- ✅ Clear disposes all audio nodes properly (no memory leaks)
+- ✅ Clear resets positioned modules array (empty grid after clear)
+- ✅ Auto-load only happens once per audio context initialization
+- ✅ Re-initialization of audio context triggers auto-load again
 
 ### 1. Filter Section - HIGH PRIORITY
 
