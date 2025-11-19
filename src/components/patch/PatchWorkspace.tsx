@@ -165,6 +165,13 @@ export const PatchWorkspace: React.FC = () => {
     }
   }, [audioContext, patch]);
 
+  const handleClearAll = React.useCallback(() => {
+    // Clear all modules and connections from the patch
+    patch.clearPatch();
+    // Clear all positioned modules from the UI
+    setPositionedModules([]);
+  }, [patch]);
+
   const [startError, setStartError] = React.useState<Error | null>(null);
 
   const handleStart = async () => {
@@ -176,10 +183,12 @@ export const PatchWorkspace: React.FC = () => {
     }
   };
 
-  // Once the AudioContext becomes available the first time, create initial modules
+  // Once the AudioContext becomes available the first time, auto-load default modules
   React.useEffect(() => {
     if (audioContext && !hasAudioContextInitializedRef.current) {
       hasAudioContextInitializedRef.current = true;
+      // Auto-load default modules on first audio context initialization
+      handleAddInitialModules();
     }
     if (!audioContext && hasAudioContextInitializedRef.current) {
       // Reset so that if a brand new context is created later we can auto-load again
@@ -548,10 +557,16 @@ export const PatchWorkspace: React.FC = () => {
         >
           <div className="module-palette" aria-label="Module palette">
             <button
-              onClick={handleAddInitialModules}
+              onClick={
+                Object.keys(patch.modules).length === 0
+                  ? handleAddInitialModules
+                  : handleClearAll
+              }
               className="secondary-button"
             >
-              Load Default Modules
+              {Object.keys(patch.modules).length === 0
+                ? "Load Default Modules"
+                : "Clear"}
             </button>
             <button onClick={() => addModuleByType("VCO")}>ADD VCO</button>
             <button onClick={() => addModuleByType("VCF")}>ADD VCF</button>
@@ -595,17 +610,6 @@ export const PatchWorkspace: React.FC = () => {
               </button>
             )}
           </div>
-          {Object.keys(patch.modules).length === 0 && (
-            <div
-              style={{
-                padding: "0.5rem",
-                fontSize: "0.85rem",
-                color: "#888",
-              }}
-            >
-              Initial modules not yet loaded.
-            </div>
-          )}
           <div
             className="modules-layer"
             style={{
