@@ -2,6 +2,147 @@ import React from "react";
 
 import type { ModuleInstance } from "../../../modular/types";
 
+// ============================================================================
+// Pure Functions - Saturation Curve Mathematics
+// ============================================================================
+
+/**
+ * Applies the TR-303 style saturation transfer function.
+ * Uses tanh for smooth, musical soft clipping.
+ *
+ * @param inputAmplitude - Input signal amplitude in range [-1, 1]
+ * @param driveAmount - Drive multiplier (0.5 to 10.0)
+ * @returns Saturated output amplitude in range [-1, 1]
+ */
+function applySaturationTransferFunction(
+  inputAmplitude: number,
+  driveAmount: number,
+): number {
+  const SATURATION_CURVE_FACTOR = 1.5; // Matches Saturator.ts
+  const drivenInput = inputAmplitude * driveAmount;
+  return Math.tanh(drivenInput * SATURATION_CURVE_FACTOR);
+}
+
+/**
+ * Maps a normalized audio amplitude value [-1, 1] to screen Y coordinate.
+ * Inverts Y-axis so positive values appear at top of display.
+ *
+ * @param amplitude - Audio amplitude in range [-1, 1]
+ * @param canvasHeight - Height of the canvas in pixels
+ * @returns Y coordinate in pixels
+ */
+function mapAmplitudeToScreenY(
+  amplitude: number,
+  canvasHeight: number,
+): number {
+  return canvasHeight - ((amplitude + 1) / 2) * canvasHeight;
+}
+
+/**
+ * Generates a coordinate for one point on the saturation curve.
+ *
+ * @param sampleIndex - Index of the sample point
+ * @param totalSamples - Total number of samples across the curve
+ * @param canvasWidth - Width of the canvas in pixels
+ * @param canvasHeight - Height of the canvas in pixels
+ * @param driveAmount - Current drive setting
+ * @returns Object with screen coordinates and amplitude values
+ */
+function generateCurvePoint(
+  sampleIndex: number,
+  totalSamples: number,
+  canvasWidth: number,
+  canvasHeight: number,
+  driveAmount: number,
+): { x: number; inputY: number; outputY: number } {
+  const x = (sampleIndex / (totalSamples - 1)) * canvasWidth;
+  const inputAmplitude = (sampleIndex / (totalSamples - 1)) * 2 - 1;
+  const outputAmplitude = applySaturationTransferFunction(
+    inputAmplitude,
+    driveAmount,
+  );
+
+  return {
+    x,
+    inputY: mapAmplitudeToScreenY(inputAmplitude, canvasHeight),
+    outputY: mapAmplitudeToScreenY(outputAmplitude, canvasHeight),
+  };
+}
+
+/**
+ * Builds an SVG path string from an array of coordinate points.
+ *
+ * @param points - Array of {x, y} coordinates
+ * @returns SVG path data string (e.g., "M 0 40 L 10 38 L 20 35...")
+ */
+function buildSvgPathFromPoints(
+  points: Array<{ x: number; y: number }>,
+): string {
+  return points
+    .map((point, index) => {
+      const command = index === 0 ? "M" : "L";
+      return `${command} ${point.x} ${point.y}`;
+    })
+    .join(" ");
+}
+
+/**
+ * Generates complete curve data for saturation visualization.
+ *
+ * @param driveAmount - Current drive setting
+ * @param canvasWidth - Width of the canvas
+ * @param canvasHeight - Height of the canvas
+ * @param sampleCount - Number of points to calculate
+ * @returns Object containing SVG path strings for input and output curves
+ */
+function generateSaturationCurveData(
+  driveAmount: number,
+  canvasWidth: number,
+  canvasHeight: number,
+  sampleCount: number,
+): { inputPath: string; outputPath: string } {
+  const points = Array.from({ length: sampleCount }, (_, i) =>
+    generateCurvePoint(i, sampleCount, canvasWidth, canvasHeight, driveAmount),
+  );
+
+  const inputPath = buildSvgPathFromPoints(
+    points.map((p) => ({ x: p.x, y: p.inputY })),
+  );
+  const outputPath = buildSvgPathFromPoints(
+    points.map((p) => ({ x: p.x, y: p.outputY })),
+  );
+
+  return { inputPath, outputPath };
+}
+
+// ============================================================================
+// Pure Functions - Value Conversions
+// ============================================================================
+
+/**
+ * Converts a unit value (0.0 to 1.0) to percentage (0 to 100).
+ *
+ * @param unitValue - Value in range [0.0, 1.0]
+ * @returns Percentage value in range [0, 100]
+ */
+function convertUnitToPercentage(unitValue: number): number {
+  return unitValue * 100;
+}
+
+/**
+ * Converts a percentage (0 to 100) to unit value (0.0 to 1.0).
+ *
+ * @param percentage - Percentage in range [0, 100]
+ * @returns Unit value in range [0.0, 1.0]
+ */
+function convertPercentageToUnit(percentage: number): number {
+  return percentage / 100;
+}
+
+// ============================================================================
+// Components
+// ============================================================================
+
 interface SaturationCurveVisualizerProps {
   drive: number;
 }
@@ -15,28 +156,14 @@ const SaturationCurveVisualizer: React.FC<SaturationCurveVisualizerProps> = ({
 }) => {
   const width = 160;
   const height = 80;
-  const points = 100;
+  const sampleCount = 100;
 
-  // Generate the saturation curve using the same tanh function as the audio module
-  const pathPoints: string[] = [];
-  const inputSignalPoints: string[] = [];
-
-  for (let i = 0; i < points; i++) {
-    const x = (i / (points - 1)) * width;
-    // Input range: -1 to 1
-    const input = (i / (points - 1)) * 2 - 1;
-
-    // Apply drive and saturation (same as Saturator.ts)
-    const drivenInput = input * drive;
-    const saturated = Math.tanh(drivenInput * 1.5);
-
-    // Map to screen coordinates (flip y-axis)
-    const inputY = height - ((input + 1) / 2) * height;
-    const outputY = height - ((saturated + 1) / 2) * height;
-
-    pathPoints.push(i === 0 ? `M ${x} ${outputY}` : `L ${x} ${outputY}`);
-    inputSignalPoints.push(i === 0 ? `M ${x} ${inputY}` : `L ${x} ${inputY}`);
-  }
+  const { inputPath, outputPath } = generateSaturationCurveData(
+    drive,
+    width,
+    height,
+    sampleCount,
+  );
 
   return (
     <div
@@ -92,7 +219,7 @@ const SaturationCurveVisualizer: React.FC<SaturationCurveVisualizerProps> = ({
 
         {/* Input signal reference (light gray) */}
         <path
-          d={inputSignalPoints.join(" ")}
+          d={inputPath}
           fill="none"
           stroke="#666"
           strokeWidth="1"
@@ -101,7 +228,7 @@ const SaturationCurveVisualizer: React.FC<SaturationCurveVisualizerProps> = ({
 
         {/* Saturation curve (orange) */}
         <path
-          d={pathPoints.join(" ")}
+          d={outputPath}
           fill="none"
           stroke="#ff9500"
           strokeWidth="2"
@@ -282,15 +409,15 @@ export const SaturatorControls: React.FC<SaturatorControlsProps> = ({
 
       <NumberControl
         label="Mix"
-        value={mix * 100}
+        value={convertUnitToPercentage(mix)}
         min={0}
         max={100}
         step={1}
         suffix="%"
-        onChange={(v) => {
-          const normalized = v / 100;
-          setMix(normalized);
-          update({ mix: normalized });
+        onChange={(percentage) => {
+          const unitValue = convertPercentageToUnit(percentage);
+          setMix(unitValue);
+          update({ mix: unitValue });
         }}
       />
 
