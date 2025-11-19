@@ -302,27 +302,38 @@ const NumberControl: React.FC<NumberControlProps> = ({
     onChange(clamped);
   };
 
-  const displayLabel = suffix
-    ? `${label}: ${value.toFixed(step < 1 ? 2 : 1)}${suffix}`
-    : label;
-
   return (
     <div className="module-control">
-      <label className="module-control-label">{displayLabel}</label>
-      <input
-        className="module-control-input"
-        aria-label={`${label} input`}
-        type="text"
-        inputMode="decimal"
-        value={text}
-        disabled={disabled}
-        onChange={(e) => setText(e.target.value)}
-        onBlur={() => commit(text)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") commit(text);
-          if (e.key === "Escape") setText(String(value));
-        }}
-      />
+      <label className="module-control-label">{label}</label>
+      <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+        <input
+          className="module-control-input"
+          aria-label={`${label} input`}
+          type="text"
+          inputMode="decimal"
+          value={text}
+          disabled={disabled}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={() => commit(text)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") commit(text);
+            if (e.key === "Escape") setText(String(value));
+          }}
+          style={{ flex: 1 }}
+        />
+        {suffix && (
+          <span
+            style={{
+              fontSize: "11px",
+              color: "#888",
+              fontFamily: "monospace",
+              minWidth: "30px",
+            }}
+          >
+            {suffix}
+          </span>
+        )}
+      </div>
       <div className="module-control-slider-row">
         <input
           className="module-control-slider"
