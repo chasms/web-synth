@@ -1,5 +1,5 @@
 import type { CreateModuleFn, ModuleInstance, PortDefinition } from "../types";
-import { smoothParam } from "../utils/smoothing";
+import { calculateEqualPowerCrossfade, smoothParam } from "../utils/smoothing";
 
 export interface SaturatorParams {
   drive?: number; // Input drive/saturation (0.5 to 10.0, 1.0 = unity)
@@ -36,7 +36,8 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
   // === DRY PATH ===
   const dryGainNode = audioContext.createGain();
   const mix = parameters?.mix ?? 1.0;
-  dryGainNode.gain.value = 1.0 - mix; // Inverse of wet
+  const initialCrossfade = calculateEqualPowerCrossfade(mix);
+  dryGainNode.gain.value = initialCrossfade.dryGain;
 
   // === WET PATH ===
   // Input drive gain (pre-saturation boost)
@@ -56,7 +57,7 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
 
   // Wet gain for mix control
   const wetGainNode = audioContext.createGain();
-  wetGainNode.gain.value = mix;
+  wetGainNode.gain.value = initialCrossfade.wetGain;
 
   // === MIXER ===
   const mixerNode = audioContext.createGain();
@@ -156,9 +157,7 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
       }
       if (partial["mix"] !== undefined && typeof partial["mix"] === "number") {
         const nextMix = Math.max(0, Math.min(1, partial["mix"]));
-        // Equal-power crossfade for smooth mixing
-        const wetGain = nextMix;
-        const dryGain = 1.0 - nextMix;
+        const { wetGain, dryGain } = calculateEqualPowerCrossfade(nextMix);
         smoothParam(audioContext, wetGainNode.gain, wetGain, {
           mode: "linear",
           time: 0.02,
@@ -181,10 +180,15 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
       }
     },
     getParams() {
+      // Convert equal-power wet gain back to mix value
+      // Since wetGain = sqrt(mix), then mix = wetGain^2
+      const wetGain = wetGainNode.gain.value;
+      const mixValue = wetGain * wetGain;
+
       return {
         drive: driveGainNode.gain.value,
         tone: toneFilterNode.frequency.value,
-        mix: wetGainNode.gain.value,
+        mix: mixValue,
         output: gainToDb(outputGainNode.gain.value),
       };
     },
