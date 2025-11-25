@@ -5,6 +5,7 @@ import { usePatch } from "../../modular/graph/usePatch";
 import { createADSR } from "../../modular/modules/ADSR";
 import { createMasterOutput } from "../../modular/modules/MasterOutput";
 import { createMIDIInputTrigger } from "../../modular/modules/MIDIInputTrigger";
+import { createSaturator } from "../../modular/modules/Saturator";
 import { createSequencerTrigger } from "../../modular/modules/SequencerTrigger";
 import { createVCF } from "../../modular/modules/VCF";
 import { createVCO } from "../../modular/modules/VCO";
@@ -264,6 +265,14 @@ export const PatchWorkspace: React.FC = () => {
         created = patch.createModule("VCF", createVCF, {
           cutoff: 1000,
           resonance: 0.8,
+        });
+        break;
+      case "SATURATOR":
+        created = patch.createModule("SATURATOR", createSaturator, {
+          drive: 2.0,
+          tone: 500,
+          mix: 1.0,
+          output: 0,
         });
         break;
       case "ADSR":
@@ -570,6 +579,9 @@ export const PatchWorkspace: React.FC = () => {
             </button>
             <button onClick={() => addModuleByType("VCO")}>ADD VCO</button>
             <button onClick={() => addModuleByType("VCF")}>ADD VCF</button>
+            <button onClick={() => addModuleByType("SATURATOR")}>
+              ADD SATURATOR
+            </button>
             <button onClick={() => addModuleByType("ADSR")}>ADD ADSR</button>
             <button onClick={() => addModuleByType("MIDI_INPUT")}>
               ADD MIDI IN

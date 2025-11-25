@@ -4,6 +4,7 @@ import { type ModuleInstance, type PortDefinition } from "../../modular/types";
 import { AHDSRControls } from "./controls/AHDSRControls";
 import { MasterOutputControls } from "./controls/MasterOutputControls";
 import { MIDIInputControls } from "./controls/MIDIInputControls";
+import { SaturatorControls } from "./controls/SaturatorControls";
 import { SequencerControls } from "./controls/SequencerControls";
 import { VCFControls } from "./controls/VCFControls";
 import { VCOControls } from "./controls/VCOControls";
@@ -13,6 +14,7 @@ enum ModuleType {
   VCO = "VCO",
   VCF = "VCF",
   ADSR = "ADSR",
+  SATURATOR = "SATURATOR",
   MIDI_INPUT = "MIDI_INPUT",
   SEQUENCER = "SEQUENCER",
   MASTER_OUTPUT = "MASTER_OUTPUT",
@@ -39,6 +41,11 @@ const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
     controlsExtraHeight: 170,
     width: 260,
     controlsComponent: AHDSRControls,
+  },
+  [ModuleType.SATURATOR]: {
+    controlsExtraHeight: 380,
+    width: 180,
+    controlsComponent: SaturatorControls,
   },
   [ModuleType.MIDI_INPUT]: {
     controlsExtraHeight: 160,
