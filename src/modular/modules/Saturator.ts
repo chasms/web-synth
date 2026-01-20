@@ -11,6 +11,26 @@ export interface SaturatorParams {
 const ports: PortDefinition[] = [
   { id: "audio_in", label: "Audio In", direction: "in", signal: "AUDIO" },
   { id: "audio_out", label: "Audio Out", direction: "out", signal: "AUDIO" },
+  {
+    id: "drive_cv",
+    label: "Drive CV",
+    direction: "in",
+    signal: "CV",
+    metadata: {
+      bipolar: true,
+      description: "Drive modulation input (LFO, etc.)",
+    },
+  },
+  {
+    id: "mix_cv",
+    label: "Mix CV",
+    direction: "in",
+    signal: "CV",
+    metadata: {
+      bipolar: true,
+      description: "Mix/wet-dry modulation input",
+    },
+  },
 ];
 
 /**
@@ -83,9 +103,26 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
   // Output
   mixerNode.connect(outputGainNode);
 
+  // === CV MODULATION INPUTS ===
+  // Drive CV: Scale CV signal to affect drive amount
+  // CV range -1..+1 maps to drive change of ±3 (adds to base drive)
+  const DRIVE_CV_SCALE = 3;
+  const driveCvScaleNode = audioContext.createGain();
+  driveCvScaleNode.gain.value = DRIVE_CV_SCALE;
+  driveCvScaleNode.connect(driveGainNode.gain);
+
+  // Mix CV: Modulates wet gain directly
+  // CV range -1..+1 maps to wet gain change of ±0.5
+  const MIX_CV_SCALE = 0.5;
+  const mixCvScaleNode = audioContext.createGain();
+  mixCvScaleNode.gain.value = MIX_CV_SCALE;
+  mixCvScaleNode.connect(wetGainNode.gain);
+
   const portNodes: ModuleInstance["portNodes"] = {
     audio_in: inputNode,
     audio_out: outputGainNode,
+    drive_cv: driveCvScaleNode,
+    mix_cv: mixCvScaleNode,
   };
 
   console.log(`[Saturator ${moduleId}] Created with:`, {
@@ -201,6 +238,8 @@ export const createSaturator: CreateModuleFn<SaturatorParams> = (
       wetGainNode.disconnect();
       mixerNode.disconnect();
       outputGainNode.disconnect();
+      driveCvScaleNode.disconnect();
+      mixCvScaleNode.disconnect();
     },
   };
 

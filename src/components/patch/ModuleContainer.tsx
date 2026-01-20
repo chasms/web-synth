@@ -2,6 +2,7 @@ import React from "react";
 
 import { type ModuleInstance, type PortDefinition } from "../../modular/types";
 import { AHDSRControls } from "./controls/AHDSRControls";
+import { LFOControls } from "./controls/LFOControls";
 import { MasterOutputControls } from "./controls/MasterOutputControls";
 import { MIDIInputControls } from "./controls/MIDIInputControls";
 import { SaturatorControls } from "./controls/SaturatorControls";
@@ -15,6 +16,7 @@ enum ModuleType {
   VCF = "VCF",
   ADSR = "ADSR",
   SATURATOR = "SATURATOR",
+  LFO = "LFO",
   MIDI_INPUT = "MIDI_INPUT",
   SEQUENCER = "SEQUENCER",
   MASTER_OUTPUT = "MASTER_OUTPUT",
@@ -46,6 +48,11 @@ const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
     controlsExtraHeight: 380,
     width: 180,
     controlsComponent: SaturatorControls,
+  },
+  [ModuleType.LFO]: {
+    controlsExtraHeight: 200,
+    width: 180,
+    controlsComponent: LFOControls,
   },
   [ModuleType.MIDI_INPUT]: {
     controlsExtraHeight: 160,

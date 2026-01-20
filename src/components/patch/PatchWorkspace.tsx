@@ -3,6 +3,7 @@ import React from "react";
 import { useAudioContext } from "../../hooks/useAudioContext";
 import { usePatch } from "../../modular/graph/usePatch";
 import { createADSR } from "../../modular/modules/ADSR";
+import { createLFO } from "../../modular/modules/LFO";
 import { createMasterOutput } from "../../modular/modules/MasterOutput";
 import { createMIDIInputTrigger } from "../../modular/modules/MIDIInputTrigger";
 import { createSaturator } from "../../modular/modules/Saturator";
@@ -281,6 +282,14 @@ export const PatchWorkspace: React.FC = () => {
           decay: 0.2,
           sustain: 0.7,
           release: 0.4,
+        });
+        break;
+      case "LFO":
+        created = patch.createModule("LFO", createLFO, {
+          rate: 1.0,
+          depth: 1.0,
+          waveform: "sine",
+          bipolar: true,
         });
         break;
       case "MIDI_INPUT":
@@ -583,6 +592,7 @@ export const PatchWorkspace: React.FC = () => {
               ADD SATURATOR
             </button>
             <button onClick={() => addModuleByType("ADSR")}>ADD ADSR</button>
+            <button onClick={() => addModuleByType("LFO")}>ADD LFO</button>
             <button onClick={() => addModuleByType("MIDI_INPUT")}>
               ADD MIDI IN
             </button>

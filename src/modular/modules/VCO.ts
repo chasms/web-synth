@@ -34,6 +34,16 @@ const ports: PortDefinition[] = [
     metadata: { description: "Gate input for amplitude control" },
   },
   {
+    id: "gain_cv",
+    label: "Gain CV",
+    direction: "in",
+    signal: "CV",
+    metadata: {
+      bipolar: true,
+      description: "Gain/amplitude modulation (tremolo)",
+    },
+  },
+  {
     id: "sync",
     label: "Sync",
     direction: "in",
@@ -77,6 +87,13 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
   oscillatorNode.connect(vcaGainNode);
   vcaGainNode.connect(outputGainNode);
 
+  // Gain CV: Modulates output gain for tremolo effects
+  // CV range -1..+1 maps to gain change of ±0.3 (adds to base gain)
+  const GAIN_CV_SCALE = 0.3;
+  const gainCvScaleNode = audioContext.createGain();
+  gainCvScaleNode.gain.value = GAIN_CV_SCALE;
+  gainCvScaleNode.connect(outputGainNode.gain);
+
   // Start the oscillator
   oscillatorNode.start();
 
@@ -84,6 +101,7 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
     pitch_cv: oscillatorNode.frequency, // CV controls frequency directly when connected
     fm_cv: oscillatorNode.frequency, // For linear FM (direct Hz modulation)
     gate_in: vcaGainNode.gain, // Gate controls VCA gain directly (external gate signal adds to base value of 0)
+    gain_cv: gainCvScaleNode, // LFO/CV input for tremolo modulation
     sync: undefined,
     wave_cv: undefined,
     audio_out: outputGainNode,
@@ -209,6 +227,7 @@ export const createVCO: CreateModuleFn<VCOParams> = (context, parameters) => {
       oscillatorNode.disconnect();
       vcaGainNode.disconnect();
       outputGainNode.disconnect();
+      gainCvScaleNode.disconnect();
     },
   };
 
