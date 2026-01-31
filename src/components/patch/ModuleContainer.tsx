@@ -50,7 +50,7 @@ const MODULE_CONFIGS: Record<ModuleType, ModuleConfig> = {
     controlsComponent: SaturatorControls,
   },
   [ModuleType.LFO]: {
-    controlsExtraHeight: 200,
+    controlsExtraHeight: 280,
     width: 180,
     controlsComponent: LFOControls,
   },

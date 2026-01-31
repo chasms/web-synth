@@ -8,11 +8,13 @@ import {
   constrainLfoRate,
   durationToLfoRate,
   formatLfoRate,
+  generateLfoWaveformSamples,
   isValidLfoWaveform,
   LFO_DEPTH_MAXIMUM,
   LFO_DEPTH_MINIMUM,
   LFO_RATE_MAXIMUM,
   LFO_RATE_MINIMUM,
+  sampleLfoWaveform,
   tempoToLfoRate,
   unipolarToBipolar,
 } from "./lfoUtils";
@@ -235,6 +237,112 @@ describe("lfoUtils", () => {
     it("should format fast rates with no decimal places", () => {
       expect(formatLfoRate(10)).toBe("10");
       expect(formatLfoRate(25.7)).toBe("26");
+    });
+  });
+
+  describe("sampleLfoWaveform", () => {
+    describe("sine", () => {
+      it("should return 0 at phase 0", () => {
+        expect(sampleLfoWaveform("sine", 0)).toBeCloseTo(0);
+      });
+
+      it("should return 1 at phase 0.25 (peak)", () => {
+        expect(sampleLfoWaveform("sine", 0.25)).toBeCloseTo(1);
+      });
+
+      it("should return 0 at phase 0.5", () => {
+        expect(sampleLfoWaveform("sine", 0.5)).toBeCloseTo(0);
+      });
+
+      it("should return -1 at phase 0.75 (trough)", () => {
+        expect(sampleLfoWaveform("sine", 0.75)).toBeCloseTo(-1);
+      });
+    });
+
+    describe("triangle", () => {
+      it("should return 0 at phase 0", () => {
+        expect(sampleLfoWaveform("triangle", 0)).toBeCloseTo(0);
+      });
+
+      it("should return 1 at phase 0.25 (peak)", () => {
+        expect(sampleLfoWaveform("triangle", 0.25)).toBeCloseTo(1);
+      });
+
+      it("should return 0 at phase 0.5", () => {
+        expect(sampleLfoWaveform("triangle", 0.5)).toBeCloseTo(0);
+      });
+
+      it("should return -1 at phase 0.75 (trough)", () => {
+        expect(sampleLfoWaveform("triangle", 0.75)).toBeCloseTo(-1);
+      });
+    });
+
+    describe("square", () => {
+      it("should return 1 in first half", () => {
+        expect(sampleLfoWaveform("square", 0)).toBe(1);
+        expect(sampleLfoWaveform("square", 0.25)).toBe(1);
+        expect(sampleLfoWaveform("square", 0.49)).toBe(1);
+      });
+
+      it("should return -1 in second half", () => {
+        expect(sampleLfoWaveform("square", 0.5)).toBe(-1);
+        expect(sampleLfoWaveform("square", 0.75)).toBe(-1);
+        expect(sampleLfoWaveform("square", 0.99)).toBe(-1);
+      });
+    });
+
+    describe("sawtooth", () => {
+      it("should return -1 at phase 0", () => {
+        expect(sampleLfoWaveform("sawtooth", 0)).toBeCloseTo(-1);
+      });
+
+      it("should return 0 at phase 0.5", () => {
+        expect(sampleLfoWaveform("sawtooth", 0.5)).toBeCloseTo(0);
+      });
+
+      it("should approach +1 near phase 1", () => {
+        expect(sampleLfoWaveform("sawtooth", 0.999)).toBeCloseTo(1, 1);
+      });
+    });
+
+    it("should wrap phase values correctly", () => {
+      expect(sampleLfoWaveform("sine", 1.25)).toBeCloseTo(
+        sampleLfoWaveform("sine", 0.25),
+      );
+      expect(sampleLfoWaveform("sine", -0.75)).toBeCloseTo(
+        sampleLfoWaveform("sine", 0.25),
+      );
+    });
+  });
+
+  describe("generateLfoWaveformSamples", () => {
+    it("should generate correct number of samples", () => {
+      expect(generateLfoWaveformSamples("sine", 64)).toHaveLength(64);
+      expect(generateLfoWaveformSamples("sine", 128)).toHaveLength(128);
+    });
+
+    it("should scale by depth", () => {
+      const fullDepth = generateLfoWaveformSamples("sine", 128, 1, true);
+      const halfDepth = generateLfoWaveformSamples("sine", 128, 0.5, true);
+      // Peak of sine at sample ~32 (phase 0.25)
+      const peakIndex = 32;
+      expect(halfDepth[peakIndex]).toBeCloseTo(fullDepth[peakIndex] * 0.5);
+    });
+
+    it("should produce unipolar output when bipolar is false", () => {
+      const samples = generateLfoWaveformSamples("sine", 128, 1, false);
+      const minValue = Math.min(...samples);
+      const maxValue = Math.max(...samples);
+      expect(minValue).toBeGreaterThanOrEqual(-0.01);
+      expect(maxValue).toBeLessThanOrEqual(1.01);
+    });
+
+    it("should produce bipolar output when bipolar is true", () => {
+      const samples = generateLfoWaveformSamples("sine", 128, 1, true);
+      const minValue = Math.min(...samples);
+      const maxValue = Math.max(...samples);
+      expect(minValue).toBeCloseTo(-1, 1);
+      expect(maxValue).toBeCloseTo(1, 1);
     });
   });
 });

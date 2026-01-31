@@ -155,3 +155,66 @@ export function formatLfoRate(rateHz: number): string {
   }
   return rateHz.toFixed(0);
 }
+
+/**
+ * Samples a waveform at a given phase position (0 to 1 representing one full cycle).
+ * Returns a bipolar value (-1 to +1).
+ * @param waveform - The waveform type to sample
+ * @param phase - The phase position (0 to 1, wraps around)
+ * @returns The waveform value at the given phase (-1 to +1)
+ */
+export function sampleLfoWaveform(
+  waveform: LfoWaveform,
+  phase: number,
+): number {
+  // Normalize phase to [0, 1)
+  const normalizedPhase = ((phase % 1) + 1) % 1;
+
+  switch (waveform) {
+    case "sine":
+      return Math.sin(normalizedPhase * 2 * Math.PI);
+    case "triangle":
+      // Triangle: rises 0→1 in first quarter, 1→-1 in middle half, -1→0 in last quarter
+      if (normalizedPhase < 0.25) {
+        return normalizedPhase * 4;
+      }
+      if (normalizedPhase < 0.75) {
+        return 1 - (normalizedPhase - 0.25) * 4;
+      }
+      return -1 + (normalizedPhase - 0.75) * 4;
+    case "square":
+      return normalizedPhase < 0.5 ? 1 : -1;
+    case "sawtooth":
+      // Sawtooth: rises from -1 to +1 over the cycle (Web Audio convention)
+      return normalizedPhase * 2 - 1;
+    default:
+      return 0;
+  }
+}
+
+/**
+ * Generates an array of waveform samples for visualization.
+ * @param waveform - The waveform type
+ * @param sampleCount - Number of samples to generate
+ * @param depth - Amplitude scaling (0 to 1)
+ * @param bipolar - If true, output range is -depth..+depth; if false, 0..+depth
+ * @returns Array of sample values
+ */
+export function generateLfoWaveformSamples(
+  waveform: LfoWaveform,
+  sampleCount: number,
+  depth: number = 1,
+  bipolar: boolean = true,
+): number[] {
+  const samples: number[] = [];
+  for (let i = 0; i < sampleCount; i++) {
+    const phase = i / sampleCount;
+    let value = sampleLfoWaveform(waveform, phase) * depth;
+    if (!bipolar) {
+      // Convert from bipolar (-depth..+depth) to unipolar (0..+depth)
+      value = (value + depth) / 2;
+    }
+    samples.push(value);
+  }
+  return samples;
+}

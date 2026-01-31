@@ -13,6 +13,7 @@ import {
   type LfoWaveform,
 } from "../../../utils/lfoUtils";
 import { constrainToRange } from "../../../utils/mathUtils";
+import { LfoWaveformPreview } from "./LfoWaveformPreview";
 
 interface NumberControlProps {
   label: string;
@@ -126,6 +127,15 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
 
   return (
     <div className="module-controls">
+      <div className="lfo-preview-container">
+        <LfoWaveformPreview
+          waveform={waveform}
+          rate={rate}
+          depth={depth}
+          bipolar={bipolar}
+        />
+      </div>
+
       <div className="module-control">
         <label className="module-control-label">Waveform</label>
         <select

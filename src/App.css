@@ -1010,3 +1010,23 @@
   text-align: center;
   margin-top: 2px;
 }
+
+/* LFO Waveform Preview */
+.lfo-preview-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 6px;
+}
+
+.lfo-waveform-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lfo-waveform-preview canvas {
+  display: block;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 4px;
+}
