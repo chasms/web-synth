@@ -207,6 +207,42 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   outputNode.connect(invertedGainNode);
   invertedGainNode.connect(invertedOutputNode);
 
+  // Mutable reference so it can be replaced on reset
+  let activeOscillatorNode = oscillatorNode;
+
+  /**
+   * Resets the LFO phase to zero by recreating the oscillator.
+   * Also resets the S&H step index.
+   */
+  const triggerReset = () => {
+    sampleHoldStepIndex = 0;
+
+    if (currentWaveform === "sample_hold") {
+      // For S&H, just restart from step 0
+      startSampleHoldTimer();
+      return;
+    }
+
+    // Recreate the oscillator to reset phase
+    const oldOscillator = activeOscillatorNode;
+    try {
+      oldOscillator.stop();
+    } catch {
+      /* already stopped */
+    }
+    oldOscillator.disconnect();
+
+    const newOscillator = audioContext.createOscillator();
+    newOscillator.type = oldOscillator.type;
+    newOscillator.frequency.value = oldOscillator.frequency.value;
+    newOscillator.connect(oscillatorRouteGain);
+    newOscillator.start();
+    activeOscillatorNode = newOscillator;
+
+    // Update portNodes rate_cv reference to point to new oscillator frequency
+    portNodes.rate_cv = newOscillator.frequency;
+  };
+
   // Start the oscillator and DC offset
   oscillatorNode.start();
   dcOffsetNode.start();
@@ -324,7 +360,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         partial["syncDivision"] !== undefined
       ) {
         const syncedRate = getEffectiveRate();
-        smoothParam(audioContext, oscillatorNode.frequency, syncedRate, {
+        smoothParam(audioContext, activeOscillatorNode.frequency, syncedRate, {
           mode: "setTarget",
           timeConstant: 0.05,
         });
@@ -336,10 +372,14 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         !isSyncEnabled
       ) {
         const nextRate = constrainLfoRate(partial["rate"]);
-        smoothParam(audioContext, oscillatorNode.frequency, nextRate, {
+        smoothParam(audioContext, activeOscillatorNode.frequency, nextRate, {
           mode: "setTarget",
           timeConstant: 0.05,
         });
+      }
+
+      if (partial["triggerReset"] === true) {
+        triggerReset();
       }
 
       if (
@@ -382,14 +422,14 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
             oscillatorRouteGain.gain.setValueAtTime(1, audioContext.currentTime);
             sampleHoldRouteGain.gain.setValueAtTime(0, audioContext.currentTime);
             try {
-              oscillatorNode.type = nextWaveform as OscillatorType;
+              activeOscillatorNode.type = nextWaveform as OscillatorType;
             } catch {
               /* ignore invalid */
             }
           } else if (!isNowHold) {
             // Normal waveform change
             try {
-              oscillatorNode.type = nextWaveform as OscillatorType;
+              activeOscillatorNode.type = nextWaveform as OscillatorType;
             } catch {
               /* ignore invalid */
             }
@@ -406,7 +446,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
     },
     getParams() {
       return {
-        rate: oscillatorNode.frequency.value,
+        rate: activeOscillatorNode.frequency.value,
         depth: depthGainNode.gain.value,
         waveform: currentWaveform,
         bipolar: isBipolar,
@@ -418,7 +458,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
     dispose() {
       stopSampleHoldTimer();
       try {
-        oscillatorNode.stop();
+        activeOscillatorNode.stop();
       } catch {
         /* already stopped */
       }
@@ -432,7 +472,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
       } catch {
         /* already stopped */
       }
-      oscillatorNode.disconnect();
+      activeOscillatorNode.disconnect();
       oscillatorRouteGain.disconnect();
       sampleHoldSourceNode.disconnect();
       sampleHoldRouteGain.disconnect();

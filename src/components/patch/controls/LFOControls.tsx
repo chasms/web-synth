@@ -303,6 +303,17 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
           {bipolar ? "-1 to +1" : "0 to +1"}
         </div>
       </div>
+
+      <div className="module-control">
+        <button
+          type="button"
+          className="reset-button"
+          onClick={() => update({ triggerReset: true })}
+          aria-label="Reset LFO phase"
+        >
+          Reset Phase
+        </button>
+      </div>
     </div>
   );
 };

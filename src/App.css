@@ -1030,3 +1030,27 @@
   border: 1px solid #333;
   border-radius: 4px;
 }
+
+/* LFO Reset button */
+.reset-button {
+  width: 100%;
+  padding: 5px 10px;
+  background: #2a2a2a;
+  color: #ccc;
+  border: 1px solid #555;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reset-button:hover {
+  background: #3a3a3a;
+  border-color: #777;
+  color: #fff;
+}
+
+.reset-button:active {
+  background: #1a1a1a;
+}
