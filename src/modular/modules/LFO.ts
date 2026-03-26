@@ -1,10 +1,12 @@
 import {
   calculateSyncedRate,
   constrainLfoDepth,
+  constrainLfoPhaseOffset,
   constrainLfoRate,
   isValidLfoWaveform,
   LFO_BPM_DEFAULT,
   LFO_DEPTH_DEFAULT,
+  LFO_PHASE_OFFSET_DEFAULT,
   LFO_RATE_DEFAULT,
   LFO_SYNC_DIVISION_DEFAULT,
   sampleHoldValueForStep,
@@ -22,6 +24,7 @@ export interface LFOParams {
   syncEnabled?: boolean; // If true, rate is derived from bpm + syncDivision
   bpm?: number; // Tempo in BPM (20-300), used when syncEnabled is true
   syncDivision?: LfoSyncDivision; // Note division for sync mode
+  phaseOffset?: number; // Starting phase (0..1, where 0.5 = 180°)
 }
 
 const ports: PortDefinition[] = [
@@ -84,6 +87,9 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   const { audioContext, moduleId } = context;
 
   // Default parameters
+  let currentPhaseOffset = constrainLfoPhaseOffset(
+    parameters?.phaseOffset ?? LFO_PHASE_OFFSET_DEFAULT,
+  );
   let isSyncEnabled = parameters?.syncEnabled ?? false;
   let currentBpm = parameters?.bpm ?? LFO_BPM_DEFAULT;
   let currentSyncDivision: LfoSyncDivision =
@@ -236,15 +242,20 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
     newOscillator.type = oldOscillator.type;
     newOscillator.frequency.value = oldOscillator.frequency.value;
     newOscillator.connect(oscillatorRouteGain);
-    newOscillator.start();
+    // Apply phase offset: start slightly in the past so the current phase matches offset
+    const rateHz = newOscillator.frequency.value;
+    const offsetSeconds = rateHz > 0 ? currentPhaseOffset / rateHz : 0;
+    newOscillator.start(audioContext.currentTime - offsetSeconds);
     activeOscillatorNode = newOscillator;
 
     // Update portNodes rate_cv reference to point to new oscillator frequency
     portNodes.rate_cv = newOscillator.frequency;
   };
 
-  // Start the oscillator and DC offset
-  oscillatorNode.start();
+  // Start the oscillator with phase offset (start in the past to simulate phase offset)
+  const initialOffsetSeconds =
+    initialRate > 0 ? currentPhaseOffset / initialRate : 0;
+  oscillatorNode.start(audioContext.currentTime - initialOffsetSeconds);
   dcOffsetNode.start();
   sampleHoldSourceNode.start();
 
@@ -378,6 +389,15 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         });
       }
 
+      if (
+        partial["phaseOffset"] !== undefined &&
+        typeof partial["phaseOffset"] === "number"
+      ) {
+        currentPhaseOffset = constrainLfoPhaseOffset(partial["phaseOffset"]);
+        // Apply immediately via reset
+        triggerReset();
+      }
+
       if (partial["triggerReset"] === true) {
         triggerReset();
       }
@@ -453,6 +473,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         syncEnabled: isSyncEnabled,
         bpm: currentBpm,
         syncDivision: currentSyncDivision,
+        phaseOffset: currentPhaseOffset,
       };
     },
     dispose() {

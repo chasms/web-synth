@@ -10,6 +10,7 @@ interface LfoWaveformPreviewProps {
   rate: number;
   depth: number;
   bipolar: boolean;
+  phaseOffset?: number;
   width?: number;
   height?: number;
 }
@@ -41,6 +42,7 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
   rate,
   depth,
   bipolar,
+  phaseOffset = 0,
   width = 148,
   height = 60,
 }) => {
@@ -60,6 +62,7 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       SAMPLE_COUNT,
       depth,
       bipolar,
+      phaseOffset,
     );
 
     // Determine the value range for Y-axis mapping
@@ -152,7 +155,7 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       }
       startTimeRef.current = undefined;
     };
-  }, [waveform, rate, depth, bipolar, width, height]);
+  }, [waveform, rate, depth, bipolar, phaseOffset, width, height]);
 
   return (
     <div className="lfo-waveform-preview">

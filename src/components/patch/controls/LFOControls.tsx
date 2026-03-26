@@ -4,13 +4,18 @@ import type { ModuleInstance } from "../../../modular/types";
 import {
   calculateSyncedRate,
   constrainLfoDepth,
+  constrainLfoPhaseOffset,
   constrainLfoRate,
   formatLfoRate,
+  formatPhaseOffset,
   LFO_BPM_DEFAULT,
   LFO_BPM_MAXIMUM,
   LFO_BPM_MINIMUM,
   LFO_DEPTH_MAXIMUM,
   LFO_DEPTH_MINIMUM,
+  LFO_PHASE_OFFSET_DEFAULT,
+  LFO_PHASE_OFFSET_MAXIMUM,
+  LFO_PHASE_OFFSET_MINIMUM,
   LFO_RATE_MAXIMUM,
   LFO_RATE_MINIMUM,
   LFO_SYNC_DIVISION_DEFAULT,
@@ -134,6 +139,11 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
   const [bpm, setBpm] = React.useState<number>(
     typeof initial["bpm"] === "number" ? (initial["bpm"] as number) : LFO_BPM_DEFAULT,
   );
+  const [phaseOffset, setPhaseOffset] = React.useState<number>(
+    typeof initial["phaseOffset"] === "number"
+      ? constrainLfoPhaseOffset(initial["phaseOffset"] as number)
+      : LFO_PHASE_OFFSET_DEFAULT,
+  );
   const [syncDivision, setSyncDivision] = React.useState<LfoSyncDivision>(
     typeof initial["syncDivision"] === "string" &&
       LFO_SYNC_DIVISIONS.includes(initial["syncDivision"] as LfoSyncDivision)
@@ -157,6 +167,7 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
           rate={effectiveRate}
           depth={depth}
           bipolar={bipolar}
+          phaseOffset={phaseOffset}
         />
       </div>
 
@@ -270,6 +281,19 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
         onChange={(v) => {
           setDepth(v);
           update({ depth: v });
+        }}
+      />
+
+      <NumberControl
+        label="Phase"
+        value={phaseOffset}
+        min={LFO_PHASE_OFFSET_MINIMUM}
+        max={LFO_PHASE_OFFSET_MAXIMUM}
+        step={0.01}
+        formatDisplay={formatPhaseOffset}
+        onChange={(v) => {
+          setPhaseOffset(v);
+          update({ phaseOffset: v });
         }}
       />
 

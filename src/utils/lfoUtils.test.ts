@@ -6,9 +6,11 @@ import {
   calculateModulatedValue,
   calculateSyncedRate,
   constrainLfoDepth,
+  constrainLfoPhaseOffset,
   constrainLfoRate,
   durationToLfoRate,
   formatLfoRate,
+  formatPhaseOffset,
   generateLfoWaveformSamples,
   getSyncDivisionSubdivision,
   isValidLfoWaveform,
@@ -366,6 +368,62 @@ describe("lfoUtils", () => {
     it("should scale with BPM", () => {
       expect(calculateSyncedRate(60, "1/4")).toBeCloseTo(1);
       expect(calculateSyncedRate(240, "1/4")).toBeCloseTo(4);
+    });
+  });
+
+  describe("constrainLfoPhaseOffset", () => {
+    it("should return 0 for 0", () => {
+      expect(constrainLfoPhaseOffset(0)).toBe(0);
+    });
+
+    it("should wrap 1.0 to 0", () => {
+      expect(constrainLfoPhaseOffset(1.0)).toBe(0);
+    });
+
+    it("should keep 0.5 as 0.5", () => {
+      expect(constrainLfoPhaseOffset(0.5)).toBe(0.5);
+    });
+
+    it("should wrap values greater than 1", () => {
+      expect(constrainLfoPhaseOffset(1.25)).toBeCloseTo(0.25);
+    });
+
+    it("should wrap negative values to positive", () => {
+      expect(constrainLfoPhaseOffset(-0.25)).toBeCloseTo(0.75);
+    });
+  });
+
+  describe("formatPhaseOffset", () => {
+    it("should format 0 as 0°", () => {
+      expect(formatPhaseOffset(0)).toBe("0°");
+    });
+
+    it("should format 0.25 as 90°", () => {
+      expect(formatPhaseOffset(0.25)).toBe("90°");
+    });
+
+    it("should format 0.5 as 180°", () => {
+      expect(formatPhaseOffset(0.5)).toBe("180°");
+    });
+
+    it("should format 0.75 as 270°", () => {
+      expect(formatPhaseOffset(0.75)).toBe("270°");
+    });
+  });
+
+  describe("generateLfoWaveformSamples with phaseOffset", () => {
+    it("should produce different samples with non-zero phaseOffset", () => {
+      const noOffset = generateLfoWaveformSamples("sine", 128, 1, true, 0);
+      const withOffset = generateLfoWaveformSamples("sine", 128, 1, true, 0.25);
+      expect(noOffset[0]).not.toBeCloseTo(withOffset[0]);
+    });
+
+    it("should shift the waveform by phaseOffset amount", () => {
+      // Sine at phase 0 = 0, at phase 0.25 = 1
+      const noOffset = generateLfoWaveformSamples("sine", 128, 1, true, 0);
+      const quarterOffset = generateLfoWaveformSamples("sine", 128, 1, true, 0.25);
+      // First sample with 0.25 offset should equal sample at index 32 with no offset
+      expect(quarterOffset[0]).toBeCloseTo(noOffset[32], 1);
     });
   });
 

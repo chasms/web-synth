@@ -96,6 +96,33 @@ export const LFO_WAVEFORMS: readonly LfoWaveform[] = [
 ] as const;
 
 /**
+ * LFO phase offset range (0 = no offset, 1 = full cycle = same as 0)
+ */
+export const LFO_PHASE_OFFSET_MINIMUM = 0;
+export const LFO_PHASE_OFFSET_MAXIMUM = 1;
+export const LFO_PHASE_OFFSET_DEFAULT = 0;
+
+/**
+ * Constrains a phase offset to [0, 1) by wrapping around.
+ * @param phaseOffset - Phase offset as a fraction of one cycle (0..1)
+ * @returns Normalized phase offset in [0, 1)
+ */
+export function constrainLfoPhaseOffset(phaseOffset: number): number {
+  const normalized = phaseOffset % 1;
+  return normalized < 0 ? normalized + 1 : normalized;
+}
+
+/**
+ * Formats a phase offset (0..1) as a degree value (0°..359°).
+ * @param phaseOffset - Phase offset as a fraction (0..1)
+ * @returns Formatted string like "90°"
+ */
+export function formatPhaseOffset(phaseOffset: number): string {
+  const degrees = Math.round(constrainLfoPhaseOffset(phaseOffset) * 360);
+  return `${degrees}°`;
+}
+
+/**
  * LFO rate constraints in Hz
  */
 export const LFO_RATE_MINIMUM = 0.01;
@@ -294,6 +321,7 @@ export const SAMPLE_HOLD_STEP_COUNT = 8;
  * @param sampleCount - Number of samples to generate
  * @param depth - Amplitude scaling (0 to 1)
  * @param bipolar - If true, output range is -depth..+depth; if false, 0..+depth
+ * @param phaseOffset - Starting phase offset as a fraction of one cycle (0..1)
  * @returns Array of sample values
  */
 export function generateLfoWaveformSamples(
@@ -301,17 +329,20 @@ export function generateLfoWaveformSamples(
   sampleCount: number,
   depth: number = 1,
   bipolar: boolean = true,
+  phaseOffset: number = 0,
 ): number[] {
+  const normalizedOffset = constrainLfoPhaseOffset(phaseOffset);
   const samples: number[] = [];
   for (let i = 0; i < sampleCount; i++) {
     let value: number;
     if (waveform === "sample_hold") {
-      // Divide the cycle into SAMPLE_HOLD_STEP_COUNT equal steps
-      const stepIndex = Math.floor((i / sampleCount) * SAMPLE_HOLD_STEP_COUNT);
+      // Divide the cycle into SAMPLE_HOLD_STEP_COUNT equal steps, offset by phase
+      const phase = (i / sampleCount + normalizedOffset) % 1;
+      const stepIndex = Math.floor(phase * SAMPLE_HOLD_STEP_COUNT);
       const bipolarValue = sampleHoldValueForStep(stepIndex) * depth;
       value = bipolar ? bipolarValue : (bipolarValue + depth) / 2;
     } else {
-      const phase = i / sampleCount;
+      const phase = i / sampleCount + normalizedOffset;
       value = sampleLfoWaveform(waveform, phase) * depth;
       if (!bipolar) {
         // Convert from bipolar (-depth..+depth) to unipolar (0..+depth)
