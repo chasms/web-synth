@@ -8,7 +8,12 @@ import { constrainToRange } from "./mathUtils";
 /**
  * LFO waveform types supported by the synthesizer
  */
-export type LfoWaveform = "sine" | "triangle" | "square" | "sawtooth";
+export type LfoWaveform =
+  | "sine"
+  | "triangle"
+  | "square"
+  | "sawtooth"
+  | "sample_hold";
 
 /**
  * Musical note divisions for tempo-synced LFO rates
@@ -87,6 +92,7 @@ export const LFO_WAVEFORMS: readonly LfoWaveform[] = [
   "triangle",
   "square",
   "sawtooth",
+  "sample_hold",
 ] as const;
 
 /**
@@ -256,13 +262,34 @@ export function sampleLfoWaveform(
     case "sawtooth":
       // Sawtooth: rises from -1 to +1 over the cycle (Web Audio convention)
       return normalizedPhase * 2 - 1;
+    case "sample_hold":
+      // S&H is step-based; use sampleHoldValueForStep with a single-step index of 0
+      // Phase-based S&H visualization is handled via generateLfoWaveformSamples
+      return sampleHoldValueForStep(0);
     default:
       return 0;
   }
 }
 
 /**
+ * Returns a deterministic pseudo-random value for a given Sample & Hold step index.
+ * The same step index always produces the same value, enabling reproducible visualization.
+ * @param stepIndex - The step index (non-negative integer)
+ * @returns A bipolar value in range [-1, +1]
+ */
+export function sampleHoldValueForStep(stepIndex: number): number {
+  // Simple deterministic hash function for a consistent pseudo-random sequence
+  const hash = Math.sin(stepIndex * 12.9898 + 78.233) * 43758.5453;
+  const normalized = hash - Math.floor(hash); // 0..1
+  return normalized * 2 - 1; // -1..+1
+}
+
+/** Default number of S&H steps visible in one waveform preview cycle */
+export const SAMPLE_HOLD_STEP_COUNT = 8;
+
+/**
  * Generates an array of waveform samples for visualization.
+ * For "sample_hold", produces a stepped random waveform using SAMPLE_HOLD_STEP_COUNT steps.
  * @param waveform - The waveform type
  * @param sampleCount - Number of samples to generate
  * @param depth - Amplitude scaling (0 to 1)
@@ -277,11 +304,19 @@ export function generateLfoWaveformSamples(
 ): number[] {
   const samples: number[] = [];
   for (let i = 0; i < sampleCount; i++) {
-    const phase = i / sampleCount;
-    let value = sampleLfoWaveform(waveform, phase) * depth;
-    if (!bipolar) {
-      // Convert from bipolar (-depth..+depth) to unipolar (0..+depth)
-      value = (value + depth) / 2;
+    let value: number;
+    if (waveform === "sample_hold") {
+      // Divide the cycle into SAMPLE_HOLD_STEP_COUNT equal steps
+      const stepIndex = Math.floor((i / sampleCount) * SAMPLE_HOLD_STEP_COUNT);
+      const bipolarValue = sampleHoldValueForStep(stepIndex) * depth;
+      value = bipolar ? bipolarValue : (bipolarValue + depth) / 2;
+    } else {
+      const phase = i / sampleCount;
+      value = sampleLfoWaveform(waveform, phase) * depth;
+      if (!bipolar) {
+        // Convert from bipolar (-depth..+depth) to unipolar (0..+depth)
+        value = (value + depth) / 2;
+      }
     }
     samples.push(value);
   }

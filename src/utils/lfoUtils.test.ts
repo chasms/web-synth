@@ -16,6 +16,8 @@ import {
   LFO_DEPTH_MINIMUM,
   LFO_RATE_MAXIMUM,
   LFO_RATE_MINIMUM,
+  SAMPLE_HOLD_STEP_COUNT,
+  sampleHoldValueForStep,
   sampleLfoWaveform,
   tempoToLfoRate,
   unipolarToBipolar,
@@ -364,6 +366,58 @@ describe("lfoUtils", () => {
     it("should scale with BPM", () => {
       expect(calculateSyncedRate(60, "1/4")).toBeCloseTo(1);
       expect(calculateSyncedRate(240, "1/4")).toBeCloseTo(4);
+    });
+  });
+
+  describe("sampleHoldValueForStep", () => {
+    it("should return a value in [-1, +1]", () => {
+      for (let i = 0; i < 16; i++) {
+        const value = sampleHoldValueForStep(i);
+        expect(value).toBeGreaterThanOrEqual(-1);
+        expect(value).toBeLessThanOrEqual(1);
+      }
+    });
+
+    it("should return the same value for the same step index", () => {
+      expect(sampleHoldValueForStep(0)).toBe(sampleHoldValueForStep(0));
+      expect(sampleHoldValueForStep(5)).toBe(sampleHoldValueForStep(5));
+      expect(sampleHoldValueForStep(100)).toBe(sampleHoldValueForStep(100));
+    });
+
+    it("should return different values for different step indices", () => {
+      const values = new Set(
+        Array.from({ length: 8 }, (_, i) => sampleHoldValueForStep(i)),
+      );
+      // Expect at least some variety in the values
+      expect(values.size).toBeGreaterThan(4);
+    });
+  });
+
+  describe("generateLfoWaveformSamples with sample_hold", () => {
+    it("should return correct number of samples", () => {
+      expect(generateLfoWaveformSamples("sample_hold", 64)).toHaveLength(64);
+    });
+
+    it("should produce step-like output (consecutive samples share the same value within a step)", () => {
+      const sampleCount = 128;
+      const samples = generateLfoWaveformSamples("sample_hold", sampleCount, 1, true);
+      // First two samples in the first step should be equal
+      const samplesPerStep = sampleCount / SAMPLE_HOLD_STEP_COUNT;
+      expect(samples[0]).toBe(samples[Math.floor(samplesPerStep / 2)]);
+    });
+
+    it("should produce bipolar output in [-1, +1] range", () => {
+      const samples = generateLfoWaveformSamples("sample_hold", 64, 1, true);
+      samples.forEach((s) => {
+        expect(s).toBeGreaterThanOrEqual(-1);
+        expect(s).toBeLessThanOrEqual(1);
+      });
+    });
+  });
+
+  describe("isValidLfoWaveform includes sample_hold", () => {
+    it("should accept sample_hold as valid waveform", () => {
+      expect(isValidLfoWaveform("sample_hold")).toBe(true);
     });
   });
 

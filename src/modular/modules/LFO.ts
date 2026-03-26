@@ -7,6 +7,7 @@ import {
   LFO_DEPTH_DEFAULT,
   LFO_RATE_DEFAULT,
   LFO_SYNC_DIVISION_DEFAULT,
+  sampleHoldValueForStep,
   type LfoSyncDivision,
   type LfoWaveform,
 } from "../../utils/lfoUtils";
@@ -99,19 +100,67 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   const initialDepth = constrainLfoDepth(
     parameters?.depth ?? LFO_DEPTH_DEFAULT,
   );
-  const initialWaveform: OscillatorType = isValidLfoWaveform(
-    parameters?.waveform ?? "sine",
-  )
-    ? (parameters?.waveform as OscillatorType)
+  const initialWaveformParam = parameters?.waveform ?? "sine";
+  const isSampleHoldWaveform = initialWaveformParam === "sample_hold";
+  const initialOscWaveform: OscillatorType = isValidLfoWaveform(
+    initialWaveformParam,
+  ) && !isSampleHoldWaveform
+    ? (initialWaveformParam as OscillatorType)
     : "sine";
+  let currentWaveform: LfoWaveform = initialWaveformParam;
   let isBipolar = parameters?.bipolar ?? true;
 
-  // Create the LFO oscillator
+  // Create the LFO oscillator (always running, muted when in S&H mode)
   const oscillatorNode = audioContext.createOscillator();
-  oscillatorNode.type = initialWaveform;
+  oscillatorNode.type = initialOscWaveform;
   oscillatorNode.frequency.value = initialRate;
 
-  // Depth control gain node (scales the oscillator output)
+  // Route gain for oscillator: 1 in normal mode, 0 in S&H mode
+  const oscillatorRouteGain = audioContext.createGain();
+  oscillatorRouteGain.gain.value = isSampleHoldWaveform ? 0 : 1;
+
+  // Sample & Hold source node (ConstantSourceNode stepped by timer)
+  const sampleHoldSourceNode = audioContext.createConstantSource();
+  sampleHoldSourceNode.offset.value = 0;
+
+  // Route gain for S&H: 0 in normal mode, 1 in S&H mode
+  const sampleHoldRouteGain = audioContext.createGain();
+  sampleHoldRouteGain.gain.value = isSampleHoldWaveform ? 1 : 0;
+
+  // S&H step state
+  let sampleHoldStepIndex = 0;
+  let sampleHoldTimerId: ReturnType<typeof setInterval> | null = null;
+
+  const updateSampleHoldValue = () => {
+    sampleHoldSourceNode.offset.setValueAtTime(
+      sampleHoldValueForStep(sampleHoldStepIndex),
+      audioContext.currentTime,
+    );
+    sampleHoldStepIndex += 1;
+  };
+
+  const startSampleHoldTimer = () => {
+    if (sampleHoldTimerId !== null) {
+      clearInterval(sampleHoldTimerId);
+    }
+    const rateHz = oscillatorNode.frequency.value;
+    const intervalMs = (1 / rateHz) * 1000;
+    updateSampleHoldValue(); // Set initial value immediately
+    sampleHoldTimerId = setInterval(updateSampleHoldValue, intervalMs);
+  };
+
+  const stopSampleHoldTimer = () => {
+    if (sampleHoldTimerId !== null) {
+      clearInterval(sampleHoldTimerId);
+      sampleHoldTimerId = null;
+    }
+  };
+
+  if (isSampleHoldWaveform) {
+    startSampleHoldTimer();
+  }
+
+  // Depth control gain node (scales the mixed oscillator/S&H output)
   const depthGainNode = audioContext.createGain();
   depthGainNode.gain.value = initialDepth;
 
@@ -139,8 +188,11 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   invertedOutputNode.gain.value = 1;
 
   // Connect the signal chain
-  // Oscillator → Unipolar Scale → Depth → Output
-  oscillatorNode.connect(unipolarScaleNode);
+  // (Oscillator → OscRoute + S&H → S&HRoute) → Unipolar Scale → Depth → Output
+  oscillatorNode.connect(oscillatorRouteGain);
+  oscillatorRouteGain.connect(unipolarScaleNode);
+  sampleHoldSourceNode.connect(sampleHoldRouteGain);
+  sampleHoldRouteGain.connect(unipolarScaleNode);
   unipolarScaleNode.connect(depthGainNode);
   depthGainNode.connect(outputNode);
 
@@ -158,6 +210,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   // Start the oscillator and DC offset
   oscillatorNode.start();
   dcOffsetNode.start();
+  sampleHoldSourceNode.start();
 
   const portNodes: ModuleInstance["portNodes"] = {
     cv_out: outputNode,
@@ -312,10 +365,34 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         typeof partial["waveform"] === "string"
       ) {
         if (isValidLfoWaveform(partial["waveform"])) {
-          try {
-            oscillatorNode.type = partial["waveform"] as OscillatorType;
-          } catch {
-            /* ignore invalid */
+          const nextWaveform = partial["waveform"] as LfoWaveform;
+          const wasHold = currentWaveform === "sample_hold";
+          const isNowHold = nextWaveform === "sample_hold";
+          currentWaveform = nextWaveform;
+
+          if (isNowHold && !wasHold) {
+            // Switch to S&H: silence oscillator, activate S&H source
+            oscillatorRouteGain.gain.setValueAtTime(0, audioContext.currentTime);
+            sampleHoldRouteGain.gain.setValueAtTime(1, audioContext.currentTime);
+            sampleHoldStepIndex = 0;
+            startSampleHoldTimer();
+          } else if (!isNowHold && wasHold) {
+            // Switch from S&H: activate oscillator, silence S&H source
+            stopSampleHoldTimer();
+            oscillatorRouteGain.gain.setValueAtTime(1, audioContext.currentTime);
+            sampleHoldRouteGain.gain.setValueAtTime(0, audioContext.currentTime);
+            try {
+              oscillatorNode.type = nextWaveform as OscillatorType;
+            } catch {
+              /* ignore invalid */
+            }
+          } else if (!isNowHold) {
+            // Normal waveform change
+            try {
+              oscillatorNode.type = nextWaveform as OscillatorType;
+            } catch {
+              /* ignore invalid */
+            }
           }
         }
       }
@@ -331,7 +408,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
       return {
         rate: oscillatorNode.frequency.value,
         depth: depthGainNode.gain.value,
-        waveform: oscillatorNode.type,
+        waveform: currentWaveform,
         bipolar: isBipolar,
         syncEnabled: isSyncEnabled,
         bpm: currentBpm,
@@ -339,6 +416,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
       };
     },
     dispose() {
+      stopSampleHoldTimer();
       try {
         oscillatorNode.stop();
       } catch {
@@ -349,7 +427,15 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
       } catch {
         /* already stopped */
       }
+      try {
+        sampleHoldSourceNode.stop();
+      } catch {
+        /* already stopped */
+      }
       oscillatorNode.disconnect();
+      oscillatorRouteGain.disconnect();
+      sampleHoldSourceNode.disconnect();
+      sampleHoldRouteGain.disconnect();
       unipolarScaleNode.disconnect();
       depthGainNode.disconnect();
       dcOffsetNode.disconnect();

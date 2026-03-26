@@ -176,6 +176,7 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
           <option value="triangle">Triangle</option>
           <option value="square">Square</option>
           <option value="sawtooth">Sawtooth</option>
+          <option value="sample_hold">S&amp;H</option>
         </select>
       </div>
 
