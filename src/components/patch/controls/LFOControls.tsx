@@ -139,6 +139,9 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
   const [bpm, setBpm] = React.useState<number>(
     typeof initial["bpm"] === "number" ? (initial["bpm"] as number) : LFO_BPM_DEFAULT,
   );
+  const [rateCvAmount, setRateCvAmount] = React.useState<number>(
+    typeof initial["rateCvAmount"] === "number" ? (initial["rateCvAmount"] as number) : 10,
+  );
   const [phaseOffset, setPhaseOffset] = React.useState<number>(
     typeof initial["phaseOffset"] === "number"
       ? constrainLfoPhaseOffset(initial["phaseOffset"] as number)
@@ -281,6 +284,18 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
         onChange={(v) => {
           setDepth(v);
           update({ depth: v });
+        }}
+      />
+
+      <NumberControl
+        label="Rate CV Amt (Hz)"
+        value={rateCvAmount}
+        min={0}
+        max={50}
+        step={0.5}
+        onChange={(v) => {
+          setRateCvAmount(v);
+          update({ rateCvAmount: v });
         }}
       />
 

@@ -13,6 +13,15 @@ import {
   type LfoSyncDivision,
   type LfoWaveform,
 } from "../../utils/lfoUtils";
+
+/** Default CV modulation range for rate (Hz) */
+const RATE_CV_AMOUNT_DEFAULT = 10;
+
+/** Minimum CV modulation range for rate */
+const RATE_CV_AMOUNT_MINIMUM = 0;
+
+/** Maximum CV modulation range for rate */
+const RATE_CV_AMOUNT_MAXIMUM = 50;
 import type { CreateModuleFn, ModuleInstance, PortDefinition } from "../types";
 import { smoothParam } from "../utils/smoothing";
 
@@ -25,6 +34,7 @@ export interface LFOParams {
   bpm?: number; // Tempo in BPM (20-300), used when syncEnabled is true
   syncDivision?: LfoSyncDivision; // Note division for sync mode
   phaseOffset?: number; // Starting phase (0..1, where 0.5 = 180°)
+  rateCvAmount?: number; // CV modulation range for rate (0–50 Hz), default 10
 }
 
 const ports: PortDefinition[] = [
@@ -54,7 +64,7 @@ const ports: PortDefinition[] = [
     direction: "in",
     signal: "CV",
     metadata: {
-      description: "Rate modulation input (future)",
+      description: "Rate CV modulation input (CV × rateCvAmount added to base rate)",
     },
   },
   {
@@ -102,6 +112,11 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
     return constrainLfoRate(parameters?.rate ?? LFO_RATE_DEFAULT);
   };
 
+  let currentRateCvAmount = Math.min(
+    RATE_CV_AMOUNT_MAXIMUM,
+    Math.max(RATE_CV_AMOUNT_MINIMUM, parameters?.rateCvAmount ?? RATE_CV_AMOUNT_DEFAULT),
+  );
+
   const initialRate = getEffectiveRate();
   const initialDepth = constrainLfoDepth(
     parameters?.depth ?? LFO_DEPTH_DEFAULT,
@@ -120,6 +135,12 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   const oscillatorNode = audioContext.createOscillator();
   oscillatorNode.type = initialOscWaveform;
   oscillatorNode.frequency.value = initialRate;
+
+  // Rate CV modulation: incoming CV (-1..+1) × rateCvAmount → added to oscillator frequency
+  const rateCvGainNode = audioContext.createGain();
+  rateCvGainNode.gain.value = currentRateCvAmount;
+  // rateCvGainNode output is connected to oscillatorNode.frequency (AudioParam)
+  rateCvGainNode.connect(oscillatorNode.frequency);
 
   // Route gain for oscillator: 1 in normal mode, 0 in S&H mode
   const oscillatorRouteGain = audioContext.createGain();
@@ -242,14 +263,13 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
     newOscillator.type = oldOscillator.type;
     newOscillator.frequency.value = oldOscillator.frequency.value;
     newOscillator.connect(oscillatorRouteGain);
+    // Reconnect rate CV gain to the new oscillator frequency
+    rateCvGainNode.connect(newOscillator.frequency);
     // Apply phase offset: start slightly in the past so the current phase matches offset
     const rateHz = newOscillator.frequency.value;
     const offsetSeconds = rateHz > 0 ? currentPhaseOffset / rateHz : 0;
     newOscillator.start(audioContext.currentTime - offsetSeconds);
     activeOscillatorNode = newOscillator;
-
-    // Update portNodes rate_cv reference to point to new oscillator frequency
-    portNodes.rate_cv = newOscillator.frequency;
   };
 
   // Start the oscillator with phase offset (start in the past to simulate phase offset)
@@ -262,8 +282,8 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   const portNodes: ModuleInstance["portNodes"] = {
     cv_out: outputNode,
     inverted_cv_out: invertedOutputNode,
-    rate_cv: oscillatorNode.frequency, // Future: modulate rate
-    reset: undefined, // Future: reset trigger
+    rate_cv: rateCvGainNode, // CV input for rate modulation
+    reset: undefined,
   };
 
   /**
@@ -398,6 +418,20 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         triggerReset();
       }
 
+      if (
+        partial["rateCvAmount"] !== undefined &&
+        typeof partial["rateCvAmount"] === "number"
+      ) {
+        currentRateCvAmount = Math.min(
+          RATE_CV_AMOUNT_MAXIMUM,
+          Math.max(RATE_CV_AMOUNT_MINIMUM, partial["rateCvAmount"]),
+        );
+        smoothParam(audioContext, rateCvGainNode.gain, currentRateCvAmount, {
+          mode: "linear",
+          time: 0.02,
+        });
+      }
+
       if (partial["triggerReset"] === true) {
         triggerReset();
       }
@@ -474,6 +508,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         bpm: currentBpm,
         syncDivision: currentSyncDivision,
         phaseOffset: currentPhaseOffset,
+        rateCvAmount: currentRateCvAmount,
       };
     },
     dispose() {
@@ -494,6 +529,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         /* already stopped */
       }
       activeOscillatorNode.disconnect();
+      rateCvGainNode.disconnect();
       oscillatorRouteGain.disconnect();
       sampleHoldSourceNode.disconnect();
       sampleHoldRouteGain.disconnect();
