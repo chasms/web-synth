@@ -11,6 +11,7 @@ interface LfoWaveformPreviewProps {
   depth: number;
   bipolar: boolean;
   phaseOffset?: number;
+  showInverted?: boolean;
   width?: number;
   height?: number;
 }
@@ -18,11 +19,17 @@ interface LfoWaveformPreviewProps {
 /** Number of samples used to draw the waveform shape */
 const SAMPLE_COUNT = 128;
 
-/** Color for the waveform line */
+/** Color for the main waveform line */
 const WAVEFORM_COLOR = "#ffb347";
+
+/** Color for the inverted waveform line */
+const INVERTED_WAVEFORM_COLOR = "#47b3ff";
 
 /** Color for the animated phase cursor */
 const CURSOR_COLOR = "#ff6b35";
+
+/** Color for the inverted cursor dot */
+const INVERTED_CURSOR_COLOR = "#47b3ff";
 
 /** Color for the center / zero line */
 const ZERO_LINE_COLOR = "#333";
@@ -43,6 +50,7 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
   depth,
   bipolar,
   phaseOffset = 0,
+  showInverted = true,
   width = 148,
   height = 60,
 }) => {
@@ -64,6 +72,17 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       bipolar,
       phaseOffset,
     );
+
+    // Compute inverted samples for display
+    // Inverted = signal * -1; for unipolar, reflect around the center (depth/2)
+    const invertedSamples = samples.map((value) => {
+      if (bipolar) {
+        return -value;
+      }
+      // Unipolar: reflect around the center value (depth / 2)
+      const center = depth / 2;
+      return center - (value - center);
+    });
 
     // Determine the value range for Y-axis mapping
     const maxAmplitude = bipolar ? depth : depth;
@@ -106,23 +125,36 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       context.stroke();
       context.setLineDash([]);
 
-      // Draw waveform shape
+      /** Draws a waveform path from a sample array */
+      const drawWaveformPath = (sampleArray: number[]) => {
+        context.beginPath();
+        for (let i = 0; i < sampleArray.length; i++) {
+          const x = (i / sampleArray.length) * width;
+          const y = valueToY(sampleArray[i]);
+          if (i === 0) {
+            context.moveTo(x, y);
+          } else {
+            context.lineTo(x, y);
+          }
+        }
+        // Close the loop back to the start for visual continuity
+        context.lineTo(width, valueToY(sampleArray[0]));
+        context.stroke();
+      };
+
+      // Draw inverted waveform first (behind main waveform)
+      if (showInverted) {
+        context.strokeStyle = INVERTED_WAVEFORM_COLOR;
+        context.lineWidth = 1.5;
+        context.globalAlpha = 0.5;
+        drawWaveformPath(invertedSamples);
+        context.globalAlpha = 1;
+      }
+
+      // Draw main waveform shape
       context.strokeStyle = WAVEFORM_COLOR;
       context.lineWidth = 1.5;
-      context.beginPath();
-
-      for (let i = 0; i < samples.length; i++) {
-        const x = (i / samples.length) * width;
-        const y = valueToY(samples[i]);
-        if (i === 0) {
-          context.moveTo(x, y);
-        } else {
-          context.lineTo(x, y);
-        }
-      }
-      // Close the loop back to the start for visual continuity
-      context.lineTo(width, valueToY(samples[0]));
-      context.stroke();
+      drawWaveformPath(samples);
 
       // Draw animated cursor (vertical line at current phase)
       context.strokeStyle = CURSOR_COLOR;
@@ -133,7 +165,7 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       context.lineTo(cursorX, height - verticalPadding);
       context.stroke();
 
-      // Draw a dot at the intersection of cursor and waveform
+      // Draw a dot on the main waveform at cursor position
       const cursorSampleIndex = Math.floor(cursorPhase * samples.length);
       const cursorY = valueToY(
         samples[Math.min(cursorSampleIndex, samples.length - 1)],
@@ -143,6 +175,17 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       context.beginPath();
       context.arc(cursorX, cursorY, 3, 0, Math.PI * 2);
       context.fill();
+
+      // Draw a dot on the inverted waveform at cursor position
+      if (showInverted) {
+        const invertedCursorY = valueToY(
+          invertedSamples[Math.min(cursorSampleIndex, invertedSamples.length - 1)],
+        );
+        context.fillStyle = INVERTED_CURSOR_COLOR;
+        context.beginPath();
+        context.arc(cursorX, invertedCursorY, 2.5, 0, Math.PI * 2);
+        context.fill();
+      }
 
       animationRef.current = requestAnimationFrame(draw);
     };
@@ -155,7 +198,7 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       }
       startTimeRef.current = undefined;
     };
-  }, [waveform, rate, depth, bipolar, phaseOffset, width, height]);
+  }, [waveform, rate, depth, bipolar, phaseOffset, showInverted, width, height]);
 
   return (
     <div className="lfo-waveform-preview">
