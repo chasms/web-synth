@@ -1,19 +1,26 @@
 import {
+  calculateSyncedRate,
   constrainLfoDepth,
   constrainLfoRate,
   isValidLfoWaveform,
+  LFO_BPM_DEFAULT,
   LFO_DEPTH_DEFAULT,
   LFO_RATE_DEFAULT,
+  LFO_SYNC_DIVISION_DEFAULT,
+  type LfoSyncDivision,
   type LfoWaveform,
 } from "../../utils/lfoUtils";
 import type { CreateModuleFn, ModuleInstance, PortDefinition } from "../types";
 import { smoothParam } from "../utils/smoothing";
 
 export interface LFOParams {
-  rate: number; // Hz (0.01 to 50)
-  depth: number; // 0 to 1
-  waveform: LfoWaveform;
-  bipolar: boolean; // true = -1..+1, false = 0..+1
+  rate?: number; // Hz (0.01 to 50), used when syncEnabled is false
+  depth?: number; // 0 to 1
+  waveform?: LfoWaveform;
+  bipolar?: boolean; // true = -1..+1, false = 0..+1
+  syncEnabled?: boolean; // If true, rate is derived from bpm + syncDivision
+  bpm?: number; // Tempo in BPM (20-300), used when syncEnabled is true
+  syncDivision?: LfoSyncDivision; // Note division for sync mode
 }
 
 const ports: PortDefinition[] = [
@@ -76,7 +83,19 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   const { audioContext, moduleId } = context;
 
   // Default parameters
-  const initialRate = constrainLfoRate(parameters?.rate ?? LFO_RATE_DEFAULT);
+  let isSyncEnabled = parameters?.syncEnabled ?? false;
+  let currentBpm = parameters?.bpm ?? LFO_BPM_DEFAULT;
+  let currentSyncDivision: LfoSyncDivision =
+    parameters?.syncDivision ?? LFO_SYNC_DIVISION_DEFAULT;
+
+  const getEffectiveRate = (): number => {
+    if (isSyncEnabled) {
+      return constrainLfoRate(calculateSyncedRate(currentBpm, currentSyncDivision));
+    }
+    return constrainLfoRate(parameters?.rate ?? LFO_RATE_DEFAULT);
+  };
+
+  const initialRate = getEffectiveRate();
   const initialDepth = constrainLfoDepth(
     parameters?.depth ?? LFO_DEPTH_DEFAULT,
   );
@@ -223,9 +242,45 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
       }
     },
     updateParams(partial) {
+      // Handle sync parameters first so rate update reflects current sync state
+      if (
+        partial["syncEnabled"] !== undefined &&
+        typeof partial["syncEnabled"] === "boolean"
+      ) {
+        isSyncEnabled = partial["syncEnabled"];
+      }
+
+      if (
+        partial["bpm"] !== undefined &&
+        typeof partial["bpm"] === "number"
+      ) {
+        currentBpm = partial["bpm"];
+      }
+
+      if (
+        partial["syncDivision"] !== undefined &&
+        typeof partial["syncDivision"] === "string"
+      ) {
+        currentSyncDivision = partial["syncDivision"] as LfoSyncDivision;
+      }
+
+      // If any sync-related param changed, recompute the rate
+      if (
+        partial["syncEnabled"] !== undefined ||
+        partial["bpm"] !== undefined ||
+        partial["syncDivision"] !== undefined
+      ) {
+        const syncedRate = getEffectiveRate();
+        smoothParam(audioContext, oscillatorNode.frequency, syncedRate, {
+          mode: "setTarget",
+          timeConstant: 0.05,
+        });
+      }
+
       if (
         partial["rate"] !== undefined &&
-        typeof partial["rate"] === "number"
+        typeof partial["rate"] === "number" &&
+        !isSyncEnabled
       ) {
         const nextRate = constrainLfoRate(partial["rate"]);
         smoothParam(audioContext, oscillatorNode.frequency, nextRate, {
@@ -278,6 +333,9 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         depth: depthGainNode.gain.value,
         waveform: oscillatorNode.type,
         bipolar: isBipolar,
+        syncEnabled: isSyncEnabled,
+        bpm: currentBpm,
+        syncDivision: currentSyncDivision,
       };
     },
     dispose() {

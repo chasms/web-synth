@@ -11,6 +11,75 @@ import { constrainToRange } from "./mathUtils";
 export type LfoWaveform = "sine" | "triangle" | "square" | "sawtooth";
 
 /**
+ * Musical note divisions for tempo-synced LFO rates
+ * Format: "numerator/denominator" where 1/1 = one whole note per cycle
+ */
+export type LfoSyncDivision =
+  | "4/1"
+  | "2/1"
+  | "1/1"
+  | "1/2"
+  | "1/4"
+  | "1/8"
+  | "1/16"
+  | "1/32";
+
+/**
+ * All valid sync divisions in order from slowest to fastest
+ */
+export const LFO_SYNC_DIVISIONS: readonly LfoSyncDivision[] = [
+  "4/1",
+  "2/1",
+  "1/1",
+  "1/2",
+  "1/4",
+  "1/8",
+  "1/16",
+  "1/32",
+] as const;
+
+/** Default sync division */
+export const LFO_SYNC_DIVISION_DEFAULT: LfoSyncDivision = "1/4";
+
+/** Default BPM for tempo sync */
+export const LFO_BPM_DEFAULT = 120;
+
+/** Minimum BPM */
+export const LFO_BPM_MINIMUM = 20;
+
+/** Maximum BPM */
+export const LFO_BPM_MAXIMUM = 300;
+
+/**
+ * Returns the fractional subdivision value for a sync division string.
+ * A value of 1 = one whole note, 4 = four cycles per whole note, etc.
+ * @param division - The sync division string (e.g. "1/4")
+ * @returns The numeric subdivision value (numerator/denominator)
+ */
+export function getSyncDivisionSubdivision(division: LfoSyncDivision): number {
+  const [numerator, denominator] = division.split("/").map(Number);
+  return numerator / denominator;
+}
+
+/**
+ * Calculates the LFO rate in Hz for a given BPM and sync division.
+ * Division "1/4" means one LFO cycle per quarter note.
+ * @param bpm - Tempo in beats per minute
+ * @param division - Note division for sync (e.g. "1/4" = quarter note)
+ * @returns The LFO rate in Hz
+ */
+export function calculateSyncedRate(
+  bpm: number,
+  division: LfoSyncDivision,
+): number {
+  // getSyncDivisionSubdivision("1/4") = 0.25 (fraction of a whole note)
+  // tempoToLfoRate expects subdivision where 4 = quarter note, 8 = eighth note, etc.
+  // So we pass 1 / fraction: "1/4" → 1/0.25 = 4 → quarter note rate
+  const fraction = getSyncDivisionSubdivision(division);
+  return constrainLfoRate(tempoToLfoRate(bpm, 1 / fraction));
+}
+
+/**
  * Valid LFO waveform values for validation
  */
 export const LFO_WAVEFORMS: readonly LfoWaveform[] = [

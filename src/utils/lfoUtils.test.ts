@@ -4,11 +4,13 @@ import {
   bipolarToUnipolar,
   calculateLfoPeriod,
   calculateModulatedValue,
+  calculateSyncedRate,
   constrainLfoDepth,
   constrainLfoRate,
   durationToLfoRate,
   formatLfoRate,
   generateLfoWaveformSamples,
+  getSyncDivisionSubdivision,
   isValidLfoWaveform,
   LFO_DEPTH_MAXIMUM,
   LFO_DEPTH_MINIMUM,
@@ -312,6 +314,56 @@ describe("lfoUtils", () => {
       expect(sampleLfoWaveform("sine", -0.75)).toBeCloseTo(
         sampleLfoWaveform("sine", 0.25),
       );
+    });
+  });
+
+  describe("getSyncDivisionSubdivision", () => {
+    it("should return correct subdivision for whole note", () => {
+      expect(getSyncDivisionSubdivision("1/1")).toBe(1);
+    });
+
+    it("should return correct subdivision for quarter note", () => {
+      expect(getSyncDivisionSubdivision("1/4")).toBeCloseTo(0.25);
+    });
+
+    it("should return correct subdivision for 4/1 (4 whole notes)", () => {
+      expect(getSyncDivisionSubdivision("4/1")).toBe(4);
+    });
+
+    it("should return correct subdivision for 1/32", () => {
+      expect(getSyncDivisionSubdivision("1/32")).toBeCloseTo(1 / 32);
+    });
+  });
+
+  describe("calculateSyncedRate", () => {
+    it("should calculate correct rate for quarter note at 120 BPM", () => {
+      // 120 BPM → quarter note = 2 Hz
+      expect(calculateSyncedRate(120, "1/4")).toBeCloseTo(2);
+    });
+
+    it("should calculate correct rate for half note at 120 BPM", () => {
+      // 120 BPM → half note = 1 Hz
+      expect(calculateSyncedRate(120, "1/2")).toBeCloseTo(1);
+    });
+
+    it("should calculate correct rate for whole note at 120 BPM", () => {
+      // 120 BPM → whole note = 0.5 Hz
+      expect(calculateSyncedRate(120, "1/1")).toBeCloseTo(0.5);
+    });
+
+    it("should calculate correct rate for 4/1 at 120 BPM", () => {
+      // 4 whole notes = 0.125 Hz at 120 BPM (clamped to LFO_RATE_MINIMUM)
+      expect(calculateSyncedRate(120, "4/1")).toBeCloseTo(0.125);
+    });
+
+    it("should calculate correct rate for 1/8 at 120 BPM", () => {
+      // 120 BPM → eighth note = 4 Hz
+      expect(calculateSyncedRate(120, "1/8")).toBeCloseTo(4);
+    });
+
+    it("should scale with BPM", () => {
+      expect(calculateSyncedRate(60, "1/4")).toBeCloseTo(1);
+      expect(calculateSyncedRate(240, "1/4")).toBeCloseTo(4);
     });
   });
 
