@@ -142,6 +142,9 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
   const [rateCvAmount, setRateCvAmount] = React.useState<number>(
     typeof initial["rateCvAmount"] === "number" ? (initial["rateCvAmount"] as number) : 10,
   );
+  const [fadeIn, setFadeIn] = React.useState<number>(
+    typeof initial["fadeIn"] === "number" ? (initial["fadeIn"] as number) : 0,
+  );
   const [phaseOffset, setPhaseOffset] = React.useState<number>(
     typeof initial["phaseOffset"] === "number"
       ? constrainLfoPhaseOffset(initial["phaseOffset"] as number)
@@ -342,6 +345,18 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
           {bipolar ? "-1 to +1" : "0 to +1"}
         </div>
       </div>
+
+      <NumberControl
+        label="Fade-In (s)"
+        value={fadeIn}
+        min={0}
+        max={10}
+        step={0.1}
+        onChange={(v) => {
+          setFadeIn(v);
+          update({ fadeIn: v });
+        }}
+      />
 
       <div className="module-control">
         <button

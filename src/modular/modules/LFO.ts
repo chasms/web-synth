@@ -14,6 +14,15 @@ import {
   type LfoWaveform,
 } from "../../utils/lfoUtils";
 
+/** Default fade-in time in seconds (0 = no fade) */
+const FADE_IN_DEFAULT = 0;
+
+/** Minimum fade-in time */
+const FADE_IN_MINIMUM = 0;
+
+/** Maximum fade-in time in seconds */
+const FADE_IN_MAXIMUM = 10;
+
 /** Default CV modulation range for rate (Hz) */
 const RATE_CV_AMOUNT_DEFAULT = 10;
 
@@ -35,6 +44,7 @@ export interface LFOParams {
   syncDivision?: LfoSyncDivision; // Note division for sync mode
   phaseOffset?: number; // Starting phase (0..1, where 0.5 = 180°)
   rateCvAmount?: number; // CV modulation range for rate (0–50 Hz), default 10
+  fadeIn?: number; // Fade-in / attack time in seconds (0 = instant, max 10)
 }
 
 const ports: PortDefinition[] = [
@@ -115,6 +125,11 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   let currentRateCvAmount = Math.min(
     RATE_CV_AMOUNT_MAXIMUM,
     Math.max(RATE_CV_AMOUNT_MINIMUM, parameters?.rateCvAmount ?? RATE_CV_AMOUNT_DEFAULT),
+  );
+
+  let fadeInTime = Math.min(
+    FADE_IN_MAXIMUM,
+    Math.max(FADE_IN_MINIMUM, parameters?.fadeIn ?? FADE_IN_DEFAULT),
   );
 
   const initialRate = getEffectiveRate();
@@ -203,6 +218,10 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   const unipolarScaleNode = audioContext.createGain();
   unipolarScaleNode.gain.value = isBipolar ? 1 : 0.5;
 
+  // Fade-in gain node: starts at 0 and ramps to 1 over fadeInTime seconds
+  const fadeInGainNode = audioContext.createGain();
+  fadeInGainNode.gain.value = fadeInTime > 0 ? 0 : 1;
+
   // Output summing node
   const outputNode = audioContext.createGain();
   outputNode.gain.value = 1;
@@ -221,7 +240,8 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   sampleHoldSourceNode.connect(sampleHoldRouteGain);
   sampleHoldRouteGain.connect(unipolarScaleNode);
   unipolarScaleNode.connect(depthGainNode);
-  depthGainNode.connect(outputNode);
+  depthGainNode.connect(fadeInGainNode);
+  fadeInGainNode.connect(outputNode);
 
   // DC offset for unipolar mode → Output
   // The offset is scaled by depth for proper unipolar output
@@ -238,11 +258,30 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   let activeOscillatorNode = oscillatorNode;
 
   /**
+   * Starts the fade-in envelope from 0 to 1 over fadeInTime seconds.
+   * If fadeInTime is 0, the gain is set to 1 immediately.
+   */
+  const triggerFadeIn = () => {
+    fadeInGainNode.gain.cancelScheduledValues(audioContext.currentTime);
+    if (fadeInTime > 0) {
+      fadeInGainNode.gain.setValueAtTime(0, audioContext.currentTime);
+      fadeInGainNode.gain.linearRampToValueAtTime(
+        1,
+        audioContext.currentTime + fadeInTime,
+      );
+    } else {
+      fadeInGainNode.gain.setValueAtTime(1, audioContext.currentTime);
+    }
+  };
+
+  /**
    * Resets the LFO phase to zero by recreating the oscillator.
    * Also resets the S&H step index.
    */
   const triggerReset = () => {
     sampleHoldStepIndex = 0;
+
+    triggerFadeIn();
 
     if (currentWaveform === "sample_hold") {
       // For S&H, just restart from step 0
@@ -278,6 +317,9 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   oscillatorNode.start(audioContext.currentTime - initialOffsetSeconds);
   dcOffsetNode.start();
   sampleHoldSourceNode.start();
+
+  // Apply fade-in on startup
+  triggerFadeIn();
 
   const portNodes: ModuleInstance["portNodes"] = {
     cv_out: outputNode,
@@ -432,6 +474,16 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         });
       }
 
+      if (
+        partial["fadeIn"] !== undefined &&
+        typeof partial["fadeIn"] === "number"
+      ) {
+        fadeInTime = Math.min(
+          FADE_IN_MAXIMUM,
+          Math.max(FADE_IN_MINIMUM, partial["fadeIn"]),
+        );
+      }
+
       if (partial["triggerReset"] === true) {
         triggerReset();
       }
@@ -509,6 +561,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         syncDivision: currentSyncDivision,
         phaseOffset: currentPhaseOffset,
         rateCvAmount: currentRateCvAmount,
+        fadeIn: fadeInTime,
       };
     },
     dispose() {
@@ -530,6 +583,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
       }
       activeOscillatorNode.disconnect();
       rateCvGainNode.disconnect();
+      fadeInGainNode.disconnect();
       oscillatorRouteGain.disconnect();
       sampleHoldSourceNode.disconnect();
       sampleHoldRouteGain.disconnect();
