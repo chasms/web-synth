@@ -361,7 +361,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   console.log(`[LFO ${moduleId}] Created with:`, {
     rate: initialRate,
     depth: initialDepth,
-    waveform: initialWaveform,
+    waveform: currentWaveform,
     bipolar: isBipolar,
   });
 
