@@ -9,9 +9,9 @@ import {
   LFO_PHASE_OFFSET_DEFAULT,
   LFO_RATE_DEFAULT,
   LFO_SYNC_DIVISION_DEFAULT,
-  sampleHoldValueForStep,
   type LfoSyncDivision,
   type LfoWaveform,
+  sampleHoldValueForStep,
 } from "../../utils/lfoUtils";
 
 /** Default fade-in time in seconds (0 = no fade) */
@@ -74,7 +74,8 @@ const ports: PortDefinition[] = [
     direction: "in",
     signal: "CV",
     metadata: {
-      description: "Rate CV modulation input (CV × rateCvAmount added to base rate)",
+      description:
+        "Rate CV modulation input (CV × rateCvAmount added to base rate)",
     },
   },
   {
@@ -117,14 +118,19 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
 
   const getEffectiveRate = (): number => {
     if (isSyncEnabled) {
-      return constrainLfoRate(calculateSyncedRate(currentBpm, currentSyncDivision));
+      return constrainLfoRate(
+        calculateSyncedRate(currentBpm, currentSyncDivision),
+      );
     }
     return constrainLfoRate(parameters?.rate ?? LFO_RATE_DEFAULT);
   };
 
   let currentRateCvAmount = Math.min(
     RATE_CV_AMOUNT_MAXIMUM,
-    Math.max(RATE_CV_AMOUNT_MINIMUM, parameters?.rateCvAmount ?? RATE_CV_AMOUNT_DEFAULT),
+    Math.max(
+      RATE_CV_AMOUNT_MINIMUM,
+      parameters?.rateCvAmount ?? RATE_CV_AMOUNT_DEFAULT,
+    ),
   );
 
   let fadeInTime = Math.min(
@@ -138,11 +144,10 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   );
   const initialWaveformParam = parameters?.waveform ?? "sine";
   const isSampleHoldWaveform = initialWaveformParam === "sample_hold";
-  const initialOscWaveform: OscillatorType = isValidLfoWaveform(
-    initialWaveformParam,
-  ) && !isSampleHoldWaveform
-    ? (initialWaveformParam as OscillatorType)
-    : "sine";
+  const initialOscWaveform: OscillatorType =
+    isValidLfoWaveform(initialWaveformParam) && !isSampleHoldWaveform
+      ? (initialWaveformParam as OscillatorType)
+      : "sine";
   let currentWaveform: LfoWaveform = initialWaveformParam;
   let isBipolar = parameters?.bipolar ?? true;
 
@@ -412,10 +417,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         isSyncEnabled = partial["syncEnabled"];
       }
 
-      if (
-        partial["bpm"] !== undefined &&
-        typeof partial["bpm"] === "number"
-      ) {
+      if (partial["bpm"] !== undefined && typeof partial["bpm"] === "number") {
         currentBpm = partial["bpm"];
       }
 
@@ -518,15 +520,27 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
 
           if (isNowHold && !wasHold) {
             // Switch to S&H: silence oscillator, activate S&H source
-            oscillatorRouteGain.gain.setValueAtTime(0, audioContext.currentTime);
-            sampleHoldRouteGain.gain.setValueAtTime(1, audioContext.currentTime);
+            oscillatorRouteGain.gain.setValueAtTime(
+              0,
+              audioContext.currentTime,
+            );
+            sampleHoldRouteGain.gain.setValueAtTime(
+              1,
+              audioContext.currentTime,
+            );
             sampleHoldStepIndex = 0;
             startSampleHoldTimer();
           } else if (!isNowHold && wasHold) {
             // Switch from S&H: activate oscillator, silence S&H source
             stopSampleHoldTimer();
-            oscillatorRouteGain.gain.setValueAtTime(1, audioContext.currentTime);
-            sampleHoldRouteGain.gain.setValueAtTime(0, audioContext.currentTime);
+            oscillatorRouteGain.gain.setValueAtTime(
+              1,
+              audioContext.currentTime,
+            );
+            sampleHoldRouteGain.gain.setValueAtTime(
+              0,
+              audioContext.currentTime,
+            );
             try {
               activeOscillatorNode.type = nextWaveform as OscillatorType;
             } catch {

@@ -137,10 +137,14 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
       : false,
   );
   const [bpm, setBpm] = React.useState<number>(
-    typeof initial["bpm"] === "number" ? (initial["bpm"] as number) : LFO_BPM_DEFAULT,
+    typeof initial["bpm"] === "number"
+      ? (initial["bpm"] as number)
+      : LFO_BPM_DEFAULT,
   );
   const [rateCvAmount, setRateCvAmount] = React.useState<number>(
-    typeof initial["rateCvAmount"] === "number" ? (initial["rateCvAmount"] as number) : 10,
+    typeof initial["rateCvAmount"] === "number"
+      ? (initial["rateCvAmount"] as number)
+      : 10,
   );
   const [fadeIn, setFadeIn] = React.useState<number>(
     typeof initial["fadeIn"] === "number" ? (initial["fadeIn"] as number) : 0,
@@ -163,7 +167,9 @@ export const LFOControls: React.FC<LFOControlsProps> = ({ module }) => {
   );
 
   /** Effective rate shown in UI when in sync mode */
-  const effectiveRate = syncEnabled ? calculateSyncedRate(bpm, syncDivision) : rate;
+  const effectiveRate = syncEnabled
+    ? calculateSyncedRate(bpm, syncDivision)
+    : rate;
 
   return (
     <div className="module-controls">

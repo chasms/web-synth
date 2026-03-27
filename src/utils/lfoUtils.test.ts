@@ -421,7 +421,13 @@ describe("lfoUtils", () => {
     it("should shift the waveform by phaseOffset amount", () => {
       // Sine at phase 0 = 0, at phase 0.25 = 1
       const noOffset = generateLfoWaveformSamples("sine", 128, 1, true, 0);
-      const quarterOffset = generateLfoWaveformSamples("sine", 128, 1, true, 0.25);
+      const quarterOffset = generateLfoWaveformSamples(
+        "sine",
+        128,
+        1,
+        true,
+        0.25,
+      );
       // First sample with 0.25 offset should equal sample at index 32 with no offset
       expect(quarterOffset[0]).toBeCloseTo(noOffset[32], 1);
     });
@@ -458,7 +464,12 @@ describe("lfoUtils", () => {
 
     it("should produce step-like output (consecutive samples share the same value within a step)", () => {
       const sampleCount = 128;
-      const samples = generateLfoWaveformSamples("sample_hold", sampleCount, 1, true);
+      const samples = generateLfoWaveformSamples(
+        "sample_hold",
+        sampleCount,
+        1,
+        true,
+      );
       // First two samples in the first step should be equal
       const samplesPerStep = sampleCount / SAMPLE_HOLD_STEP_COUNT;
       expect(samples[0]).toBe(samples[Math.floor(samplesPerStep / 2)]);

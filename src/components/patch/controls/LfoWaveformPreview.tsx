@@ -179,7 +179,9 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       // Draw a dot on the inverted waveform at cursor position
       if (showInverted) {
         const invertedCursorY = valueToY(
-          invertedSamples[Math.min(cursorSampleIndex, invertedSamples.length - 1)],
+          invertedSamples[
+            Math.min(cursorSampleIndex, invertedSamples.length - 1)
+          ],
         );
         context.fillStyle = INVERTED_CURSOR_COLOR;
         context.beginPath();
@@ -198,7 +200,16 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
       }
       startTimeRef.current = undefined;
     };
-  }, [waveform, rate, depth, bipolar, phaseOffset, showInverted, width, height]);
+  }, [
+    waveform,
+    rate,
+    depth,
+    bipolar,
+    phaseOffset,
+    showInverted,
+    width,
+    height,
+  ]);
 
   return (
     <div className="lfo-waveform-preview">
