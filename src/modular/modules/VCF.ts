@@ -20,6 +20,16 @@ const ports: PortDefinition[] = [
     metadata: { bipolar: false },
   },
   { id: "env_cv", label: "Env CV", direction: "in", signal: "CV" },
+  {
+    id: "resonance_cv",
+    label: "Res CV",
+    direction: "in",
+    signal: "CV",
+    metadata: {
+      bipolar: true,
+      description: "Resonance/Q modulation input (LFO, etc.)",
+    },
+  },
 ];
 
 export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
@@ -53,6 +63,15 @@ export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
   // Chain: env_cv_input → inverter → scaler → frequency
   envelopeInverterNode.connect(envelopeScaleNode);
 
+  // Resonance CV scaling (LFO input scaled to Q range)
+  // Default scaling: CV signal (-1 to +1) maps to Q change of ±10
+  const RESONANCE_CV_SCALE = 10;
+  const resonanceCvScaleNode = audioContext.createGain();
+  resonanceCvScaleNode.gain.value = RESONANCE_CV_SCALE;
+
+  // Connect resonance CV to filter Q
+  resonanceCvScaleNode.connect(biquadFilterNode.Q);
+
   // Connect input drive -> filter
   inputGainNode.connect(biquadFilterNode);
 
@@ -67,6 +86,7 @@ export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
     audio_out: biquadFilterNode,
     cutoff_cv: biquadFilterNode.frequency,
     env_cv: envelopeInverterNode, // Envelope goes through inverter → scaler chain
+    resonance_cv: resonanceCvScaleNode, // LFO/CV input for resonance modulation
   };
 
   // Connect envelope chain to filter cutoff
@@ -185,6 +205,7 @@ export const createVCF: CreateModuleFn<VCFParams> = (context, parameters) => {
       biquadFilterNode.disconnect();
       envelopeInverterNode.disconnect();
       envelopeScaleNode.disconnect();
+      resonanceCvScaleNode.disconnect();
     },
   };
   return instance;
