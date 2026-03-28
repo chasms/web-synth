@@ -74,19 +74,14 @@ export const LfoWaveformPreview: React.FC<LfoWaveformPreviewProps> = ({
     );
 
     // Compute inverted samples for display
-    // Inverted = signal * -1; for unipolar, reflect around the center (depth/2)
-    const invertedSamples = samples.map((value) => {
-      if (bipolar) {
-        return -value;
-      }
-      // Unipolar: reflect around the center value (depth / 2)
-      const center = depth / 2;
-      return center - (value - center);
-    });
+    // Inverted output uses simple negation (* -1) to match module DSP behavior
+    // In unipolar mode, this produces negative values (-depth..0)
+    const invertedSamples = samples.map((value) => -value);
 
     // Determine the value range for Y-axis mapping
-    const maxAmplitude = bipolar ? depth : depth;
-    const minValue = bipolar ? -maxAmplitude : 0;
+    // When showing inverted, always use bipolar range to accommodate negative inverted values
+    const maxAmplitude = depth;
+    const minValue = showInverted || bipolar ? -maxAmplitude : 0;
     const maxValue = maxAmplitude;
     const valueRange = maxValue - minValue || 1;
 

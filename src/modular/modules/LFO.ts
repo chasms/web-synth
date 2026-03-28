@@ -190,7 +190,12 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
     if (sampleHoldTimerId !== null) {
       clearInterval(sampleHoldTimerId);
     }
-    const rateHz = oscillatorNode.frequency.value;
+    const rateHz =
+      activeOscillatorNode?.frequency.value ?? oscillatorNode.frequency.value;
+    // Guard against zero or invalid rates to prevent Infinity interval
+    if (!Number.isFinite(rateHz) || rateHz <= 0) {
+      return;
+    }
     const intervalMs = (1 / rateHz) * 1000;
     updateSampleHoldValue(); // Set initial value immediately
     sampleHoldTimerId = setInterval(updateSampleHoldValue, intervalMs);
@@ -214,9 +219,9 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
   // For unipolar mode, we need to add a DC offset
   // Bipolar: oscillator output is -1..+1, multiplied by depth
   // Unipolar: we need to shift this to 0..+1
-  // We use a ConstantSource for the DC offset
+  // We use a ConstantSource for the DC offset (always 0.5, scaled by dcScaleNode)
   const dcOffsetNode = audioContext.createConstantSource();
-  dcOffsetNode.offset.value = isBipolar ? 0 : 0.5; // 0.5 shifts center from 0 to 0.5
+  dcOffsetNode.offset.value = 0.5; // Always 0.5, dcScaleNode controls whether it's applied
 
   // For unipolar, we also need to halve the oscillator amplitude
   // so that (osc * 0.5 * depth) + (0.5 * depth) ranges from 0 to depth
@@ -296,6 +301,14 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
 
     // Recreate the oscillator to reset phase
     const oldOscillator = activeOscillatorNode;
+
+    // Disconnect rateCvGainNode from old oscillator's frequency to prevent stale connections
+    try {
+      rateCvGainNode.disconnect(oldOscillator.frequency);
+    } catch {
+      /* may not be connected */
+    }
+
     try {
       oldOscillator.stop();
     } catch {
@@ -310,16 +323,23 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
     // Reconnect rate CV gain to the new oscillator frequency
     rateCvGainNode.connect(newOscillator.frequency);
     // Apply phase offset: start slightly in the past so the current phase matches offset
+    // Clamp to 0 to prevent negative start times early in session
     const rateHz = newOscillator.frequency.value;
     const offsetSeconds = rateHz > 0 ? currentPhaseOffset / rateHz : 0;
-    newOscillator.start(audioContext.currentTime - offsetSeconds);
+    const startTime = Math.max(0, audioContext.currentTime - offsetSeconds);
+    newOscillator.start(startTime);
     activeOscillatorNode = newOscillator;
   };
 
   // Start the oscillator with phase offset (start in the past to simulate phase offset)
+  // Clamp to 0 to prevent negative start times early in session
   const initialOffsetSeconds =
     initialRate > 0 ? currentPhaseOffset / initialRate : 0;
-  oscillatorNode.start(audioContext.currentTime - initialOffsetSeconds);
+  const initialStartTime = Math.max(
+    0,
+    audioContext.currentTime - initialOffsetSeconds,
+  );
+  oscillatorNode.start(initialStartTime);
   dcOffsetNode.start();
   sampleHoldSourceNode.start();
 
@@ -428,6 +448,9 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
         currentSyncDivision = partial["syncDivision"] as LfoSyncDivision;
       }
 
+      // Track if rate changed (for S&H timer restart)
+      let rateChanged = false;
+
       // If any sync-related param changed, recompute the rate
       if (
         partial["syncEnabled"] !== undefined ||
@@ -439,6 +462,7 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
           mode: "setTarget",
           timeConstant: 0.05,
         });
+        rateChanged = true;
       }
 
       if (
@@ -451,6 +475,12 @@ export const createLFO: CreateModuleFn<LFOParams> = (context, parameters) => {
           mode: "setTarget",
           timeConstant: 0.05,
         });
+        rateChanged = true;
+      }
+
+      // Restart S&H timer if rate changed and currently in S&H mode
+      if (rateChanged && currentWaveform === "sample_hold") {
+        startSampleHoldTimer();
       }
 
       if (

@@ -118,7 +118,8 @@ export function constrainLfoPhaseOffset(phaseOffset: number): number {
  * @returns Formatted string like "90°"
  */
 export function formatPhaseOffset(phaseOffset: number): string {
-  const degrees = Math.round(constrainLfoPhaseOffset(phaseOffset) * 360);
+  // Apply modulo 360 after rounding to ensure 0°–359° range (not 360°)
+  const degrees = Math.round(constrainLfoPhaseOffset(phaseOffset) * 360) % 360;
   return `${degrees}°`;
 }
 
